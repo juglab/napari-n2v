@@ -6,6 +6,8 @@ see: https://napari.org/docs/dev/plugins/hook_specifications.html
 
 Replace code below according to your needs.
 """
+import pathlib
+
 from napari_plugin_engine import napari_hook_implementation
 from qtpy.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from magicgui import magic_factory
@@ -30,9 +32,17 @@ class ExampleQWidget(QWidget):
         print("napari has", len(self.viewer.layers), "layers")
 
 
-@magic_factory
-def example_magic_widget(img_layer: "napari.layers.Image"):
-    print(f"you have selected {img_layer}")
+@magic_factory(patch_shape={"widget_type": "Slider", "min": 16, "max": 512, "step": 16, "value": 64},
+               neighborhood_radius={"widget_type": "Slider", "min": 1, "max": 16, "value": 5})
+def example_magic_widget(training_image: "napari.layers.Image",
+                         validation_image: "napari.layers.Image", number_of_epochs: int = 200,
+                         number_of_steps: int = 100, batch_size: int = 16, patch_shape=64,
+                         neighborhood_radius=1):
+    # understood magicgui, thanks documentation.
+    # N2V code execution be here
+    # add graphs, progressbar(s)
+    # create image layer with result on training end
+    print(f"you have selected {training_image}", number_of_epochs, number_of_steps, batch_size, patch_shape, neighborhood_radius)
 
 
 @napari_hook_implementation
