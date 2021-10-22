@@ -9,34 +9,35 @@ Replace code below according to your needs.
 import pathlib
 
 import numpy as np
+from magicgui.types import FileDialogMode
 from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
 from n2v.models import N2VConfig, N2V
 from napari_plugin_engine import napari_hook_implementation
 from magicgui import magic_factory
+from napari.layers import Image
 
 
-@magic_factory(patch_shape={"widget_type": "Slider", "min": 16, "max": 512, "step": 16, "value": 64},
-               neighborhood_radius={"widget_type": "Slider", "min": 1, "max": 16, "value": 5})
+@magic_factory(auto_call=False, patch_shape={"widget_type": "Slider", "min": 16, "max": 512, "step": 16, "value": 64},
+               neighborhood_radius={"widget_type": "Slider", "min": 1, "max": 16, "value": 5},
+               filename={"label": "Save model", "mode": FileDialogMode.OPTIONAL_FILE})
 def example_magic_widget(training_image: "napari.layers.Image",
-                         validation_image: "napari.layers.Image", number_of_epochs: int = 200,
-                         number_of_steps: int = 100, batch_size: int = 16, patch_shape=64,
-                         neighborhood_radius=1):
+                         validation_image: "napari.layers.Image", number_of_epochs: int = 5,
+                         number_of_steps: int = 5, batch_size: int = 16, patch_shape=64,
+                         neighborhood_radius=1, filename=pathlib.Path.home()) -> Image:
     # understood magicgui, thanks documentation.
     # N2V code execution be here
     # add graphs, progressbar(s)
     # create image layer with result on training end
+
+
+
     datagen = N2V_DataGenerator()
-    print(training_image.data)
-    print(type(training_image.data))
-    print(patch_shape)
-    print(type(patch_shape))
-    print(len(training_image.data.shape))
     shape = (patch_shape, patch_shape)
     X = training_image.data[np.newaxis, ..., np.newaxis]
     # X = datagen.generate_patches(X.data, shape=shape)
     X_val = validation_image.data[np.newaxis, ..., np.newaxis]
     # X_val = datagen.generate_patches(X_val, shape=shape)
-
+    #TODO: hackaround for the slicing error in N2V, find solution
     X_patches = []
     if X.shape[1] > shape[0] and X.shape[2] > shape[1]:
         for y in range(0, X.shape[1] - shape[0] + 1, shape[0]):
@@ -61,11 +62,18 @@ def example_magic_widget(training_image: "napari.layers.Image",
     # We are now creating our network model.
     model = N2V(config, model_name, basedir=basedir)
     history = model.train(X_patches, X_val_patches)
+    model.load_weights('weights_best.h5')
+    p_ = model.predict(training_image.data.astype(np.float32), 'YX', tta=False)
+
     print(f"you have selected {training_image}", number_of_epochs, number_of_steps, batch_size, patch_shape,
           neighborhood_radius)
+    print(p_)
+    return Image(p_, name='prediction result')
 
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     # you can return either a single widget, or a sequence of widgets
+    #example_magic_widget.filename.called.connect()
+
     return [example_magic_widget]
