@@ -3,3 +3,5 @@
 # See also: https://caremad.io/posts/2013/07/setup-vs-requirement/
 
 -e .
+
+n2v~=0.3.1

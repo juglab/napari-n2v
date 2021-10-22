@@ -8,28 +8,11 @@ Replace code below according to your needs.
 """
 import pathlib
 
+import numpy as np
+from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
+from n2v.models import N2VConfig, N2V
 from napari_plugin_engine import napari_hook_implementation
-from qtpy.QtWidgets import QWidget, QHBoxLayout, QPushButton
 from magicgui import magic_factory
-
-
-class ExampleQWidget(QWidget):
-    # your QWidget.__init__ can optionally request the napari viewer instance
-    # in one of two ways:
-    # 1. use a parameter called `napari_viewer`, as done here
-    # 2. use a type annotation of 'napari.viewer.Viewer' for any parameter
-    def __init__(self, napari_viewer):
-        super().__init__()
-        self.viewer = napari_viewer
-
-        btn = QPushButton("Click me!")
-        btn.clicked.connect(self._on_click)
-
-        self.setLayout(QHBoxLayout())
-        self.layout().addWidget(btn)
-
-    def _on_click(self):
-        print("napari has", len(self.viewer.layers), "layers")
 
 
 @magic_factory(patch_shape={"widget_type": "Slider", "min": 16, "max": 512, "step": 16, "value": 64},
@@ -42,10 +25,47 @@ def example_magic_widget(training_image: "napari.layers.Image",
     # N2V code execution be here
     # add graphs, progressbar(s)
     # create image layer with result on training end
-    print(f"you have selected {training_image}", number_of_epochs, number_of_steps, batch_size, patch_shape, neighborhood_radius)
+    datagen = N2V_DataGenerator()
+    print(training_image.data)
+    print(type(training_image.data))
+    print(patch_shape)
+    print(type(patch_shape))
+    print(len(training_image.data.shape))
+    shape = (patch_shape, patch_shape)
+    X = training_image.data[np.newaxis, ..., np.newaxis]
+    # X = datagen.generate_patches(X.data, shape=shape)
+    X_val = validation_image.data[np.newaxis, ..., np.newaxis]
+    # X_val = datagen.generate_patches(X_val, shape=shape)
+
+    X_patches = []
+    if X.shape[1] > shape[0] and X.shape[2] > shape[1]:
+        for y in range(0, X.shape[1] - shape[0] + 1, shape[0]):
+            for x in range(0, X.shape[2] - shape[1] + 1, shape[1]):
+                X_patches.append(X[:, y:y + shape[0], x:x + shape[1]])
+    X_patches = np.concatenate(X_patches)
+    X_val_patches = []
+    if X_val.shape[1] > shape[0] and X_val.shape[2] > shape[1]:
+        for y in range(0, X_val.shape[1] - shape[0] + 1, shape[0]):
+            for x in range(0, X_val.shape[2] - shape[1] + 1, shape[1]):
+                X_val_patches.append(X[:, y:y + shape[0], x:x + shape[1]])
+    X_val_patches = np.concatenate(X_val_patches)
+    config = N2VConfig(X_patches, unet_kern_size=3,
+                       train_steps_per_epoch=number_of_steps, train_epochs=number_of_epochs, train_loss='mse',
+                       batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=(64, 64),
+                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=5)
+
+    # a name used to identify the model
+    model_name = 'n2v_2D'
+    # the base directory in which our model will live
+    basedir = 'models'
+    # We are now creating our network model.
+    model = N2V(config, model_name, basedir=basedir)
+    history = model.train(X_patches, X_val_patches)
+    print(f"you have selected {training_image}", number_of_epochs, number_of_steps, batch_size, patch_shape,
+          neighborhood_radius)
 
 
 @napari_hook_implementation
 def napari_experimental_provide_dock_widget():
     # you can return either a single widget, or a sequence of widgets
-    return [ExampleQWidget, example_magic_widget]
+    return [example_magic_widget]
