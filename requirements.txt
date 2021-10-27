@@ -5,3 +5,10 @@
 -e .
 
 n2v~=0.3.1
+pyparsing~=2.4.7
+setuptools~=58.2.0
+packaging~=21.0
+numpy~=1.21.2
+magicgui~=0.3.0
+QtPy~=1.11.2
+napari~=0.4.12
