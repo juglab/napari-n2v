@@ -1,9 +1,0 @@
-site_name: napari-n2v
-site_description: A simple plugin to use with napari
-site_author: Tom Burke
-
-theme: readthedocs
-
-
-pages:
-- Home: index.md

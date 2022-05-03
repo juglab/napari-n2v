@@ -1,0 +1,10 @@
+name: napari-n2v
+display_name: napari n2v
+contributions:
+  commands: 
+    - id: napari-n2v.make_n2v_widget
+      python_name: napari_n2v._n2v_widget:N2VWidget
+      title: Make N2V widget
+  widgets:
+    - command: napari-n2v.make_n2v_widget
+      display_name: N2V
