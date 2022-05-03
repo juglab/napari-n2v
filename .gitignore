@@ -66,6 +66,11 @@ docs/_build/
 # PyBuilder
 target/
 
+# Pycharm and VSCode
+.idea/
+venv/
+.vscode/
+
 # IPython Notebook
 .ipynb_checkpoints
 
@@ -76,7 +81,4 @@ target/
 .DS_Store
 
 # written by setuptools_scm
-*/_version.py
-.idea/
-venv/
-models/
+**/_version.py
