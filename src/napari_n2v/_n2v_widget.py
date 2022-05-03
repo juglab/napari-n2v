@@ -396,7 +396,20 @@ def train(model, X_patches, X_val_patches):
 if __name__ == "__main__":
     with napari.gui_qt():
         # Loading of the training and validation images
-        # TODO
+        # create a folder for our data
+        if not os.path.isdir('./data'):
+            os.mkdir('data')
+
+        # check if data has been downloaded already
+        zipPath = "data/BSD68_reproducibility.zip"
+        if not os.path.exists(zipPath):
+            # download and unzip data
+            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
+            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
+                zip_ref.extractall("data")
+
+        X = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
+        X_val = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
 
         # create a Viewer and add an image here
         viewer = napari.Viewer()
@@ -405,7 +418,7 @@ if __name__ == "__main__":
         viewer.window.add_dock_widget(N2VWidget(viewer))
 
         # add images
-        viewer.add_image(img_train, name='Train')
-        viewer.add_labels(img_val, name='Val')
+        viewer.add_image(X, name='Train')
+        viewer.add_labels(X_val, name='Val')
 
         napari.run()
