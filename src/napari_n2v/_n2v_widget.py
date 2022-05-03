@@ -77,28 +77,28 @@ def create_choice_widget(napari_viewer):
         return widget
 
     img = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Train")
-    lbl = layer_choice_widget(napari_viewer, annotation=napari.layers.Labels, name="Val")
+    lbl = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Val")
 
     return Container(widgets=[img, lbl])
 
 
 @magic_factory(auto_call=True,
                labels=False,
-               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 8})
+               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 16})
 def get_batch_size_slider(slider: int):
     pass
 
 
 @magic_factory(auto_call=True,
                labels=False,
-               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 8})
+               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 128})
 def get_patch_size_slider(slider: int):
     pass
 
 
 @magic_factory(auto_call=True,
                labels=False,
-               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 8})
+               slider={"widget_type": "Slider", "min": 1, "max": 16, "step": 1, 'value': 2})
 def get_neighborhood_radius_slider(slider: int):
     pass
 
@@ -353,10 +353,10 @@ def prepare_data(img_train, img_val=None, patch_shape=16):
     X_train = img_train[np.newaxis, ..., np.newaxis]
     X_train_patches = create_patches(X_train, patch_shape_XY)
 
-    if not img_val: # TODO: does this make sense?
+    if img_val is not None:  # TODO: does this make sense?
         np.random.shuffle(X_train_patches)
-        X_val_patches = X_train_patches[len(X_train_patches)//2:]
-        X_train_patches = X_train_patches[:len(X_train_patches)//2]
+        X_val_patches = X_train_patches[-10:]
+        X_train_patches = X_train_patches[:-10]
     else:
         X_val = img_val[np.newaxis, ..., np.newaxis]
         X_val_patches = create_patches(X_val, patch_shape_XY)
@@ -373,10 +373,18 @@ def create_model(X_patches,
     from n2v.models import N2VConfig, N2V
 
     # create config
+    #config = N2VConfig(X_patches, unet_kern_size=3,
+     #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
+      #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
+       #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
+
     config = N2VConfig(X_patches, unet_kern_size=3,
-                       train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
-                       batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=(64, 64),
-                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
+                       train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse', batch_norm=True,
+                       train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=(64, 64),
+                       unet_n_first=96,
+                       unet_residual=True,
+                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2,
+                       single_net_per_channel=False)
 
     # create network
     model_name = 'n2v_2D'
@@ -384,6 +392,7 @@ def create_model(X_patches,
     model = N2V(config, model_name, basedir=basedir)
 
     # add updater
+    model.prepare_for_training(metrics=())
     model.callbacks.append(updater)
 
     return model
@@ -394,6 +403,10 @@ def train(model, X_patches, X_val_patches):
 
 
 if __name__ == "__main__":
+    import os
+    import urllib
+    import zipfile
+
     with napari.gui_qt():
         # Loading of the training and validation images
         # create a folder for our data
@@ -408,8 +421,8 @@ if __name__ == "__main__":
             with zipfile.ZipFile(zipPath, 'r') as zip_ref:
                 zip_ref.extractall("data")
 
-        X = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
-        X_val = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
+        Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
+        Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
 
         # create a Viewer and add an image here
         viewer = napari.Viewer()
@@ -418,7 +431,7 @@ if __name__ == "__main__":
         viewer.window.add_dock_widget(N2VWidget(viewer))
 
         # add images
-        viewer.add_image(X, name='Train')
-        viewer.add_labels(X_val, name='Val')
+        viewer.add_image(Train_img[:200], name='Train')
+        viewer.add_image(Val_img, name='Val')
 
         napari.run()

@@ -1,11 +1,5 @@
+__version__ = "0.0.1"
 
-try:
-    from ._version import version as __version__
-except ImportError:
-    __version__ = "unknown"
+from ._n2v_widget import N2VWidget
 
-
-
-
-from ._dock_widget import napari_experimental_provide_dock_widget
 
