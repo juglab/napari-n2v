@@ -17,7 +17,7 @@ from qtpy.QtWidgets import (
     QFormLayout,
     QComboBox,
     QFileDialog,
-    QLabel
+    QCheckBox
 )
 from enum import Enum
 from napari_n2v._tbplot_widget import TBPlotWidget
@@ -82,27 +82,6 @@ def create_choice_widget(napari_viewer):
     return Container(widgets=[img, lbl])
 
 
-@magic_factory(auto_call=True,
-               labels=False,
-               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 16})
-def get_batch_size_slider(slider: int):
-    pass
-
-
-@magic_factory(auto_call=True,
-               labels=False,
-               slider={"widget_type": "Slider", "min": 8, "max": 512, "step": 16, 'value': 128})
-def get_patch_size_slider(slider: int):
-    pass
-
-
-@magic_factory(auto_call=True,
-               labels=False,
-               slider={"widget_type": "Slider", "min": 1, "max": 16, "step": 1, 'value': 2})
-def get_neighborhood_radius_slider(slider: int):
-    pass
-
-
 class N2VWidget(QWidget):
     def __init__(self, napari_viewer):
         super().__init__()
@@ -111,6 +90,7 @@ class N2VWidget(QWidget):
         self.viewer = napari_viewer
 
         self.setLayout(QVBoxLayout())
+        self.setMaximumWidth(350)
 
         # layer choice widgets
         self.layer_choice = create_choice_widget(napari_viewer)
@@ -118,34 +98,46 @@ class N2VWidget(QWidget):
         self.img_val = self.layer_choice.Val
         self.layout().addWidget(self.layer_choice.native)
 
-        # Number of epochs
+        # 3D checkbox
+        self.checkbox_3d = QCheckBox('3D')
+
+        # number of epochs
         self.n_epochs_spin = QSpinBox()
         self.n_epochs_spin.setMinimum(1)
         self.n_epochs_spin.setMaximum(1000)
         self.n_epochs_spin.setValue(2)
         self.n_epochs = self.n_epochs_spin.value()
 
-        # Number of steps
+        # number of steps
         self.n_steps_spin = QSpinBox()
         self.n_steps_spin.setMaximum(1000)
         self.n_steps_spin.setMinimum(1)
         self.n_steps_spin.setValue(10)
         self.n_steps = self.n_steps_spin.value()
 
-        # batch, patch and neighborhood radius
-        self.batch_size_slider = get_batch_size_slider()
-        self.patch_size_slider = get_patch_size_slider()
-        self.neighborhood_slider = get_neighborhood_radius_slider()
+        # batch size
+        self.batch_size_spin = QSpinBox()
+        self.batch_size_spin.setMaximum(512)
+        self.batch_size_spin.setMinimum(1)
+        self.batch_size_spin.setSingleStep(8)
+        self.batch_size_spin.setValue(16)
+
+        # patch size
+        self.patch_size_spin = QSpinBox()
+        self.patch_size_spin.setMaximum(512)
+        self.patch_size_spin.setMinimum(64)
+        self.patch_size_spin.setSingleStep(8)
+        self.patch_size_spin.setValue(64)
 
         # add widgets
         # TODO add tooltips
         others = QWidget()
         formLayout = QFormLayout()
+        formLayout.addRow('', self.checkbox_3d)
         formLayout.addRow('N epochs', self.n_epochs_spin)
         formLayout.addRow('N steps', self.n_steps_spin)
-        formLayout.addRow('Batch size', self.batch_size_slider.native)
-        formLayout.addRow('Patch size', self.patch_size_slider.native)
-        formLayout.addRow('Neighborhood radius', self.neighborhood_slider.native)
+        formLayout.addRow('Batch size', self.batch_size_spin)
+        formLayout.addRow('Patch size', self.patch_size_spin)
         others.setLayout(formLayout)
         self.layout().addWidget(others)
 
@@ -167,8 +159,16 @@ class N2VWidget(QWidget):
         self.pb_steps.setTextVisible(True)
         self.pb_steps.setFormat(f'Step ?/{self.n_steps_spin.value()}')
 
+        self.pb_pred = QProgressBar()
+        self.pb_pred.setValue(0)
+        self.pb_pred.setMinimum(0)
+        self.pb_pred.setMaximum(100)
+        self.pb_pred.setTextVisible(True)
+        self.pb_pred.setFormat(f'Prediction ?/?')
+
         progress_widget.layout().addWidget(self.pb_epochs)
         progress_widget.layout().addWidget(self.pb_steps)
+        progress_widget.layout().addWidget(self.pb_pred)
         self.layout().addWidget(progress_widget)
 
         # train button
@@ -190,7 +190,7 @@ class N2VWidget(QWidget):
         self.layout().addWidget(save_widget)
 
         # plot widget
-        self.plot = TBPlotWidget(300, 300)
+        self.plot = TBPlotWidget(500, 500)
         self.layout().addWidget(self.plot.native)
 
         # worker
@@ -289,6 +289,8 @@ class N2VWidget(QWidget):
 @thread_worker(start_thread=False)
 def train_worker(widget: N2VWidget):
     import threading
+    import tensorflow as tf
+    tf.config.set_visible_devices([], 'GPU')
 
     # get images
     train_image = widget.img_train.value.data
@@ -300,9 +302,9 @@ def train_worker(widget: N2VWidget):
     # get other parameters
     n_epochs = widget.n_epochs
     n_steps = widget.n_steps
-    batch_size = widget.batch_size_slider.slider.get_value()
-    patch_shape = widget.patch_size_slider.slider.get_value()
-    neighborhood_radius = widget.neighborhood_slider.slider.get_value()
+    batch_size = widget.batch_size_spin.slider.get_value()
+    patch_shape = widget.patch_size_spin.slider.get_value()
+    neighborhood_radius = widget.neighborhood_spin.slider.get_value()
 
     # prepare data
     X_train, X_val = prepare_data(train_image, validation_image, patch_shape)
@@ -328,38 +330,35 @@ def train_worker(widget: N2VWidget):
 
     # run prediction
     model.load_weights('weights_best.h5')
-    denoised_image = model.predict(train_image.data.astype(np.float32), 'YX', tta=False)
-
-    # display result
+    denoised_image = np.zeros(train_image.shape)
     viewer.add_image(denoised_image, name='denoised image', opacity=1, visible=True)
 
+    # TODO update the progress bar, although we sent the DONE update
+    # TODO this accesses a different thread
+    for i in range(denoised_image.shape[0]):
+        denoised_image[i, ...] = model.predict(train_image[i, ...].astype(np.float32), 'YX', tta=False)
 
+
+# 2D with patch: (B,Y,X,1)
+# 3D with patch: (B,Z,Y,X,1)
 def prepare_data(img_train, img_val=None, patch_shape=16):
-    def create_patches(X, shape):
-        # TODO: hackaround for the slicing error in N2V, find solution
-        X_patches = []
-        if X.shape[1] > shape[0] and X.shape[2] > shape[1]:
-            for y in range(0, X.shape[1] - shape[0] + 1, shape[0]):
-                for x in range(0, X.shape[2] - shape[1] + 1, shape[1]):
-                    X_patches.append(X[:, y:y + shape[0], x:x + shape[1]])
-        X_patches = np.concatenate(X_patches)
-
-        return X_patches
-
     # shape
     patch_shape_XY = (patch_shape, patch_shape)
 
     # get images
-    X_train = img_train[np.newaxis, ..., np.newaxis]
-    X_train_patches = create_patches(X_train, patch_shape_XY)
+    X_train = img_train[..., np.newaxis]
+    X_train_patches = X_train  # create_patches(X_train, patch_shape_XY)
 
-    if img_val is not None:  # TODO: does this make sense?
+    if img_val is None:  # TODO: does this make sense?
         np.random.shuffle(X_train_patches)
         X_val_patches = X_train_patches[-10:]
         X_train_patches = X_train_patches[:-10]
     else:
-        X_val = img_val[np.newaxis, ..., np.newaxis]
-        X_val_patches = create_patches(X_val, patch_shape_XY)
+        X_val = img_val[..., np.newaxis]
+        X_val_patches = X_val  # create_patches(X_val, patch_shape_XY)
+
+    print(f'Train patches: {X_train_patches.shape}')
+    print(f'Val patches: {X_val_patches.shape}')
 
     return X_train_patches, X_val_patches
 
@@ -373,10 +372,10 @@ def create_model(X_patches,
     from n2v.models import N2VConfig, N2V
 
     # create config
-    #config = N2VConfig(X_patches, unet_kern_size=3,
-     #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
-      #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-       #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
+    # config = N2VConfig(X_patches, unet_kern_size=3,
+    #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
+    #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
+    #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
 
     config = N2VConfig(X_patches, unet_kern_size=3,
                        train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse', batch_norm=True,
@@ -407,22 +406,36 @@ if __name__ == "__main__":
     import urllib
     import zipfile
 
+    dims = '3D'  # 2D, 3D
+
     with napari.gui_qt():
         # Loading of the training and validation images
         # create a folder for our data
         if not os.path.isdir('./data'):
             os.mkdir('data')
 
-        # check if data has been downloaded already
-        zipPath = "data/BSD68_reproducibility.zip"
-        if not os.path.exists(zipPath):
-            # download and unzip data
-            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
-            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                zip_ref.extractall("data")
+        if dims == '2D':
+            # check if data has been downloaded already
+            zipPath = "data/BSD68_reproducibility.zip"
+            if not os.path.exists(zipPath):
+                # download and unzip data
+                data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
+                with zipfile.ZipFile(zipPath, 'r') as zip_ref:
+                    zip_ref.extractall("data")
 
-        Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
-        Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
+            Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
+            Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
+        else:
+            from skimage import io
+
+            zipPath = 'data/flywing-data.zip'
+            if not os.path.exists(zipPath):
+                # download and unzip data
+                data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
+                with zipfile.ZipFile(zipPath, 'r') as zip_ref:
+                    zip_ref.extractall('data')
+
+            Train_img = io.imread('data/flywing.tif')
 
         # create a Viewer and add an image here
         viewer = napari.Viewer()
@@ -430,8 +443,11 @@ if __name__ == "__main__":
         # custom code to add data here
         viewer.window.add_dock_widget(N2VWidget(viewer))
 
-        # add images
-        viewer.add_image(Train_img[:200], name='Train')
-        viewer.add_image(Val_img, name='Val')
+        if dims == '2D':
+            # add images
+            viewer.add_image(Train_img[:200], name='Train')
+            viewer.add_image(Val_img, name='Val')
+        else:
+            viewer.add_image(Train_img, name='Train')
 
         napari.run()
