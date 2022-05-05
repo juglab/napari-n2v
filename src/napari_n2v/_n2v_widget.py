@@ -132,7 +132,7 @@ class N2VWidget(QWidget):
         # patch Z size
         self.patch_Z_spin = QSpinBox()
         self.patch_Z_spin.setMaximum(512)
-        self.patch_Z_spin.setMinimum(64)
+        self.patch_Z_spin.setMinimum(4)
         self.patch_Z_spin.setSingleStep(8)
         self.patch_Z_spin.setValue(64)
         self.patch_Z_spin.setEnabled(False)
@@ -185,7 +185,12 @@ class N2VWidget(QWidget):
         self.train_button = QPushButton("Train", self)
         self.layout().addWidget(self.train_button)
 
-        # Save button
+        # prediction button
+        self.prediction_button = QPushButton("Predict", self)
+        self.prediction_button.setEnabled(False)
+        self.layout().addWidget(self.prediction_button)
+
+        # save button
         save_widget = QWidget()
         save_widget.setLayout(QHBoxLayout())
 
@@ -220,7 +225,7 @@ class N2VWidget(QWidget):
         # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
         # place-holder for the trained model
-        self.model, self.X_val, self.threshold = None, None, None
+        self.model = None
         self.save_button.clicked.connect(self.save_model)
 
     def interrupt(self):
@@ -235,6 +240,7 @@ class N2VWidget(QWidget):
             self.train_button.setText('Stop')
 
             self.save_button.setEnabled(False)
+            self.prediction_button.setEnabled(False)
 
             self.worker = train_worker(self)
             self.worker.yielded.connect(lambda x: self.update_all(x))
@@ -248,6 +254,7 @@ class N2VWidget(QWidget):
         self.train_button.setText('Train again')
 
         self.save_button.setEnabled(True)
+        self.prediction_button.setEnabled(True)
 
     def update_patch(self):
         if self.checkbox_3d.isChecked():
@@ -312,11 +319,12 @@ def train_worker(widget: N2VWidget):
     tf.config.set_visible_devices([], 'GPU')
 
     # get images
-    assert widget.img_train != widget.img_val
-
-
-    train_image = widget.img_train.value.data
-    validation_image = widget.img_val.value.data
+    if widget.img_train.value == widget.img_val.value:
+        train_image = widget.img_train.value.data
+        validation_image = None
+    else:
+        train_image = widget.img_train.value.data
+        validation_image = widget.img_val.value.data
 
     # create updated
     updater = Updater()
@@ -357,11 +365,10 @@ def train_worker(widget: N2VWidget):
         else:
             yield update
 
-
+    widget.model = model
     # TODO: separate prediction
 
     # run prediction
-    #model.load_weights('weights_best.h5')
     #denoised_image = np.zeros(train_image.shape)
     #viewer.add_image(denoised_image, name='denoised image', opacity=1, visible=True)
 
@@ -374,26 +381,25 @@ def train_worker(widget: N2VWidget):
 # 2D with patch: (B,Y,X,1)
 # 3D with patch: (B,Z,Y,X,1)
 # n2v expects 'SZYXC' or 'SYXC'
-def prepare_data(img_train, img_val=None, patch_shape=(64, 64)):
+def prepare_data(img_train, img_val, patch_shape=(64, 64)):
     from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
 
     # get images
-    X_train = img_train[..., np.newaxis]
-    X_train_patches = X_train  # create_patches(X_train, patch_shape_XY)
+    X_train = img_train[np.newaxis, ..., np.newaxis]
 
     # TODO: what if Time dimension
     # create data generator
     data_gen = N2V_DataGenerator()
 
-    # dimensions must be 'SZYXC' or 'SYXC'
-    #data_gen.generate_patches_from_list()
-    if img_val is None:  # TODO: this does not make sense currently
-        np.random.shuffle(X_train_patches)
-        X_val_patches = X_train_patches[-10:]
-        X_train_patches = X_train_patches[:-10]
+    # generate train patches
+    X_train_patches = data_gen.generate_patches_from_list(X_train, shape=patch_shape, shuffle=True)
+
+    if img_val is None:  # TODO: how to choose number of validation patches?
+        X_val_patches = X_train_patches[-5:]
+        X_train_patches = X_train_patches[:-5]
     else:
-        X_val = img_val[..., np.newaxis]
-        X_val_patches = X_val  # create_patches(X_val, patch_shape_XY)
+        X_val = img_val[np.newaxis, ..., np.newaxis]
+        X_val_patches = data_gen.generate_patches_from_list(X_val, shape=patch_shape, shuffle=True)
 
     print(f'Train patches: {X_train_patches.shape}')
     print(f'Val patches: {X_val_patches.shape}')
