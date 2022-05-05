@@ -309,6 +309,9 @@ def train_worker(widget: N2VWidget):
     tf.config.set_visible_devices([], 'GPU')
 
     # get images
+    assert widget.img_train != widget.img_val
+
+
     train_image = widget.img_train.value.data
     validation_image = widget.img_val.value.data
 
@@ -351,27 +354,37 @@ def train_worker(widget: N2VWidget):
         else:
             yield update
 
+
+    # TODO: separate prediction
+
     # run prediction
-    model.load_weights('weights_best.h5')
-    denoised_image = np.zeros(train_image.shape)
-    viewer.add_image(denoised_image, name='denoised image', opacity=1, visible=True)
+    #model.load_weights('weights_best.h5')
+    #denoised_image = np.zeros(train_image.shape)
+    #viewer.add_image(denoised_image, name='denoised image', opacity=1, visible=True)
 
     # TODO update the progress bar, although we sent the DONE update
     # TODO this accesses a different thread
-    for i in range(denoised_image.shape[0]):
-        denoised_image[i, ...] = model.predict(train_image[i, ...].astype(np.float32), 'YX', tta=False)
+    #for i in range(denoised_image.shape[0]):
+     #   denoised_image[i, ...] = model.predict(train_image[i, ...].astype(np.float32), 'YX', tta=False)
 
 
 # 2D with patch: (B,Y,X,1)
 # 3D with patch: (B,Z,Y,X,1)
+# n2v expects 'SZYXC' or 'SYXC'
 def prepare_data(img_train, img_val=None, patch_shape=(64, 64)):
+    from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
+
     # get images
     X_train = img_train[..., np.newaxis]
     X_train_patches = X_train  # create_patches(X_train, patch_shape_XY)
 
-    
+    # TODO: what if Time dimension
+    # create data generator
+    data_gen = N2V_DataGenerator()
 
-    if img_val is None:  # TODO: does this make sense?
+    # dimensions must be 'SZYXC' or 'SYXC'
+    #data_gen.generate_patches_from_list()
+    if img_val is None:  # TODO: this does not make sense currently
         np.random.shuffle(X_train_patches)
         X_val_patches = X_train_patches[-10:]
         X_train_patches = X_train_patches[:-10]
