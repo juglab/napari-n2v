@@ -9,13 +9,17 @@ class TBPlotWidget(Container):
     def __setitem__(self, key, value):
         pass
 
-    def __init__(self, max_width=None, max_height=None):
+    def __init__(self, max_width=None, max_height=None, min_width=None, min_height=None):
         super().__init__()
 
         if max_width:
             self.native.setMaximumWidth(max_width)
         if max_height:
             self.native.setMaximumHeight(max_height)
+        if min_width:
+            self.native.setMinimumWidth(min_width)
+        if min_height:
+            self.native.setMinimumHeight(min_height)
 
         self.graphics_widget = pg.GraphicsLayoutWidget()
         self.graphics_widget.setBackground(None)

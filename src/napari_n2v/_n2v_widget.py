@@ -3,7 +3,6 @@
 import napari
 from tensorflow.keras.callbacks import Callback
 from napari.qt.threading import thread_worker
-from magicgui import magic_factory
 from magicgui.widgets import create_widget, Container
 from queue import Queue
 import numpy as np
@@ -22,6 +21,8 @@ from qtpy.QtWidgets import (
 from enum import Enum
 from napari_n2v._tbplot_widget import TBPlotWidget
 
+PREDICT = '_denoised'
+
 
 class State(Enum):
     IDLE = 0
@@ -32,6 +33,8 @@ class Updates(Enum):
     EPOCH = 'epoch'
     BATCH = 'batch'
     LOSS = 'loss'
+    PRED_TRAIN = 'train prediction'
+    PRED_VAL = 'val prediction'
     DONE = 'done'
 
 
@@ -112,7 +115,7 @@ class N2VWidget(QWidget):
         self.n_steps_spin = QSpinBox()
         self.n_steps_spin.setMaximum(1000)
         self.n_steps_spin.setMinimum(1)
-        self.n_steps_spin.setValue(10)
+        self.n_steps_spin.setValue(2)
         self.n_steps = self.n_steps_spin.value()
 
         # batch size
@@ -125,7 +128,7 @@ class N2VWidget(QWidget):
         # patch XY size
         self.patch_XY_spin = QSpinBox()
         self.patch_XY_spin.setMaximum(512)
-        self.patch_XY_spin.setMinimum(64)
+        self.patch_XY_spin.setMinimum(8)
         self.patch_XY_spin.setSingleStep(8)
         self.patch_XY_spin.setValue(64)
 
@@ -186,9 +189,9 @@ class N2VWidget(QWidget):
         self.layout().addWidget(self.train_button)
 
         # prediction button
-        self.prediction_button = QPushButton("Predict", self)
-        self.prediction_button.setEnabled(False)
-        self.layout().addWidget(self.prediction_button)
+        self.predict_button = QPushButton("Predict", self)
+        self.predict_button.setEnabled(False)
+        self.layout().addWidget(self.predict_button)
 
         # save button
         save_widget = QWidget()
@@ -205,12 +208,8 @@ class N2VWidget(QWidget):
         self.layout().addWidget(save_widget)
 
         # plot widget
-        self.plot = TBPlotWidget(500, 500)
+        self.plot = TBPlotWidget(max_width=300, min_height=150)
         self.layout().addWidget(self.plot.native)
-
-        # worker
-        self.worker = None
-        self.train_button.clicked.connect(self.start_training)
 
         # actions
         self.n_epochs_spin.valueChanged.connect(self.update_epochs)
@@ -224,13 +223,19 @@ class N2VWidget(QWidget):
         # will be available.
         # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
-        # place-holder for the trained model
-        self.model = None
+        # place-holder for the trained model and the prediction
+        self.model, self.pred_train, self.pred_val = None, None, None
+        self.train_worker = None
+        self.predict_worker = None
+
+        # button and worker actions
+        self.train_button.clicked.connect(self.start_training)
+        self.predict_button.clicked.connect(self.start_prediction)
         self.save_button.clicked.connect(self.save_model)
 
     def interrupt(self):
-        if self.worker:
-            self.worker.quit()
+        if self.train_worker:
+            self.train_worker.quit()
 
     def start_training(self):
         if self.state == State.IDLE:
@@ -240,21 +245,42 @@ class N2VWidget(QWidget):
             self.train_button.setText('Stop')
 
             self.save_button.setEnabled(False)
-            self.prediction_button.setEnabled(False)
+            self.predict_button.setEnabled(False)
 
-            self.worker = train_worker(self)
-            self.worker.yielded.connect(lambda x: self.update_all(x))
-            self.worker.returned.connect(self.done)
-            self.worker.start()
+            self.train_worker = train_worker(self)
+            self.train_worker.yielded.connect(lambda x: self.update_all(x))
+            self.train_worker.returned.connect(self.done)
+            self.train_worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE
+
+    def start_prediction(self):
+        if self.state == State.IDLE:
+            # TODO: change UI elements state
+            # TODO: check if layer already exists
+
+            # set up the layers for the denoised predictions
+            pred_train_name = self.img_train.name + PREDICT
+            if pred_train_name in self.viewer.layers:
+                self.viewer.layers.remove(pred_train_name)
+            self.pred_train = np.zeros(self.img_train.value.data.shape, dtype=np.int16)
+            viewer.add_labels(self.pred_train, name=pred_train_name, visible=True)
+
+            pred_val_name = self.img_train.name + PREDICT
+            if self.img_train.value != self.img_val.value:
+                self.viewer.layers.remove(pred_val_name)
+                self.pred_val = np.zeros(self.img_val.value.data.shape, dtype=np.int16)
+                viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
+
+            self.predict_worker = predict_worker(self)
+            self.predict_worker.start()
 
     def done(self):
         self.state = State.IDLE
         self.train_button.setText('Train again')
 
         self.save_button.setEnabled(True)
-        self.prediction_button.setEnabled(True)
+        self.predict_button.setEnabled(True)
 
     def update_patch(self):
         if self.checkbox_3d.isChecked():
@@ -315,6 +341,8 @@ class N2VWidget(QWidget):
 @thread_worker(start_thread=False)
 def train_worker(widget: N2VWidget):
     import threading
+
+    # TODO remove (just used because I currently cannot use the GPU)
     import tensorflow as tf
     tf.config.set_visible_devices([], 'GPU')
 
@@ -366,26 +394,49 @@ def train_worker(widget: N2VWidget):
             yield update
 
     widget.model = model
-    # TODO: separate prediction
-
-    # run prediction
-    #denoised_image = np.zeros(train_image.shape)
-    #viewer.add_image(denoised_image, name='denoised image', opacity=1, visible=True)
-
-    # TODO update the progress bar, although we sent the DONE update
-    # TODO this accesses a different thread
-    #for i in range(denoised_image.shape[0]):
-     #   denoised_image[i, ...] = model.predict(train_image[i, ...].astype(np.float32), 'YX', tta=False)
 
 
-# 2D with patch: (B,Y,X,1)
-# 3D with patch: (B,Z,Y,X,1)
-# n2v expects 'SZYXC' or 'SYXC'
+@thread_worker(start_thread=False)
+def predict_worker(widget: N2VWidget):
+    model = widget.model
+
+    # check if it is 3D
+    if widget.checkbox_3d.isChecked():
+        dims = 'ZYX'
+    else:
+        dims = 'YX'
+
+    # get train images
+    train_image = widget.img_train.value.data
+    print(f'Predict train shape {train_image.shape}')
+
+    # denoised train images
+    if dims == 'YX':
+        for i in range(train_image.shape[0]):
+            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), dims, tta=False)
+    else:
+        widget.pred_train = model.predict(train_image.astype(np.float32), dims, tta=False)
+
+    # check if there is validation data
+    if widget.img_train.value != widget.img_val.value:
+        val_image = widget.img_val.value.data
+
+        # denoised val images
+        if dims == 'YX':
+            for i in range(val_image.shape[0]):
+                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), 'YX', tta=False)
+            else:
+                widget.pred_val = model.predict(val_image.astype(np.float32), 'YX', tta=False)
+
+
 def prepare_data(img_train, img_val, patch_shape=(64, 64)):
     from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
 
     # get images
-    X_train = img_train[np.newaxis, ..., np.newaxis]
+    if len(patch_shape) == 2:
+        X_train = img_train[..., np.newaxis]  # (1, S, Y, X, 1)
+    else:
+        X_train = img_train[np.newaxis, ..., np.newaxis]  # (1, S, Z, Y, X, 1)
 
     # TODO: what if Time dimension
     # create data generator
@@ -400,7 +451,12 @@ def prepare_data(img_train, img_val, patch_shape=(64, 64)):
         X_val_patches = X_train_patches[-5:]
         X_train_patches = X_train_patches[:-5]
     else:
-        X_val = img_val[np.newaxis, ..., np.newaxis]
+        if len(patch_shape) == 2:
+            X_val = img_val[..., np.newaxis]
+        else:
+            X_val = img_val[np.newaxis, ..., np.newaxis]
+
+        print(f'X val {X_val.shape}')
         X_val_patches = data_gen.generate_patches_from_list([X_val], shape=patch_shape, shuffle=True)
 
     print(f'Train patches: {X_train_patches.shape}')
@@ -445,7 +501,7 @@ if __name__ == "__main__":
     import urllib
     import zipfile
 
-    dims = '3D'  # 2D, 3D
+    dims = '2D'  # 2D, 3D
 
     with napari.gui_qt():
         # Loading of the training and validation images
