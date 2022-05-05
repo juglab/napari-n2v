@@ -134,7 +134,7 @@ class N2VWidget(QWidget):
         self.patch_Z_spin.setMaximum(512)
         self.patch_Z_spin.setMinimum(4)
         self.patch_Z_spin.setSingleStep(8)
-        self.patch_Z_spin.setValue(64)
+        self.patch_Z_spin.setValue(32)
         self.patch_Z_spin.setEnabled(False)
         self.patch_Z_spin.setVisible(False)
 
@@ -288,7 +288,7 @@ class N2VWidget(QWidget):
                 val = updates[Updates.BATCH]
                 s_perc = int(100 * val / self.n_steps + 0.5)
                 self.pb_steps.setValue(s_perc)
-                self.pb_steps.setFormat(f'Epoch {val}/{self.n_steps}')
+                self.pb_steps.setFormat(f'Step {val}/{self.n_steps}')
 
             if Updates.LOSS in updates:
                 self.plot.update_plot(*updates[Updates.LOSS])
@@ -392,14 +392,16 @@ def prepare_data(img_train, img_val, patch_shape=(64, 64)):
     data_gen = N2V_DataGenerator()
 
     # generate train patches
-    X_train_patches = data_gen.generate_patches_from_list(X_train, shape=patch_shape, shuffle=True)
+    print(f'Patch {patch_shape}')
+    print(f'X train {X_train.shape}')
+    X_train_patches = data_gen.generate_patches_from_list([X_train], shape=patch_shape, shuffle=True)
 
     if img_val is None:  # TODO: how to choose number of validation patches?
         X_val_patches = X_train_patches[-5:]
         X_train_patches = X_train_patches[:-5]
     else:
         X_val = img_val[np.newaxis, ..., np.newaxis]
-        X_val_patches = data_gen.generate_patches_from_list(X_val, shape=patch_shape, shuffle=True)
+        X_val_patches = data_gen.generate_patches_from_list([X_val], shape=patch_shape, shuffle=True)
 
     print(f'Train patches: {X_train_patches.shape}')
     print(f'Val patches: {X_val_patches.shape}')
@@ -419,14 +421,8 @@ def create_model(X_patches,
     #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
     #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
     #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
-
-    config = N2VConfig(X_patches, unet_kern_size=3,
-                       train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse', batch_norm=True,
-                       train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=(64, 64),
-                       unet_n_first=96,
-                       unet_residual=True,
-                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2,
-                       single_net_per_channel=False)
+    n2v_patch_shape = X_patches.shape[1:-1]
+    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True, n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
 
     # create network
     model_name = 'n2v_2D'
