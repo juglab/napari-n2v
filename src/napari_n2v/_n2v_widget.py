@@ -122,12 +122,20 @@ class N2VWidget(QWidget):
         self.batch_size_spin.setSingleStep(8)
         self.batch_size_spin.setValue(16)
 
-        # patch size
-        self.patch_size_spin = QSpinBox()
-        self.patch_size_spin.setMaximum(512)
-        self.patch_size_spin.setMinimum(64)
-        self.patch_size_spin.setSingleStep(8)
-        self.patch_size_spin.setValue(64)
+        # patch XY size
+        self.patch_XY_spin = QSpinBox()
+        self.patch_XY_spin.setMaximum(512)
+        self.patch_XY_spin.setMinimum(64)
+        self.patch_XY_spin.setSingleStep(8)
+        self.patch_XY_spin.setValue(64)
+
+        # patch Z size
+        self.patch_Z_spin = QSpinBox()
+        self.patch_Z_spin.setMaximum(512)
+        self.patch_Z_spin.setMinimum(64)
+        self.patch_Z_spin.setSingleStep(8)
+        self.patch_Z_spin.setValue(64)
+        self.patch_Z_spin.setEnabled(False)
 
         # add widgets
         # TODO add tooltips
@@ -137,7 +145,8 @@ class N2VWidget(QWidget):
         formLayout.addRow('N epochs', self.n_epochs_spin)
         formLayout.addRow('N steps', self.n_steps_spin)
         formLayout.addRow('Batch size', self.batch_size_spin)
-        formLayout.addRow('Patch size', self.patch_size_spin)
+        formLayout.addRow('Patch XY', self.patch_XY_spin)
+        formLayout.addRow('Patch Z', self.patch_Z_spin)
         others.setLayout(formLayout)
         self.layout().addWidget(others)
 
@@ -200,6 +209,7 @@ class N2VWidget(QWidget):
         # actions
         self.n_epochs_spin.valueChanged.connect(self.update_epochs)
         self.n_steps_spin.valueChanged.connect(self.update_steps)
+        self.checkbox_3d.stateChanged.connect(self.update_patch)
 
         # this allows stopping the thread when the napari window is closed,
         # including reducing the risk that an update comes after closing the
@@ -237,6 +247,12 @@ class N2VWidget(QWidget):
         self.train_button.setText('Train again')
 
         self.save_button.setEnabled(True)
+
+    def update_patch(self):
+        if self.checkbox_3d.isChecked():
+            self.patch_Z_spin.setEnabled(True)
+        else:
+            self.patch_Z_spin.setEnabled(False)
 
     def update_epochs(self):
         if self.state == State.IDLE:
@@ -302,15 +318,22 @@ def train_worker(widget: N2VWidget):
     # get other parameters
     n_epochs = widget.n_epochs
     n_steps = widget.n_steps
-    batch_size = widget.batch_size_spin.slider.get_value()
-    patch_shape = widget.patch_size_spin.slider.get_value()
-    neighborhood_radius = widget.neighborhood_spin.slider.get_value()
+    batch_size = widget.batch_size_spin.value()
+    patch_XY = widget.patch_XY_spin.value()
+    patch_Z = widget.patch_Z_spin.value()
+
+    # patch shape
+    is_3d = widget.checkbox_3d.isChecked()
+    if is_3d:
+        patch_shape = (patch_Z, patch_XY, patch_XY)
+    else:
+        patch_shape = (patch_XY, patch_XY)
 
     # prepare data
     X_train, X_val = prepare_data(train_image, validation_image, patch_shape)
 
     # create model
-    model = create_model(X_train, n_epochs, n_steps, batch_size, neighborhood_radius, updater)
+    model = create_model(X_train, n_epochs, n_steps, batch_size, updater)
 
     training = threading.Thread(target=train, args=(model, X_train, X_val))
     training.start()
@@ -341,13 +364,12 @@ def train_worker(widget: N2VWidget):
 
 # 2D with patch: (B,Y,X,1)
 # 3D with patch: (B,Z,Y,X,1)
-def prepare_data(img_train, img_val=None, patch_shape=16):
-    # shape
-    patch_shape_XY = (patch_shape, patch_shape)
-
+def prepare_data(img_train, img_val=None, patch_shape=(64, 64)):
     # get images
     X_train = img_train[..., np.newaxis]
     X_train_patches = X_train  # create_patches(X_train, patch_shape_XY)
+
+    
 
     if img_val is None:  # TODO: does this make sense?
         np.random.shuffle(X_train_patches)
@@ -367,7 +389,6 @@ def create_model(X_patches,
                  n_epochs=100,
                  n_steps=400,
                  batch_size=16,
-                 neighborhood_radius=5,
                  updater=None):
     from n2v.models import N2VConfig, N2V
 
