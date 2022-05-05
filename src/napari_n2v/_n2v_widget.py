@@ -136,6 +136,7 @@ class N2VWidget(QWidget):
         self.patch_Z_spin.setSingleStep(8)
         self.patch_Z_spin.setValue(64)
         self.patch_Z_spin.setEnabled(False)
+        self.patch_Z_spin.setVisible(False)
 
         # add widgets
         # TODO add tooltips
@@ -251,8 +252,10 @@ class N2VWidget(QWidget):
     def update_patch(self):
         if self.checkbox_3d.isChecked():
             self.patch_Z_spin.setEnabled(True)
+            self.patch_Z_spin.setVisible(True)
         else:
             self.patch_Z_spin.setEnabled(False)
+            self.patch_Z_spin.setVisible(False)
 
     def update_epochs(self):
         if self.state == State.IDLE:
