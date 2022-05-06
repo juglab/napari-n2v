@@ -503,46 +503,45 @@ if __name__ == "__main__":
 
     dims = '2D'  # 2D, 3D
 
-    with napari.gui_qt():
-        # Loading of the training and validation images
-        # create a folder for our data
-        if not os.path.isdir('./data'):
-            os.mkdir('data')
+    # Loading of the training and validation images
+    # create a folder for our data
+    if not os.path.isdir('./data'):
+        os.mkdir('data')
 
-        if dims == '2D':
-            # check if data has been downloaded already
-            zipPath = "data/BSD68_reproducibility.zip"
-            if not os.path.exists(zipPath):
-                # download and unzip data
-                data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
-                with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                    zip_ref.extractall("data")
+    if dims == '2D':
+        # check if data has been downloaded already
+        zipPath = "data/BSD68_reproducibility.zip"
+        if not os.path.exists(zipPath):
+            # download and unzip data
+            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
+            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
+                zip_ref.extractall("data")
 
-            Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
-            Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
-        else:
-            from skimage import io
+        Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
+        Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
+    else:
+        from skimage import io
 
-            zipPath = 'data/flywing-data.zip'
-            if not os.path.exists(zipPath):
-                # download and unzip data
-                data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
-                with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                    zip_ref.extractall('data')
+        zipPath = 'data/flywing-data.zip'
+        if not os.path.exists(zipPath):
+            # download and unzip data
+            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
+            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
+                zip_ref.extractall('data')
 
-            Train_img = io.imread('data/flywing.tif')
+        Train_img = io.imread('data/flywing.tif')
 
-        # create a Viewer and add an image here
-        viewer = napari.Viewer()
+    # create a Viewer and add an image here
+    viewer = napari.Viewer()
 
-        # custom code to add data here
-        viewer.window.add_dock_widget(N2VWidget(viewer))
+    # custom code to add data here
+    viewer.window.add_dock_widget(N2VWidget(viewer))
 
-        if dims == '2D':
-            # add images
-            viewer.add_image(Train_img[:200], name='Train')
-            viewer.add_image(Val_img, name='Val')
-        else:
-            viewer.add_image(Train_img, name='Train')
+    if dims == '2D':
+        # add images
+        viewer.add_image(Train_img[:200], name='Train')
+        viewer.add_image(Val_img, name='Val')
+    else:
+        viewer.add_image(Train_img, name='Train')
 
-        napari.run()
+    napari.run()
