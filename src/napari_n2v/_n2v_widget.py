@@ -1,5 +1,7 @@
 """
 """
+import os.path
+
 import napari
 from tensorflow.keras.callbacks import Callback
 from napari.qt.threading import thread_worker
@@ -227,6 +229,7 @@ class N2VWidget(QWidget):
         self.model, self.pred_train, self.pred_val = None, None, None
         self.train_worker = None
         self.predict_worker = None
+        self.weights_path = ''
 
         # button and worker actions
         self.train_button.clicked.connect(self.start_training)
@@ -324,18 +327,35 @@ class N2VWidget(QWidget):
             if self.model:
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
 
+                if self.checkbox_3d.isChecked():
+                    axes = 'YX'
+                else:
+                    axes = 'ZYX'
+
                 export_type = self.save_choice.currentText()
                 if SaveMode.MODELZOO.value == export_type:
-                    self.model.export_TF(name='N"V',
-                                         description='Trained N2V model',
-                                         authors=["Tim-Oliver Buchholz", "Alexander Krull",
-                                                  "Florian Jug"],
-                                         test_img=self.X_val[0, ..., 0], axes='YX',
-                                         patch_shape=(128, 128), fname=where + '.bioimage.io.zip')
+                    from bioimageio.core.build_spec import build_model
+
+                    build_model(
+                        weight_uri=self.weights_path,
+                        test_inputs=[],
+                        test_outputs=[],
+                        input_axes=[axes],
+                        output_axes=[axes],
+                        output_path=where + '.bioimage.io.zip',
+                        name='Noise2Void',
+                        description='Self-supervised denoising.',
+                        authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                        license='BSD 3-Clause License',
+                        documentation='..README.md',
+                        tags=['denoising'],
+                        cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                               'doi': "10.48550/arXiv.1811.10980"}],
+                        preprocessing=[],
+                        postprocessing=[]
+                    )
                 else:
                     self.model.keras_model.save_weights(where + '.h5')
-
-                    # TODO: here should save the config as well
 
 
 @thread_worker(start_thread=False)
@@ -375,7 +395,13 @@ def train_worker(widget: N2VWidget):
     X_train, X_val = prepare_data(train_image, validation_image, patch_shape)
 
     # create model
-    model = create_model(X_train, n_epochs, n_steps, batch_size, updater)
+    if is_3d:
+        model_name = 'n2v_3D'
+    else:
+        model_name = 'n2v_2D'
+    base_dir = 'models'
+    model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
+    widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
 
     training = threading.Thread(target=train, args=(model, X_train, X_val))
     training.start()
@@ -469,6 +495,8 @@ def create_model(X_patches,
                  n_epochs=100,
                  n_steps=400,
                  batch_size=16,
+                 model_name='n2v',
+                 basedir='models',
                  updater=None):
     from n2v.models import N2VConfig, N2V
 
@@ -478,11 +506,12 @@ def create_model(X_patches,
     #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
     #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
     n2v_patch_shape = X_patches.shape[1:-1]
-    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198, n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True, n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
+    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
+                       train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
+                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
+                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
 
     # create network
-    model_name = 'n2v_2D'
-    basedir = 'models'
     model = N2V(config, model_name, basedir=basedir)
 
     # add updater
