@@ -497,51 +497,23 @@ def train(model, X_patches, X_val_patches):
 
 
 if __name__ == "__main__":
-    import os
-    import urllib
-    import zipfile
+    from napari_n2v._sample_data import n2v_2D_data, n2v_3D_data
 
-    dims = '2D'  # 2D, 3D
-
-    # Loading of the training and validation images
-    # create a folder for our data
-    if not os.path.isdir('./data'):
-        os.mkdir('data')
-
-    if dims == '2D':
-        # check if data has been downloaded already
-        zipPath = "data/BSD68_reproducibility.zip"
-        if not os.path.exists(zipPath):
-            # download and unzip data
-            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
-            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                zip_ref.extractall("data")
-
-        Train_img = np.load('data/BSD68_reproducibility_data/train/DCNN400_train_gaussian25.npy')
-        Val_img = np.load('data/BSD68_reproducibility_data/val/DCNN400_validation_gaussian25.npy')
-    else:
-        from skimage import io
-
-        zipPath = 'data/flywing-data.zip'
-        if not os.path.exists(zipPath):
-            # download and unzip data
-            data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
-            with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                zip_ref.extractall('data')
-
-        Train_img = io.imread('data/flywing.tif')
-
-    # create a Viewer and add an image here
+    # create a Viewer
     viewer = napari.Viewer()
 
-    # custom code to add data here
+    # add our plugin
     viewer.window.add_dock_widget(N2VWidget(viewer))
 
+    dims = '3D'  # 2D, 3D
     if dims == '2D':
+        data = n2v_2D_data()
+
         # add images
-        viewer.add_image(Train_img[:200], name='Train')
-        viewer.add_image(Val_img, name='Val')
+        viewer.add_image(data[0][0], name=data[0][1]['name'])
+        viewer.add_image(data[1][0], name=data[1][1]['name'])
     else:
-        viewer.add_image(Train_img, name='Train')
+        data = n2v_3D_data()
+        viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()
