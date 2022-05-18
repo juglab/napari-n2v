@@ -35,8 +35,7 @@ class Updates(Enum):
     EPOCH = 'epoch'
     BATCH = 'batch'
     LOSS = 'loss'
-    PRED_TRAIN = 'train prediction'
-    PRED_VAL = 'val prediction'
+    PRED = 'prediction'
     DONE = 'done'
 
 
@@ -231,6 +230,7 @@ class N2VWidget(QWidget):
         self.tf_version = None
         self.train_worker = None
         self.predict_worker = None
+        self.pred_count = 0
         self.weights_path = ''
 
         # button and worker actions
@@ -254,15 +254,15 @@ class N2VWidget(QWidget):
 
             self.train_worker = train_worker(self)
             self.train_worker.yielded.connect(lambda x: self.update_all(x))
-            self.train_worker.returned.connect(self.done)
+            self.train_worker.returned.connect(self.training_done)
             self.train_worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
     def start_prediction(self):
         if self.state == State.IDLE:
-            # TODO: change UI elements state
-            # TODO: check if layer already exists
+            self.state = State.RUNNING
+            self.pb_pred.setValue(0)
 
             # set up the layers for the denoised predictions
             pred_train_name = self.img_train.name + PREDICT
@@ -271,22 +271,49 @@ class N2VWidget(QWidget):
             self.pred_train = np.zeros(self.img_train.value.data.shape, dtype=np.int16)
             viewer.add_labels(self.pred_train, name=pred_train_name, visible=True)
 
-            pred_val_name = self.img_train.name + PREDICT
+            pred_val_name = self.img_val.name + PREDICT
             if self.img_train.value != self.img_val.value:
-                self.viewer.layers.remove(pred_val_name)
+                if pred_val_name in self.viewer.layers:
+                    self.viewer.layers.remove(pred_val_name)
                 self.pred_val = np.zeros(self.img_val.value.data.shape, dtype=np.int16)
                 viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
 
+            if self.checkbox_3d.isChecked():
+                self.pred_count = 1
+            else:
+                self.pred_count = self.img_train.value.data.shape[0]
+
+            # check if there is validation data and add it to the prediction count
+            if self.img_train.value != self.img_val.value:
+                if self.checkbox_3d.isChecked():
+                    self.pred_count += 1
+                else:
+                    self.pred_count += self.img_val.value.data.shape[0]
+
             self.predict_worker = predict_worker(self)
-            self.predict_worker.yielded.connect(lambda x: self.update_predict_pb(x))
+            self.predict_worker.yielded.connect(lambda x: self.update_predict(x))
             self.predict_worker.start()
 
-    def done(self):
+    def training_done(self):
         self.state = State.IDLE
         self.train_button.setText('Train again')
 
         self.save_button.setEnabled(True)
         self.predict_button.setEnabled(True)
+
+    def prediction_done(self):
+        self.state = State.IDLE
+        self.predict_button.setText('Predict again')
+
+    def update_predict(self, update):
+        if self.state == State.RUNNING:
+            if update == Updates.DONE:
+                self.prediction_done()
+            else:
+                val = update[Updates.PRED]
+                p_perc = int(100 * val / self.pred_count + 0.5)
+                self.pb_pred.setValue(p_perc)
+                self.pb_pred.setFormat(f'Prediction {val}/{self.pred_count}')
 
     def update_patch(self):
         if self.checkbox_3d.isChecked():
@@ -295,11 +322,6 @@ class N2VWidget(QWidget):
         else:
             self.patch_Z_spin.setEnabled(False)
             self.patch_Z_spin.setVisible(False)
-
-    def update_predict_pb(self, val):
-        pass
-
-
 
     def update_epochs(self):
         if self.state == State.IDLE:
@@ -461,14 +483,17 @@ def predict_worker(widget: N2VWidget):
 
     # get train images
     train_image = widget.img_train.value.data
-    print(f'Predict train shape {train_image.shape}')
 
-    # denoised train images
+    # denoise training images
+    counter = 0
     if im_dims == 'YX':
         for i in range(train_image.shape[0]):
             widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims, tta=False)
+            counter += 1
+            yield {Updates.PRED: counter}
     else:
         widget.pred_train = model.predict(train_image.astype(np.float32), im_dims, tta=False)
+        yield {Updates.PRED: 1}
 
     # check if there is validation data
     if widget.img_train.value != widget.img_val.value:
@@ -477,9 +502,13 @@ def predict_worker(widget: N2VWidget):
         # denoised val images
         if im_dims == 'YX':
             for i in range(val_image.shape[0]):
-                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), 'YX', tta=False)
-            else:
-                widget.pred_val = model.predict(val_image.astype(np.float32), 'YX', tta=False)
+                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), im_dims, tta=False)
+                counter += 1
+                yield {Updates.PRED: counter}
+        else:
+            widget.pred_val = model.predict(val_image.astype(np.float32), im_dims, tta=False)
+            yield {Updates.PRED: 2}
+    yield Updates.DONE
 
 
 def prepare_data(img_train, img_val, patch_shape=(64, 64)):
@@ -549,7 +578,7 @@ def create_model(X_patches,
 
 
 def train(model, X_patches, X_val_patches):
-    history = model.train(X_patches, X_val_patches)
+    model.train(X_patches, X_val_patches)
 
 
 if __name__ == "__main__":
@@ -561,13 +590,13 @@ if __name__ == "__main__":
     # add our plugin
     viewer.window.add_dock_widget(N2VWidget(viewer))
 
-    dims = '3D'  # 2D, 3D
+    dims = '2D'  # 2D, 3D
     if dims == '2D':
         data = n2v_2D_data()
 
         # add images
-        viewer.add_image(data[0][0], name=data[0][1]['name'])
-        viewer.add_image(data[1][0], name=data[1][1]['name'])
+        viewer.add_image(data[0][0][0:50], name=data[0][1]['name'])
+        viewer.add_image(data[1][0][0:50], name=data[1][1]['name'])
     else:
         data = n2v_3D_data()
         viewer.add_image(data[0][0], name=data[0][1]['name'])
