@@ -183,7 +183,6 @@ class N2VWidget(QWidget):
 
         progress_widget.layout().addWidget(self.pb_epochs)
         progress_widget.layout().addWidget(self.pb_steps)
-        progress_widget.layout().addWidget(self.pb_pred)
         self.layout().addWidget(progress_widget)
 
         # train button
@@ -191,6 +190,7 @@ class N2VWidget(QWidget):
         self.layout().addWidget(self.train_button)
 
         # prediction button
+        self.layout().addWidget(self.pb_pred)
         self.predict_button = QPushButton("Predict", self)
         self.predict_button.setEnabled(False)
         self.layout().addWidget(self.predict_button)
@@ -278,6 +278,7 @@ class N2VWidget(QWidget):
                 viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
 
             self.predict_worker = predict_worker(self)
+            self.predict_worker.yielded.connect(lambda x: self.update_predict_pb(x))
             self.predict_worker.start()
 
     def done(self):
@@ -294,6 +295,11 @@ class N2VWidget(QWidget):
         else:
             self.patch_Z_spin.setEnabled(False)
             self.patch_Z_spin.setVisible(False)
+
+    def update_predict_pb(self, val):
+        pass
+
+
 
     def update_epochs(self):
         if self.state == State.IDLE:
@@ -351,7 +357,7 @@ class N2VWidget(QWidget):
                         description='Self-supervised denoising.',
                         authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
                         license="BSD-3-Clause",
-                        documentation='/home/joran.deschamps/git/napari-n2v/README.md',
+                        documentation=os.path.abspath('../resources/documentation.md'),
                         tags=[dimensions, 'tensorflow', 'unet', 'denoising'],
                         cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
                                'doi': "10.48550/arXiv.1811.10980"}],
