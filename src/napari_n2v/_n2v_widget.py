@@ -225,9 +225,10 @@ class N2VWidget(QWidget):
         # will be available.
         # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
-        # place-holder for the trained model and the prediction
+        # place-holders for the trained model, prediction and parameters (bioimage.io)
         self.model, self.pred_train, self.pred_val = None, None, None
         self.inputs, self.outputs = None, None
+        self.tf_version = None
         self.train_worker = None
         self.predict_worker = None
         self.weights_path = ''
@@ -329,9 +330,11 @@ class N2VWidget(QWidget):
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
 
                 if self.checkbox_3d.isChecked():
-                    axes = 'byxc'
-                else:
                     axes = 'bzyxc'
+                    dimensions = '3d'
+                else:
+                    axes = 'byxc'
+                    dimensions = '2d'
 
                 export_type = self.save_choice.currentText()
                 if SaveMode.MODELZOO.value == export_type:
@@ -347,13 +350,14 @@ class N2VWidget(QWidget):
                         name='Noise2Void',
                         description='Self-supervised denoising.',
                         authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                        license='BSD 3-Clause License',
+                        license="BSD-3-Clause",
                         documentation='/home/joran.deschamps/git/napari-n2v/README.md',
-                        tags=['denoising'],
+                        tags=[dimensions, 'tensorflow', 'unet', 'denoising'],
                         cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
                                'doi': "10.48550/arXiv.1811.10980"}],
                         preprocessing=[],
-                        postprocessing=[]
+                        postprocessing=[],
+                        tensorflow_version=self.tf_version
                     )
                 else:
                     self.model.keras_model.save_weights(where + '.h5')
@@ -421,6 +425,7 @@ def train_worker(widget: N2VWidget):
             yield update
 
     widget.model = model
+    widget.tf_version = tf.__version__
 
     # save input/output for bioimage.io
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
