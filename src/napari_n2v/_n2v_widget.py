@@ -41,8 +41,8 @@ class Updates(Enum):
 
 
 class SaveMode(Enum):
-    TF = 'TensorFlow'
     MODELZOO = 'Bioimage.io'
+    TF = 'TensorFlow'
 
     @classmethod
     def list(cls):
@@ -227,6 +227,7 @@ class N2VWidget(QWidget):
 
         # place-holder for the trained model and the prediction
         self.model, self.pred_train, self.pred_val = None, None, None
+        self.inputs, self.outputs = None, None
         self.train_worker = None
         self.predict_worker = None
         self.weights_path = ''
@@ -328,9 +329,9 @@ class N2VWidget(QWidget):
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
 
                 if self.checkbox_3d.isChecked():
-                    axes = 'YX'
+                    axes = 'byxc'
                 else:
-                    axes = 'ZYX'
+                    axes = 'bzyxc'
 
                 export_type = self.save_choice.currentText()
                 if SaveMode.MODELZOO.value == export_type:
@@ -338,8 +339,8 @@ class N2VWidget(QWidget):
 
                     build_model(
                         weight_uri=self.weights_path,
-                        test_inputs=[],
-                        test_outputs=[],
+                        test_inputs=[self.inputs],
+                        test_outputs=[self.outputs],
                         input_axes=[axes],
                         output_axes=[axes],
                         output_path=where + '.bioimage.io.zip',
@@ -347,7 +348,7 @@ class N2VWidget(QWidget):
                         description='Self-supervised denoising.',
                         authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
                         license='BSD 3-Clause License',
-                        documentation='..README.md',
+                        documentation='/home/joran.deschamps/git/napari-n2v/README.md',
                         tags=['denoising'],
                         cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
                                'doi': "10.48550/arXiv.1811.10980"}],
@@ -421,6 +422,21 @@ def train_worker(widget: N2VWidget):
 
     widget.model = model
 
+    # save input/output for bioimage.io
+    example = X_val[np.newaxis, 0, ...].astype(np.float32)
+    print(example.shape)
+    widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
+    widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
+    np.save(widget.inputs, example)
+
+    if is_3d:
+        example_dims = 'SZYXC'
+        print('3D')
+    else:
+        example_dims = 'SYXC'
+    print(example_dims)
+    np.save(widget.outputs, model.predict(example, example_dims, tta=False))
+
 
 @thread_worker(start_thread=False)
 def predict_worker(widget: N2VWidget):
@@ -428,27 +444,27 @@ def predict_worker(widget: N2VWidget):
 
     # check if it is 3D
     if widget.checkbox_3d.isChecked():
-        dims = 'ZYX'
+        im_dims = 'ZYX'
     else:
-        dims = 'YX'
+        im_dims = 'YX'
 
     # get train images
     train_image = widget.img_train.value.data
     print(f'Predict train shape {train_image.shape}')
 
     # denoised train images
-    if dims == 'YX':
+    if im_dims == 'YX':
         for i in range(train_image.shape[0]):
-            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), dims, tta=False)
+            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims, tta=False)
     else:
-        widget.pred_train = model.predict(train_image.astype(np.float32), dims, tta=False)
+        widget.pred_train = model.predict(train_image.astype(np.float32), im_dims, tta=False)
 
     # check if there is validation data
     if widget.img_train.value != widget.img_val.value:
         val_image = widget.img_val.value.data
 
         # denoised val images
-        if dims == 'YX':
+        if im_dims == 'YX':
             for i in range(val_image.shape[0]):
                 widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), 'YX', tta=False)
             else:
