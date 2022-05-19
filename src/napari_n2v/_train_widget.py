@@ -86,7 +86,7 @@ def create_choice_widget(napari_viewer):
     return Container(widgets=[img, lbl])
 
 
-class N2VWidget(QWidget):
+class TrainWidget(QWidget):
     def __init__(self, napari_viewer):
         super().__init__()
 
@@ -315,6 +315,10 @@ class N2VWidget(QWidget):
                 self.pb_pred.setValue(p_perc)
                 self.pb_pred.setFormat(f'Prediction {val}/{self.pred_count}')
 
+            self.viewer.layers[self.img_train.name + PREDICT].refresh()
+            if self.img_train.value != self.img_val.value:
+                self.viewer.layers[self.img_val.name + PREDICT].refresh()
+
     def update_patch(self):
         if self.checkbox_3d.isChecked():
             self.patch_Z_spin.setEnabled(True)
@@ -392,7 +396,7 @@ class N2VWidget(QWidget):
 
 
 @thread_worker(start_thread=False)
-def train_worker(widget: N2VWidget):
+def train_worker(widget: TrainWidget):
     import threading
 
     # TODO remove (just used because I currently cannot use the GPU)
@@ -472,7 +476,7 @@ def train_worker(widget: N2VWidget):
 
 
 @thread_worker(start_thread=False)
-def predict_worker(widget: N2VWidget):
+def predict_worker(widget: TrainWidget):
     model = widget.model
 
     # check if it is 3D
@@ -588,7 +592,7 @@ if __name__ == "__main__":
     viewer = napari.Viewer()
 
     # add our plugin
-    viewer.window.add_dock_widget(N2VWidget(viewer))
+    viewer.window.add_dock_widget(TrainWidget(viewer))
 
     dims = '2D'  # 2D, 3D
     if dims == '2D':
