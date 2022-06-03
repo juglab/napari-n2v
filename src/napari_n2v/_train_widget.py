@@ -185,8 +185,17 @@ class TrainWidget(QWidget):
         self.layout().addWidget(progress_widget)
 
         # train button
+        train_buttons = QWidget()
+        train_buttons.setLayout(QHBoxLayout())
+
         self.train_button = QPushButton("Train", self)
-        self.layout().addWidget(self.train_button)
+        self.retrain_button = QPushButton("", self)
+        self.retrain_button.setEnabled(False)
+
+        train_buttons.layout().addWidget(self.retrain_button)
+        train_buttons.layout().addWidget(self.train_button)
+
+        self.layout().addWidget(train_buttons)
 
         # prediction button
         self.layout().addWidget(self.pb_pred)
@@ -235,6 +244,7 @@ class TrainWidget(QWidget):
 
         # button and worker actions
         self.train_button.clicked.connect(self.start_training)
+        self.retrain_button.clicked.connect(self.continue_training)
         self.predict_button.clicked.connect(self.start_prediction)
         self.save_button.clicked.connect(self.save_model)
 
@@ -242,7 +252,7 @@ class TrainWidget(QWidget):
         if self.train_worker:
             self.train_worker.quit()
 
-    def start_training(self):
+    def start_training(self,  pretrained_model=None):
         if self.state == State.IDLE:
             self.state = State.RUNNING
 
@@ -252,12 +262,16 @@ class TrainWidget(QWidget):
             self.save_button.setEnabled(False)
             self.predict_button.setEnabled(False)
 
-            self.train_worker = train_worker(self)
+            self.train_worker = train_worker(self, pretrained_model=pretrained_model)
             self.train_worker.yielded.connect(lambda x: self.update_all(x))
             self.train_worker.returned.connect(self.training_done)
             self.train_worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE
+
+    def continue_training(self):
+        if self.state == State.IDLE:
+            self.start_training(pretrained_model=self.model)
 
     def start_prediction(self):
         if self.state == State.IDLE:
@@ -296,7 +310,9 @@ class TrainWidget(QWidget):
 
     def training_done(self):
         self.state = State.IDLE
-        self.train_button.setText('Train again')
+        self.train_button.setText('Train new')
+        self.retrain_button.setText('Retrain')
+        self.retrain_button.setEnabled(True)
 
         self.save_button.setEnabled(True)
         self.predict_button.setEnabled(True)
@@ -396,7 +412,7 @@ class TrainWidget(QWidget):
 
 
 @thread_worker(start_thread=False)
-def train_worker(widget: TrainWidget):
+def train_worker(widget: TrainWidget, pretrained_model=None):
     import threading
 
     # TODO remove (just used because I currently cannot use the GPU)
@@ -439,6 +455,11 @@ def train_worker(widget: TrainWidget):
     base_dir = 'models'
     model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
     widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
+
+    # if we use a pretrained model (just trained or loaded)
+    if pretrained_model:
+        # TODO: how to make sure the two are compatible? For instance, unchecking the 3D leads to different models
+        model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
 
     training = threading.Thread(target=train, args=(model, X_train, X_val))
     training.start()
