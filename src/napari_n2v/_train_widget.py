@@ -283,14 +283,14 @@ class TrainWidget(QWidget):
             if pred_train_name in self.viewer.layers:
                 self.viewer.layers.remove(pred_train_name)
             self.pred_train = np.zeros(self.img_train.value.data.shape, dtype=np.int16)
-            viewer.add_labels(self.pred_train, name=pred_train_name, visible=True)
+            self.viewer.add_labels(self.pred_train, name=pred_train_name, visible=True)
 
             pred_val_name = self.img_val.name + PREDICT
             if self.img_train.value != self.img_val.value:
                 if pred_val_name in self.viewer.layers:
                     self.viewer.layers.remove(pred_val_name)
                 self.pred_val = np.zeros(self.img_val.value.data.shape, dtype=np.int16)
-                viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
+                self.viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
 
             if self.checkbox_3d.isChecked():
                 self.pred_count = 1
@@ -513,11 +513,11 @@ def predict_worker(widget: TrainWidget):
     counter = 0
     if im_dims == 'YX':
         for i in range(train_image.shape[0]):
-            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims, tta=False)
+            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims)
             counter += 1
             yield {Updates.PRED: counter}
     else:
-        widget.pred_train = model.predict(train_image.astype(np.float32), im_dims, tta=False)
+        widget.pred_train = model.predict(train_image.astype(np.float32), im_dims)
         yield {Updates.PRED: 1}
 
     # check if there is validation data
@@ -527,11 +527,11 @@ def predict_worker(widget: TrainWidget):
         # denoised val images
         if im_dims == 'YX':
             for i in range(val_image.shape[0]):
-                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), im_dims, tta=False)
+                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), im_dims)
                 counter += 1
                 yield {Updates.PRED: counter}
         else:
-            widget.pred_val = model.predict(val_image.astype(np.float32), im_dims, tta=False)
+            widget.pred_val = model.predict(val_image.astype(np.float32), im_dims)
             yield {Updates.PRED: 2}
     yield Updates.DONE
 
@@ -615,7 +615,7 @@ if __name__ == "__main__":
     # add our plugin
     viewer.window.add_dock_widget(TrainWidget(viewer))
 
-    dims = '2D'  # 2D, 3D
+    dims = '3D'  # 2D, 3D
     if dims == '2D':
         data = n2v_2D_data()
 
@@ -624,6 +624,7 @@ if __name__ == "__main__":
         viewer.add_image(data[1][0][0:50], name=data[1][1]['name'])
     else:
         data = n2v_3D_data()
+
         viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()
