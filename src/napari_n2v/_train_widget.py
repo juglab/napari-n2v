@@ -21,69 +21,9 @@ from qtpy.QtWidgets import (
     QCheckBox
 )
 from enum import Enum
-from napari_n2v._tbplot_widget import TBPlotWidget
-
-PREDICT = '_denoised'
+from napari_n2v.widgets.tbplot_widget import TBPlotWidget
 
 
-class State(Enum):
-    IDLE = 0
-    RUNNING = 1
-
-
-class Updates(Enum):
-    EPOCH = 'epoch'
-    BATCH = 'batch'
-    LOSS = 'loss'
-    PRED = 'prediction'
-    DONE = 'done'
-
-
-class SaveMode(Enum):
-    MODELZOO = 'Bioimage.io'
-    TF = 'TensorFlow'
-
-    @classmethod
-    def list(cls):
-        return list(map(lambda c: c.value, cls))
-
-
-class Updater(Callback):
-    def __init__(self):
-        self.queue = Queue(10)
-        self.epoch = 0
-        self.batch = 0
-
-    def on_epoch_begin(self, epoch, logs=None):
-        self.epoch = epoch
-        self.queue.put({Updates.EPOCH: self.epoch + 1})
-
-    def on_epoch_end(self, epoch, logs=None):
-        self.queue.put({Updates.LOSS: (self.epoch, logs['loss'], logs['val_loss'])})
-
-    def on_train_batch_begin(self, batch, logs=None):
-        self.batch = batch
-        self.queue.put({Updates.BATCH: self.batch + 1})
-
-    def on_train_end(self, logs=None):
-        self.queue.put(Updates.DONE)
-
-    def stop_training(self):
-        self.model.stop_training = True
-
-
-def create_choice_widget(napari_viewer):
-    def layer_choice_widget(np_viewer, annotation, **kwargs):
-        widget = create_widget(annotation=annotation, **kwargs)
-        widget.reset_choices()
-        np_viewer.layers.events.inserted.connect(widget.reset_choices)
-        np_viewer.layers.events.removed.connect(widget.reset_choices)
-        return widget
-
-    img = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Train")
-    lbl = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Val")
-
-    return Container(widgets=[img, lbl])
 
 
 class TrainWidget(QWidget):
@@ -308,7 +248,7 @@ class TrainWidget(QWidget):
             self.predict_worker.yielded.connect(lambda x: self.update_predict(x))
             self.predict_worker.start()
 
-    def training_done(self):
+    def _training_done(self):
         self.state = State.IDLE
         self.train_button.setText('Train new')
         self.retrain_button.setText('Retrain')
@@ -317,11 +257,11 @@ class TrainWidget(QWidget):
         self.save_button.setEnabled(True)
         self.predict_button.setEnabled(True)
 
-    def prediction_done(self):
+    def _prediction_done(self):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
 
-    def update_predict(self, update):
+    def _update_predict(self, update):
         if self.state == State.RUNNING:
             if update == Updates.DONE:
                 self.prediction_done()
@@ -335,7 +275,7 @@ class TrainWidget(QWidget):
             if self.img_train.value != self.img_val.value:
                 self.viewer.layers[self.img_val.name + PREDICT].refresh()
 
-    def update_patch(self):
+    def _update_patch(self):
         if self.checkbox_3d.isChecked():
             self.patch_Z_spin.setEnabled(True)
             self.patch_Z_spin.setVisible(True)
@@ -343,19 +283,19 @@ class TrainWidget(QWidget):
             self.patch_Z_spin.setEnabled(False)
             self.patch_Z_spin.setVisible(False)
 
-    def update_epochs(self):
+    def _update_epochs(self):
         if self.state == State.IDLE:
             self.n_epochs = self.n_epochs_spin.value()
             self.pb_epochs.setValue(0)
             self.pb_epochs.setFormat(f'Epoch ?/{self.n_epochs_spin.value()}')
 
-    def update_steps(self):
+    def _update_steps(self):
         if self.state == State.IDLE:
             self.n_steps = self.n_steps_spin.value()
             self.pb_steps.setValue(0)
             self.pb_steps.setFormat(f'Step ?/{self.n_steps_spin.value()}')
 
-    def update_all(self, updates):
+    def _update_all(self, updates):
         if self.state == State.RUNNING:
             if Updates.EPOCH in updates:
                 val = updates[Updates.EPOCH]
@@ -372,7 +312,7 @@ class TrainWidget(QWidget):
             if Updates.LOSS in updates:
                 self.plot.update_plot(*updates[Updates.LOSS])
 
-    def save_model(self):
+    def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
@@ -411,199 +351,6 @@ class TrainWidget(QWidget):
                     self.model.keras_model.save_weights(where + '.h5')
 
 
-@thread_worker(start_thread=False)
-def train_worker(widget: TrainWidget, pretrained_model=None):
-    import threading
-
-    # TODO remove (just used because I currently cannot use the GPU)
-    import tensorflow as tf
-    tf.config.set_visible_devices([], 'GPU')
-
-    # get images
-    if widget.img_train.value == widget.img_val.value:
-        train_image = widget.img_train.value.data
-        validation_image = None
-    else:
-        train_image = widget.img_train.value.data
-        validation_image = widget.img_val.value.data
-
-    # create updated
-    updater = Updater()
-
-    # get other parameters
-    n_epochs = widget.n_epochs
-    n_steps = widget.n_steps
-    batch_size = widget.batch_size_spin.value()
-    patch_XY = widget.patch_XY_spin.value()
-    patch_Z = widget.patch_Z_spin.value()
-
-    # patch shape
-    is_3d = widget.checkbox_3d.isChecked()
-    if is_3d:
-        patch_shape = (patch_Z, patch_XY, patch_XY)
-    else:
-        patch_shape = (patch_XY, patch_XY)
-
-    # prepare data
-    X_train, X_val = prepare_data(train_image, validation_image, patch_shape)
-
-    # create model
-    if is_3d:
-        model_name = 'n2v_3D'
-    else:
-        model_name = 'n2v_2D'
-    base_dir = 'models'
-    model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
-    widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
-
-    # if we use a pretrained model (just trained or loaded)
-    if pretrained_model:
-        # TODO: how to make sure the two are compatible? For instance, unchecking the 3D leads to different models
-        model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
-
-    training = threading.Thread(target=train, args=(model, X_train, X_val))
-    training.start()
-
-    # loop looking for update events
-    while True:
-        update = updater.queue.get(True)
-
-        if Updates.DONE == update:
-            break
-        elif widget.state != State.RUNNING:
-            updater.stop_training()
-            yield Updates.DONE
-            break
-        else:
-            yield update
-
-    widget.model = model
-    widget.tf_version = tf.__version__
-
-    # save input/output for bioimage.io
-    example = X_val[np.newaxis, 0, ...].astype(np.float32)
-    print(example.shape)
-    widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
-    widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
-    np.save(widget.inputs, example)
-
-    if is_3d:
-        example_dims = 'SZYXC'
-        print('3D')
-    else:
-        example_dims = 'SYXC'
-    print(example_dims)
-    np.save(widget.outputs, model.predict(example, example_dims, tta=False))
-
-
-@thread_worker(start_thread=False)
-def predict_worker(widget: TrainWidget):
-    model = widget.model
-
-    # check if it is 3D
-    if widget.checkbox_3d.isChecked():
-        im_dims = 'ZYX'
-    else:
-        im_dims = 'YX'
-
-    # get train images
-    train_image = widget.img_train.value.data
-
-    # denoise training images
-    counter = 0
-    if im_dims == 'YX':
-        for i in range(train_image.shape[0]):
-            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims)
-            counter += 1
-            yield {Updates.PRED: counter}
-    else:
-        widget.pred_train = model.predict(train_image.astype(np.float32), im_dims)
-        yield {Updates.PRED: 1}
-
-    # check if there is validation data
-    if widget.img_train.value != widget.img_val.value:
-        val_image = widget.img_val.value.data
-
-        # denoised val images
-        if im_dims == 'YX':
-            for i in range(val_image.shape[0]):
-                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), im_dims)
-                counter += 1
-                yield {Updates.PRED: counter}
-        else:
-            widget.pred_val = model.predict(val_image.astype(np.float32), im_dims)
-            yield {Updates.PRED: 2}
-    yield Updates.DONE
-
-
-def prepare_data(img_train, img_val, patch_shape=(64, 64)):
-    from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
-
-    # get images
-    if len(patch_shape) == 2:
-        X_train = img_train[..., np.newaxis]  # (1, S, Y, X, 1)
-    else:
-        X_train = img_train[np.newaxis, ..., np.newaxis]  # (1, S, Z, Y, X, 1)
-
-    # TODO: what if Time dimension
-    # create data generator
-    data_gen = N2V_DataGenerator()
-
-    # generate train patches
-    print(f'Patch {patch_shape}')
-    print(f'X train {X_train.shape}')
-    X_train_patches = data_gen.generate_patches_from_list([X_train], shape=patch_shape, shuffle=True)
-
-    if img_val is None:  # TODO: how to choose number of validation patches?
-        X_val_patches = X_train_patches[-5:]
-        X_train_patches = X_train_patches[:-5]
-    else:
-        if len(patch_shape) == 2:
-            X_val = img_val[..., np.newaxis]
-        else:
-            X_val = img_val[np.newaxis, ..., np.newaxis]
-
-        print(f'X val {X_val.shape}')
-        X_val_patches = data_gen.generate_patches_from_list([X_val], shape=patch_shape, shuffle=True)
-
-    print(f'Train patches: {X_train_patches.shape}')
-    print(f'Val patches: {X_val_patches.shape}')
-
-    return X_train_patches, X_val_patches
-
-
-def create_model(X_patches,
-                 n_epochs=100,
-                 n_steps=400,
-                 batch_size=16,
-                 model_name='n2v',
-                 basedir='models',
-                 updater=None):
-    from n2v.models import N2VConfig, N2V
-
-    # create config
-    # config = N2VConfig(X_patches, unet_kern_size=3,
-    #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
-    #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-    #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
-    n2v_patch_shape = X_patches.shape[1:-1]
-    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
-                       train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
-                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
-
-    # create network
-    model = N2V(config, model_name, basedir=basedir)
-
-    # add updater
-    model.prepare_for_training(metrics=())
-    model.callbacks.append(updater)
-
-    return model
-
-
-def train(model, X_patches, X_val_patches):
-    model.train(X_patches, X_val_patches)
 
 
 if __name__ == "__main__":

@@ -18,32 +18,6 @@ from qtpy.QtWidgets import (
 )
 from enum import Enum
 
-DENOISING = 'denoised'
-
-
-@magic_factory(auto_call=True,
-               Threshold={"widget_type": "FloatSpinBox", "min": 0, "max": 1., "step": 0.1, 'value': 0.6})
-def get_threshold_spin(Threshold: int):
-    pass
-
-
-@magic_factory(auto_call=True, Model={'mode': 'r', 'filter': '*.h5 *.zip'})
-def get_load_button(Model: Path):
-    pass
-
-
-def layer_choice_widget(np_viewer, annotation, **kwargs):
-    widget = create_widget(annotation=annotation, **kwargs)
-    widget.reset_choices()
-    np_viewer.layers.events.inserted.connect(widget.reset_choices)
-    np_viewer.layers.events.removed.connect(widget.reset_choices)
-    return widget
-
-
-class Updates(Enum):
-    N_IMAGES = 'number of images'
-    IMAGE = 'image'
-    DONE = 'done'
 
 
 class PredictWidget(QWidget):
@@ -91,7 +65,7 @@ class PredictWidget(QWidget):
 
         # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
-    def update(self, updates):
+    def _update(self, updates):
         if Updates.N_IMAGES in updates:
             self.n_im = updates[Updates.N_IMAGES]
             self.pb_prediction.setValue(0)
@@ -108,10 +82,7 @@ class PredictWidget(QWidget):
             self.pb_prediction.setValue(100)
             self.pb_prediction.setFormat(f'Prediction done')
 
-    def interrupt(self):
-        self.worker.quit()
-
-    def start_prediction(self):
+    def _start_prediction(self):
         if self.state == State.IDLE:
             self.state = State.RUNNING
 
@@ -130,50 +101,9 @@ class PredictWidget(QWidget):
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
-    def done(self):
+    def _done(self):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
-
-
-@thread_worker(start_thread=False)
-def prediction_worker(widget: PredictWidget):
-    import os
-    import threading
-
-    # TODO remove (just used because I currently cannot use the GPU)
-    import tensorflow as tf
-    tf.config.set_visible_devices([], 'GPU')
-
-    # get images
-    images = widget.images.value.data
-
-    # get other parameters
-    n_epochs = widget.n_epochs
-    n_steps = widget.n_steps
-    batch_size = widget.batch_size_spin.value()
-    patch_XY = widget.patch_XY_spin.value()
-    patch_Z = widget.patch_Z_spin.value()
-
-    # patch shape
-    is_3d = widget.checkbox_3d.isChecked()
-    if is_3d:
-        patch_shape = (patch_Z, patch_XY, patch_XY)
-    else:
-        patch_shape = (patch_XY, patch_XY)
-
-    # prepare data
-    X_train, X_val = prepare_data(images, None, patch_shape)
-
-    # create model
-    if is_3d:
-        model_name = 'n2v_3D'
-    else:
-        model_name = 'n2v_2D'
-    base_dir = 'models'
-    model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, None)
-    widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
-
-    # TODO: predict images and yield progress to the progress bar
 
 
 if __name__ == "__main__":
