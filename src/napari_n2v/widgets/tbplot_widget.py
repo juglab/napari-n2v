@@ -1,15 +1,18 @@
 from magicgui.widgets import Container
-from qtpy.QtWidgets import QPushButton
+from qtpy.QtWidgets import QPushButton, QLabel, QWidget, QHBoxLayout
 import pyqtgraph as pg
 import webbrowser
 
 
 class TBPlotWidget(Container):
-
+    """
+    Widget used to display training graph including training and validation losses. The widget also includes a button
+    to open TensorBoard in the browser.
+    """
     def __setitem__(self, key, value):
         pass
 
-    def __init__(self, max_width=None, max_height=None, min_width=None, min_height=None):
+    def __init__(self, min_width=None, min_height=None, max_width=None, max_height=None):
         super().__init__()
 
         if max_width:
@@ -33,8 +36,15 @@ class TBPlotWidget(Container):
         # tensorboard button
         tb_button = QPushButton("Open in tensorboard")
         tb_button.clicked.connect(self.open_tb)
-        self.native.layout().addWidget(tb_button)
 
+        # add to layout on the bottom left
+        button_widget = QWidget()
+        button_widget.setLayout(QHBoxLayout())
+        button_widget.layout().addWidget(tb_button)
+        button_widget.layout().addWidget(QLabel(''))
+        self.native.layout().addWidget(button_widget)
+
+        # set empty references
         self.epochs = []
         self.train_loss = []
         self.val_loss = []
@@ -46,6 +56,10 @@ class TBPlotWidget(Container):
         pass
 
     def open_tb(self):
+        """
+        Open TensorBoard in the browser.
+        :return:
+        """
         if not self.tb:
             from tensorboard import program
 
@@ -58,16 +72,30 @@ class TBPlotWidget(Container):
             webbrowser.open(self.url)
 
     def update_plot(self, epoch, train_loss, val_loss):
+        """
+        Add a new point to the graph.
+        :param epoch: Epoch number, x-axis
+        :param train_loss: Training loss at the end of `epoch`
+        :param val_loss: Validation loss at the end of `epoch`
+        :return:
+        """
+        # clear the plot
         self.plot.clear()
 
+        # add the new points
         self.epochs.append(epoch)
         self.train_loss.append(train_loss)
         self.val_loss.append(val_loss)
 
+        # replot
         self.plot.plot(self.epochs, self.train_loss, pen=pg.mkPen(color=(204, 221, 255)), symbol='o', symbolSize=2)
         self.plot.plot(self.epochs, self.val_loss, pen=pg.mkPen(color=(244, 173, 173)), symbol='o', symbolSize=2)
 
     def clear_plot(self):
+        """
+        Clear the plot.
+        :return:
+        """
         self.plot.clear()
         self.epochs = []
         self.train_loss = []

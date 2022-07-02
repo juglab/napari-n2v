@@ -3,7 +3,7 @@
 import napari
 import numpy as np
 from napari_n2v.utils import State, Updates, DENOISING, prediction_worker
-from napari_n2v.widgets import get_load_button, layer_choice_widget, get_threshold_spin
+from napari_n2v.widgets import load_button, layer_choice, threshold_spin
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -23,11 +23,11 @@ class PredictWidget(QWidget):
         self.setLayout(QVBoxLayout())
 
         # load model button
-        self.load_button = get_load_button()
+        self.load_button = load_button()
         self.layout().addWidget(self.load_button.native)
 
         # image layer
-        self.images = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Images")
+        self.images = layer_choice(napari_viewer, annotation=napari.layers.Image, name="Images")
         self.layout().addWidget(self.images.native)
 
         # 3D checkbox
@@ -35,7 +35,7 @@ class PredictWidget(QWidget):
         self.layout().addWidget(self.checkbox_3d)
 
         # threshold slider
-        self.threshold_spin = get_threshold_spin()
+        self.threshold_spin = threshold_spin()
         self.layout().addWidget(self.threshold_spin.native)
 
         # progress bar
@@ -51,12 +51,10 @@ class PredictWidget(QWidget):
         self.worker = None
         self.denoi_prediction = None
         self.predict_button = QPushButton("Predict", self)
-        self.predict_button.clicked.connect(self.start_prediction)
+        self.predict_button.clicked.connect(self._start_prediction)
         self.layout().addWidget(self.predict_button)
 
         self.n_im = 0
-
-        # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
     def _update(self, updates):
         if Updates.N_IMAGES in updates:
@@ -88,8 +86,8 @@ class PredictWidget(QWidget):
             viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
             self.worker = prediction_worker(self)
-            self.worker.yielded.connect(lambda x: self.update(x))
-            self.worker.returned.connect(self.done)
+            self.worker.yielded.connect(lambda x: self._update(x))
+            self.worker.returned.connect(self._done)
             self.worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE

@@ -1,12 +1,11 @@
 import os
 import numpy as np
 from napari.qt.threading import thread_worker
-from napari_n2v import TrainWidget
 from napari_n2v.utils import Updater, Updates, State, prepare_data
 
 
 @thread_worker(start_thread=False)
-def train_worker(widget: TrainWidget, pretrained_model=None):
+def train_worker(widget, pretrained_model=None):
     import threading
 
     # TODO remove (just used because I currently cannot use the GPU)

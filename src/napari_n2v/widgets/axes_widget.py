@@ -7,7 +7,7 @@ from qtpy.QtWidgets import (
     QLineEdit,
     QLabel
 )
-from napari_denoiseg.utils import filter_dimensions, are_axes_valid, REF_AXES
+from napari_n2v.utils import filter_dimensions, are_axes_valid, REF_AXES
 
 
 class Highlight(Enum):

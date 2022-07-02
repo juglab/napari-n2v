@@ -2,38 +2,37 @@ from pathlib import Path
 
 import napari
 from magicgui import magic_factory
-from magicgui.widgets import create_widget, Container
+from magicgui.widgets import create_widget, Container, Widget
 
 
-def create_choice_widget(napari_viewer):
-    def layer_choice_widget(np_viewer, annotation, **kwargs):
-        widget = create_widget(annotation=annotation, **kwargs)
-        widget.reset_choices()
-        np_viewer.layers.events.inserted.connect(widget.reset_choices)
-        np_viewer.layers.events.removed.connect(widget.reset_choices)
-        return widget
+def layer_choice(annotation, **kwargs) -> Widget:
+    widget = create_widget(annotation=annotation, **kwargs)
+    widget.reset_choices()
+    viewer = napari.current_viewer()
+    viewer.layers.events.inserted.connect(widget.reset_choices)
+    viewer.layers.events.removed.connect(widget.reset_choices)
+    viewer.layers.events.changed.connect(widget.reset_choices)
+    return widget
 
-    img = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Train")
-    lbl = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Val")
+
+def two_layers_choice():
+    """
+    Returns a container with two drop-down widgets to select images and masks.
+    :return:
+    """
+    img = layer_choice(annotation=napari.layers.Image, name="Train")
+    lbl = layer_choice(annotation=napari.layers.Image, name="Val")
 
     return Container(widgets=[img, lbl])
 
 
-def layer_choice_widget(np_viewer, annotation, **kwargs):
-    widget = create_widget(annotation=annotation, **kwargs)
-    widget.reset_choices()
-    np_viewer.layers.events.inserted.connect(widget.reset_choices)
-    np_viewer.layers.events.removed.connect(widget.reset_choices)
-    return widget
-
-
 @magic_factory(auto_call=True,
                Threshold={"widget_type": "FloatSpinBox", "min": 0, "max": 1., "step": 0.1, 'value': 0.6})
-def get_threshold_spin(Threshold: int):
+def threshold_spin(Threshold: int):
     pass
 
 
 @magic_factory(auto_call=True, Model={'mode': 'r', 'filter': '*.h5 *.zip'})
-def get_load_button(Model: Path):
+def load_button(Model: Path):
     pass
 

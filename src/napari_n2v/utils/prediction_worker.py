@@ -1,11 +1,10 @@
 import numpy as np
 from napari.qt.threading import thread_worker
-from napari_n2v import TrainWidget, PredictWidget
 from napari_n2v.utils import Updates, prepare_data, create_model
 
 
 @thread_worker(start_thread=False)
-def predict_worker(widget: TrainWidget):
+def predict_worker(widget):
     model = widget.model
 
     # check if it is 3D
@@ -45,7 +44,7 @@ def predict_worker(widget: TrainWidget):
 
 
 @thread_worker(start_thread=False)
-def prediction_worker(widget: PredictWidget):
+def prediction_worker(widget):
     import os
     import threading
 

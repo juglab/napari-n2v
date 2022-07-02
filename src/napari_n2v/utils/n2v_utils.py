@@ -1,8 +1,12 @@
+import warnings
 from enum import Enum
+from itertools import permutations
 from queue import Queue
 
 import numpy as np
 from tensorflow.keras.callbacks import Callback
+
+REF_AXES = 'TSZYXC'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
@@ -121,3 +125,47 @@ def create_model(X_patches,
 
     return model
 
+
+def filter_dimensions(shape_length, is_3D):
+    """
+    """
+    axes = list(REF_AXES)
+    axes.remove('Y')  # skip YX, constraint
+    axes.remove('X')
+    n = shape_length - 2
+
+    if not is_3D:  # if not 3D, remove it from the
+        axes.remove('Z')
+
+    if n > len(axes):
+        warnings.warn('Data shape length is too large.')
+        return []
+    else:
+        all_permutations = [''.join(p) + 'YX' for p in permutations(axes, n)]
+
+        if is_3D:
+            all_permutations = [p for p in all_permutations if 'Z' in p]
+
+        if len(all_permutations) == 0 and not is_3D:
+            all_permutations = ['YX']
+
+        return all_permutations
+
+
+def are_axes_valid(axes: str):
+    _axes = axes.upper()
+
+    # length 0 and >6 are not accepted
+    if 0 > len(_axes) > 6:
+        return False
+
+    # all characters must be in REF_AXES = 'STZYXC'
+    if not all([s in REF_AXES for s in _axes]):
+        return False
+
+    # check for repeating characters
+    for i, s in enumerate(_axes):
+        if i != _axes.rfind(s):
+            return False
+
+    return True

@@ -16,8 +16,11 @@ from qtpy.QtWidgets import (
     QFileDialog,
     QCheckBox
 )
-from napari_n2v.widgets import TBPlotWidget, create_choice_widget
-from napari_n2v.utils import State, SaveMode, Updates
+from napari_n2v.widgets import TBPlotWidget, two_layers_choice
+from napari_n2v.utils import State, SaveMode, Updates, train_worker, predict_worker, PREDICT
+
+
+# TODO: tabs, load from disk, axes, zero model, predict button only visible after train
 
 
 class TrainWidget(QWidget):
@@ -31,7 +34,7 @@ class TrainWidget(QWidget):
         self.setMaximumWidth(350)
 
         # layer choice widgets
-        self.layer_choice = create_choice_widget(napari_viewer)
+        self.layer_choice = two_layers_choice()
         self.img_train = self.layer_choice.Train
         self.img_val = self.layer_choice.Val
         self.layout().addWidget(self.layer_choice.native)
@@ -156,9 +159,9 @@ class TrainWidget(QWidget):
         self.layout().addWidget(self.plot.native)
 
         # actions
-        self.n_epochs_spin.valueChanged.connect(self.update_epochs)
-        self.n_steps_spin.valueChanged.connect(self.update_steps)
-        self.checkbox_3d.stateChanged.connect(self.update_patch)
+        self.n_epochs_spin.valueChanged.connect(self._update_epochs)
+        self.n_steps_spin.valueChanged.connect(self._update_steps)
+        self.checkbox_3d.stateChanged.connect(self._update_patch)
 
         # this allows stopping the thread when the napari window is closed,
         # including reducing the risk that an update comes after closing the
@@ -177,16 +180,13 @@ class TrainWidget(QWidget):
         self.weights_path = ''
 
         # button and worker actions
-        self.train_button.clicked.connect(self.start_training)
-        self.retrain_button.clicked.connect(self.continue_training)
-        self.predict_button.clicked.connect(self.start_prediction)
-        self.save_button.clicked.connect(self.save_model)
+        self.train_button.clicked.connect(self._start_training)
+        self.retrain_button.clicked.connect(self._continue_training)
+        self.predict_button.clicked.connect(self._start_prediction)
+        self.save_button.clicked.connect(self._save_model)
 
-    def interrupt(self):
-        if self.train_worker:
-            self.train_worker.quit()
 
-    def start_training(self,  pretrained_model=None):
+    def _start_training(self,  pretrained_model=None):
         if self.state == State.IDLE:
             self.state = State.RUNNING
 
@@ -197,17 +197,17 @@ class TrainWidget(QWidget):
             self.predict_button.setEnabled(False)
 
             self.train_worker = train_worker(self, pretrained_model=pretrained_model)
-            self.train_worker.yielded.connect(lambda x: self.update_all(x))
-            self.train_worker.returned.connect(self.training_done)
+            self.train_worker.yielded.connect(lambda x: self._update_all(x))
+            self.train_worker.returned.connect(self._training_done)
             self.train_worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
-    def continue_training(self):
+    def _continue_training(self):
         if self.state == State.IDLE:
             self.start_training(pretrained_model=self.model)
 
-    def start_prediction(self):
+    def _start_prediction(self):
         if self.state == State.IDLE:
             self.state = State.RUNNING
             self.pb_pred.setValue(0)
@@ -343,8 +343,6 @@ class TrainWidget(QWidget):
                     )
                 else:
                     self.model.keras_model.save_weights(where + '.h5')
-
-
 
 
 if __name__ == "__main__":
