@@ -3,10 +3,6 @@
 import os.path
 
 import napari
-from tensorflow.keras.callbacks import Callback
-from napari.qt.threading import thread_worker
-from magicgui.widgets import create_widget, Container
-from queue import Queue
 import numpy as np
 from qtpy.QtWidgets import (
     QWidget,
@@ -20,10 +16,8 @@ from qtpy.QtWidgets import (
     QFileDialog,
     QCheckBox
 )
-from enum import Enum
-from napari_n2v.widgets.tbplot_widget import TBPlotWidget
-
-
+from napari_n2v.widgets import TBPlotWidget, create_choice_widget
+from napari_n2v.utils import State, SaveMode, Updates
 
 
 class TrainWidget(QWidget):

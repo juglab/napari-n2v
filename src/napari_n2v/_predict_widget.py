@@ -1,14 +1,9 @@
 """
 """
-from pathlib import Path
-
-import bioimageio.core
 import napari
-from napari.qt.threading import thread_worker
-from magicgui import magic_factory
-from magicgui.widgets import create_widget
 import numpy as np
-from napari_n2v._train_widget import State, prepare_data, create_model
+from napari_n2v.utils import State, Updates, DENOISING, prediction_worker
+from napari_n2v.widgets import get_load_button, layer_choice_widget, get_threshold_spin
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
@@ -16,8 +11,6 @@ from qtpy.QtWidgets import (
     QProgressBar,
     QCheckBox
 )
-from enum import Enum
-
 
 
 class PredictWidget(QWidget):

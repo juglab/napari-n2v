@@ -1,5 +1,8 @@
+from pathlib import Path
 
-
+import napari
+from magicgui import magic_factory
+from magicgui.widgets import create_widget, Container
 
 
 def create_choice_widget(napari_viewer):
@@ -14,7 +17,6 @@ def create_choice_widget(napari_viewer):
     lbl = layer_choice_widget(napari_viewer, annotation=napari.layers.Image, name="Val")
 
     return Container(widgets=[img, lbl])
-
 
 
 def layer_choice_widget(np_viewer, annotation, **kwargs):

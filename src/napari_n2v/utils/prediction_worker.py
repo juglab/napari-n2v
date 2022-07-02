@@ -1,5 +1,7 @@
-
-
+import numpy as np
+from napari.qt.threading import thread_worker
+from napari_n2v import TrainWidget, PredictWidget
+from napari_n2v.utils import Updates, prepare_data, create_model
 
 
 @thread_worker(start_thread=False)
@@ -40,7 +42,6 @@ def predict_worker(widget: TrainWidget):
             widget.pred_val = model.predict(val_image.astype(np.float32), im_dims)
             yield {Updates.PRED: 2}
     yield Updates.DONE
-
 
 
 @thread_worker(start_thread=False)
