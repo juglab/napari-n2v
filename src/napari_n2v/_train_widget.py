@@ -14,13 +14,28 @@ from qtpy.QtWidgets import (
     QFormLayout,
     QComboBox,
     QFileDialog,
-    QCheckBox
+    QLabel,
+    QTabWidget
 )
-from napari_n2v.widgets import TBPlotWidget, two_layers_choice
-from napari_n2v.utils import State, SaveMode, Updates, train_worker, predict_worker, PREDICT
 
-
-# TODO: tabs, load from disk, axes, zero model, predict button only visible after train
+from napari_n2v.widgets import (
+    TBPlotWidget,
+    AxesWidget,
+    FolderWidget,
+    two_layers_choice,
+    enable_3d
+)
+from napari_n2v.utils import (
+    State,
+    SaveMode,
+    Updates,
+    train_worker,
+    predict_worker,
+    loading_worker,
+    build_modelzoo,
+    PREDICT,
+    SAMPLE
+)
 
 
 class TrainWidget(QWidget):
@@ -31,16 +46,48 @@ class TrainWidget(QWidget):
         self.viewer = napari_viewer
 
         self.setLayout(QVBoxLayout())
-        self.setMaximumWidth(350)
 
-        # layer choice widgets
+        ###############################
+        # QTabs
+        self.tabs = QTabWidget()
+        tab_layers = QWidget()
+        tab_layers.setLayout(QVBoxLayout())
+
+        tab_disk = QWidget()
+        tab_disk.setLayout(QVBoxLayout())
+
+        # add tabs
+        self.tabs.addTab(tab_layers, 'From layers')
+        self.tabs.addTab(tab_disk, 'From disk')
+        self.tabs.setMaximumHeight(200)
+
+        # layer tabs
         self.layer_choice = two_layers_choice()
         self.img_train = self.layer_choice.Train
         self.img_val = self.layer_choice.Val
-        self.layout().addWidget(self.layer_choice.native)
+        tab_layers.layout().addWidget(self.layer_choice.native)
 
-        # 3D checkbox
-        self.checkbox_3d = QCheckBox('3D')
+        # disk tab
+        self.train_images_folder = FolderWidget('Choose')
+        self.val_images_folder = FolderWidget('Choose')
+
+        buttons = QWidget()
+        form = QFormLayout()
+
+        form.addRow('Train images', self.train_images_folder)
+        form.addRow('Val images', self.val_images_folder)
+
+        buttons.setLayout(form)
+        tab_disk.layout().addWidget(buttons)
+
+        # add to main layout
+        self.layout().addWidget(self.tabs)
+        self.img_train.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
+        self.img_val.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
+
+        ###############################
+        # axes
+        self.axes_widget = AxesWidget()
 
         # number of epochs
         self.n_epochs_spin = QSpinBox()
@@ -66,29 +113,29 @@ class TrainWidget(QWidget):
         # patch XY size
         self.patch_XY_spin = QSpinBox()
         self.patch_XY_spin.setMaximum(512)
-        self.patch_XY_spin.setMinimum(8)
+        self.patch_XY_spin.setMinimum(16)
         self.patch_XY_spin.setSingleStep(8)
         self.patch_XY_spin.setValue(64)
 
-        # patch Z size
-        self.patch_Z_spin = QSpinBox()
-        self.patch_Z_spin.setMaximum(512)
-        self.patch_Z_spin.setMinimum(4)
-        self.patch_Z_spin.setSingleStep(8)
-        self.patch_Z_spin.setValue(32)
-        self.patch_Z_spin.setEnabled(False)
-        self.patch_Z_spin.setVisible(False)
+        # 3D checkbox
+        self.enable_3d = enable_3d()
+        self.patch_size_Z = QSpinBox()
+        self.patch_size_Z.setMaximum(512)
+        self.patch_size_Z.setMinimum(16)
+        self.patch_size_Z.setSingleStep(8)
+        self.patch_size_Z.setValue(16)
+        self.patch_size_Z.setVisible(False)
 
         # add widgets
         # TODO add tooltips
         others = QWidget()
         formLayout = QFormLayout()
-        formLayout.addRow('', self.checkbox_3d)
+        formLayout.addRow('Enable 3D', self.enable_3d.native)
         formLayout.addRow('N epochs', self.n_epochs_spin)
         formLayout.addRow('N steps', self.n_steps_spin)
         formLayout.addRow('Batch size', self.batch_size_spin)
         formLayout.addRow('Patch XY', self.patch_XY_spin)
-        formLayout.addRow('Patch Z', self.patch_Z_spin)
+        formLayout.addRow('Patch Z', self.patch_size_Z)
         others.setLayout(formLayout)
         self.layout().addWidget(others)
 
@@ -110,13 +157,6 @@ class TrainWidget(QWidget):
         self.pb_steps.setTextVisible(True)
         self.pb_steps.setFormat(f'Step ?/{self.n_steps_spin.value()}')
 
-        self.pb_pred = QProgressBar()
-        self.pb_pred.setValue(0)
-        self.pb_pred.setMinimum(0)
-        self.pb_pred.setMaximum(100)
-        self.pb_pred.setTextVisible(True)
-        self.pb_pred.setFormat(f'Prediction ?/?')
-
         progress_widget.layout().addWidget(self.pb_epochs)
         progress_widget.layout().addWidget(self.pb_steps)
         self.layout().addWidget(progress_widget)
@@ -126,19 +166,32 @@ class TrainWidget(QWidget):
         train_buttons.setLayout(QHBoxLayout())
 
         self.train_button = QPushButton("Train", self)
-        self.retrain_button = QPushButton("", self)
-        self.retrain_button.setEnabled(False)
+        self.zero_model_button = QPushButton('', self)
+        self.zero_model_button.setEnabled(False)
 
-        train_buttons.layout().addWidget(self.retrain_button)
+        train_buttons.layout().addWidget(self.zero_model_button)
         train_buttons.layout().addWidget(self.train_button)
 
         self.layout().addWidget(train_buttons)
 
-        # prediction button
+        # prediction
+        self.pb_pred = QProgressBar()
+        self.pb_pred.setValue(0)
+        self.pb_pred.setMinimum(0)
+        self.pb_pred.setMaximum(100)
+        self.pb_pred.setTextVisible(True)
+        self.pb_pred.setFormat(f'Prediction ?/?')
         self.layout().addWidget(self.pb_pred)
-        self.predict_button = QPushButton("Predict", self)
+
+        predictions = QWidget()
+        predictions.setLayout(QHBoxLayout())
+        self.predict_button = QPushButton('', self)
         self.predict_button.setEnabled(False)
-        self.layout().addWidget(self.predict_button)
+
+        predictions.layout().addWidget(QLabel(''))
+        predictions.layout().addWidget(self.predict_button)
+
+        self.layout().addWidget(predictions)
 
         # save button
         save_widget = QWidget()
@@ -155,20 +208,8 @@ class TrainWidget(QWidget):
         self.layout().addWidget(save_widget)
 
         # plot widget
-        self.plot = TBPlotWidget(max_width=300, min_height=150)
+        self.plot = TBPlotWidget(max_width=300, min_height=200)
         self.layout().addWidget(self.plot.native)
-
-        # actions
-        self.n_epochs_spin.valueChanged.connect(self._update_epochs)
-        self.n_steps_spin.valueChanged.connect(self._update_steps)
-        self.checkbox_3d.stateChanged.connect(self._update_patch)
-
-        # this allows stopping the thread when the napari window is closed,
-        # including reducing the risk that an update comes after closing the
-        # window and appearing as a new Qt view. But the call to qt_viewer
-        # will be deprecated. Hopefully until then an on_window_closing event
-        # will be available.
-        # napari_viewer.window.qt_viewer.destroyed.connect(self.interrupt)
 
         # place-holders for the trained model, prediction and parameters (bioimage.io)
         self.model, self.pred_train, self.pred_val = None, None, None
@@ -178,36 +219,50 @@ class TrainWidget(QWidget):
         self.predict_worker = None
         self.pred_count = 0
         self.weights_path = ''
+        self.is_3D = False
 
-        # button and worker actions
-        self.train_button.clicked.connect(self._start_training)
-        self.retrain_button.clicked.connect(self._continue_training)
+        # actions
+        self.tabs.currentChanged.connect(self._update_tab_axes)
+        self.enable_3d.use3d.changed.connect(self._update_3D)
+        self.img_train.changed.connect(self._update_layer_axes)
+        self.train_images_folder.text_field.textChanged.connect(self._update_disk_axes)
+        self.train_button.clicked.connect(lambda: self._start_training(self.model))
+        self.zero_model_button.clicked.connect(self._zero_model)
+        self.n_epochs_spin.valueChanged.connect(self._update_epochs)
+        self.n_steps_spin.valueChanged.connect(self._update_steps)
         self.predict_button.clicked.connect(self._start_prediction)
         self.save_button.clicked.connect(self._save_model)
 
+        # update axes widget in case of data
+        self._update_layer_axes()
 
     def _start_training(self,  pretrained_model=None):
         if self.state == State.IDLE:
-            self.state = State.RUNNING
 
-            self.plot.clear_plot()
-            self.train_button.setText('Stop')
+            if self.axes_widget.is_valid():
+                self.state = State.RUNNING
 
-            self.save_button.setEnabled(False)
-            self.predict_button.setEnabled(False)
+                # register which data tab: layers or disk
+                self.load_from_disk = self.tabs.currentIndex() == 1
 
-            self.train_worker = train_worker(self, pretrained_model=pretrained_model)
-            self.train_worker.yielded.connect(lambda x: self._update_all(x))
-            self.train_worker.returned.connect(self._training_done)
-            self.train_worker.start()
+                # modify UI
+                self.plot.clear_plot()
+                self.train_button.setText('Stop')
+                self.zero_model_button.setText('')
+                self.zero_model_button.setEnabled(False)
+                self.save_button.setEnabled(False)
+                self.predict_button.setEnabled(False)
+                self.predict_button.setText('')
+
+                self.train_worker = train_worker(self, pretrained_model=pretrained_model)
+                self.train_worker.yielded.connect(lambda x: self._update_all(x))
+                self.train_worker.returned.connect(self._training_done)
+                self.train_worker.start()
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
-    def _continue_training(self):
-        if self.state == State.IDLE:
-            self.start_training(pretrained_model=self.model)
-
     def _start_prediction(self):
+        # TODO this is probably broken
         if self.state == State.IDLE:
             self.state = State.RUNNING
             self.pb_pred.setValue(0)
@@ -226,14 +281,14 @@ class TrainWidget(QWidget):
                 self.pred_val = np.zeros(self.img_val.value.data.shape, dtype=np.int16)
                 self.viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
 
-            if self.checkbox_3d.isChecked():
+            if self.is_3D:
                 self.pred_count = 1
             else:
                 self.pred_count = self.img_train.value.data.shape[0]
 
             # check if there is validation data and add it to the prediction count
             if self.img_train.value != self.img_val.value:
-                if self.checkbox_3d.isChecked():
+                if self.is_3D:
                     self.pred_count += 1
                 else:
                     self.pred_count += self.img_val.value.data.shape[0]
@@ -245,11 +300,12 @@ class TrainWidget(QWidget):
     def _training_done(self):
         self.state = State.IDLE
         self.train_button.setText('Train new')
-        self.retrain_button.setText('Retrain')
-        self.retrain_button.setEnabled(True)
+        self.zero_model_button.setText('Zero model')
+        self.zero_model_button.setEnabled(True)
 
         self.save_button.setEnabled(True)
         self.predict_button.setEnabled(True)
+        self.predict_button.setText('Predict')
 
     def _prediction_done(self):
         self.state = State.IDLE
@@ -269,13 +325,78 @@ class TrainWidget(QWidget):
             if self.img_train.value != self.img_val.value:
                 self.viewer.layers[self.img_val.name + PREDICT].refresh()
 
-    def _update_patch(self):
-        if self.checkbox_3d.isChecked():
-            self.patch_Z_spin.setEnabled(True)
-            self.patch_Z_spin.setVisible(True)
+    def _zero_model(self):
+        """
+        Zero the model, causing the next training session to train from scratch.
+        :return:
+        """
+        if self.state == State.IDLE:
+            self.model = None
+            self.zero_model_button.setText('')
+            self.zero_model_button.setEnabled(False)
+
+    def _update_3D(self, state):
+        """
+        Update the UI based on the status of the 3D checkbox.
+        :param state:
+        :return:
+        """
+        self.is_3D = state
+        self.patch_size_Z.setVisible(self.is_3D)
+
+        # update axes widget
+        self.axes_widget.update_is_3D(self.is_3D)
+        self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _update_layer_axes(self):
+        """
+        Update the axes widget based on the shape of the data selected in the layer selection drop-down widget.
+        :return:
+        """
+        if self.img_train.value is not None:
+            shape = self.img_train.value.data.shape
+
+            # update shape length in the axes widget
+            self.axes_widget.update_axes_number(len(shape))
+            self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _update_disk_axes(self):
+        """
+        Load an example image from the disk and update the axes widget based on its shape.
+
+        :return:
+        """
+        def add_image(widget, image):
+            if image is not None:
+                if SAMPLE in widget.viewer.layers:
+                    widget.viewer.layers.remove(SAMPLE)
+
+                widget.viewer.add_image(image, name=SAMPLE, visible=True)
+
+                # update the axes widget
+                widget.axes_widget.update_axes_number(len(image.shape))
+                widget.axes_widget.set_text_field(widget.axes_widget.get_default_text())
+
+        path = self.train_images_folder.get_folder()
+
+        if path is not None or path != '':
+            # load one image
+            load_worker = loading_worker(path)
+            load_worker.yielded.connect(lambda x: add_image(self, x))
+            load_worker.start()
+
+    def _update_tab_axes(self):
+        """
+        Updates the axes widget following the newly selected tab.
+
+        :return:
+        """
+        self.load_from_disk = self.tabs.currentIndex() == 1
+
+        if self.load_from_disk:
+            self._update_disk_axes()
         else:
-            self.patch_Z_spin.setEnabled(False)
-            self.patch_Z_spin.setVisible(False)
+            self._update_layer_axes()
 
     def _update_epochs(self):
         if self.state == State.IDLE:
@@ -311,36 +432,20 @@ class TrainWidget(QWidget):
             if self.model:
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
 
-                if self.checkbox_3d.isChecked():
-                    axes = 'bzyxc'
-                    dimensions = '3d'
-                else:
-                    axes = 'byxc'
-                    dimensions = '2d'
-
                 export_type = self.save_choice.currentText()
                 if SaveMode.MODELZOO.value == export_type:
                     from bioimageio.core.build_spec import build_model
 
-                    build_model(
-                        weight_uri=self.weights_path,
-                        test_inputs=[self.inputs],
-                        test_outputs=[self.outputs],
-                        input_axes=[axes],
-                        output_axes=[axes],
-                        output_path=where + '.bioimage.io.zip',
-                        name='Noise2Void',
-                        description='Self-supervised denoising.',
-                        authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                        license="BSD-3-Clause",
-                        documentation=os.path.abspath('../resources/documentation.md'),
-                        tags=[dimensions, 'tensorflow', 'unet', 'denoising'],
-                        cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                               'doi': "10.48550/arXiv.1811.10980"}],
-                        preprocessing=[],
-                        postprocessing=[],
-                        tensorflow_version=self.tf_version
-                    )
+                    axes = self.axes_widget.get_axes()
+                    axes = axes.replace('S', 'b').lower()
+
+                    build_modelzoo(where + '.bioimage.io.zip',
+                                   self.model.logdir / "weights_best.h5",
+                                   self.inputs,
+                                   self.outputs,
+                                   self.tf_version,
+                                   axes)
+
                 else:
                     self.model.keras_model.save_weights(where + '.h5')
 

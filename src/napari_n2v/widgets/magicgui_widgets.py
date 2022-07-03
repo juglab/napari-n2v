@@ -36,3 +36,7 @@ def threshold_spin(Threshold: int):
 def load_button(Model: Path):
     pass
 
+
+@magic_factory(auto_call=True, use3d={'label': ' ', 'widget_type': 'Checkbox', 'visible': True})
+def enable_3d(use3d: bool = False) -> bool:
+    return use3d

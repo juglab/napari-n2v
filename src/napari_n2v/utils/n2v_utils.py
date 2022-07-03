@@ -10,6 +10,7 @@ REF_AXES = 'TSZYXC'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
+SAMPLE = 'Sample data'
 
 
 class State(Enum):
@@ -169,3 +170,37 @@ def are_axes_valid(axes: str):
             return False
 
     return True
+
+
+def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc', doc='../resources/documentation.md'):
+    import os
+    from bioimageio.core.build_spec import build_model
+
+    assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
+
+    tags_dim = '3d' if len(axes) == 5 else '2d'
+
+    build_model(weight_uri=weights,
+                test_inputs=[inputs],
+                test_outputs=[outputs],
+                input_axes=[axes],
+                # TODO are the axes in and out always the same? (output has 3 seg classes and 1 denoised channels)
+                output_axes=[axes],
+                output_path=path,
+                name='Noise2Void',
+                description='Self-supervised denoising.',
+                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                license="BSD-3-Clause",
+                documentation=os.path.abspath('../resources/documentation.md'),
+                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
+                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                       'doi': "10.48550/arXiv.1811.10980"}],
+                preprocessing=[[{
+                    "name": "zero_mean_unit_variance",
+                    "kwargs": {
+                        "axes": "yx",
+                        "mode": "per_dataset"
+                    }
+                }]],
+                tensorflow_version=tf_version
+                )
