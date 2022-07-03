@@ -55,6 +55,7 @@ def train_worker(widget, pretrained_model=None):
 
     # get data
     _x_train, _x_val, new_axes = load_images(widget)
+    widget.x_train, widget.y_train = _x_train, _x_val  # save for prediction
 
     # prepare data
     X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
@@ -182,7 +183,7 @@ def load_images(widget):
         # load train data
         _x_train, new_axes = load_data_from_disk(path_train_X, axes)
 
-        if path_val_X is None:
+        if path_val_X is None and path_val_X != path_train_X:
             _x_val = None
         else:
             _x_val, _ = load_data_from_disk(path_val_X, axes)

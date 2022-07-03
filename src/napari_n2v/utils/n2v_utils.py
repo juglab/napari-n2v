@@ -240,3 +240,26 @@ def reshape_data(x, axes: str):
         new_axes = new_axes + 'C'
 
     return _x, new_axes
+
+
+def get_size_from_shape(layer, axes):
+    ind_S = axes.find('S')
+    ind_T = axes.find('T')
+
+    # layer shape
+    shape = layer.data.shape
+
+    if ind_S == -1 < ind_T:  # there is only T
+        return shape[ind_T]
+    elif ind_T == -1 < ind_S:  # there is only S
+        return shape[ind_T]
+    elif ind_T > -1 and ind_S > -1:  # there are both
+        return shape[ind_T]*shape[ind_S]
+    else:
+        return 1
+
+
+def get_images_count(path):
+    images_path = Path(path)
+
+    return len([f for f in images_path.glob('*.tif*')])

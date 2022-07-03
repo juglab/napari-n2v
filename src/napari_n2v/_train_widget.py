@@ -1,7 +1,5 @@
 """
 """
-import os.path
-
 import napari
 import numpy as np
 from qtpy.QtWidgets import (
@@ -30,9 +28,10 @@ from napari_n2v.utils import (
     SaveMode,
     Updates,
     train_worker,
-    predict_worker,
+    prediction_after_training_worker,
     loading_worker,
     build_modelzoo,
+    get_size_from_shape,
     PREDICT,
     SAMPLE
 )
@@ -212,7 +211,8 @@ class TrainWidget(QWidget):
         self.layout().addWidget(self.plot.native)
 
         # place-holders for the trained model, prediction and parameters (bioimage.io)
-        self.model, self.pred_train, self.pred_val = None, None, None
+        self.model = None
+        self.x_train, self.x_val, self.pred_train, self.pred_val = None, None, None, None
         self.inputs, self.outputs = None, None
         self.tf_version = None
         self.train_worker = None
@@ -265,36 +265,30 @@ class TrainWidget(QWidget):
         # TODO this is probably broken
         if self.state == State.IDLE:
             self.state = State.RUNNING
+
             self.pb_pred.setValue(0)
 
-            # set up the layers for the denoised predictions
+            # prepare layers name and remove them if they exist
             pred_train_name = self.img_train.name + PREDICT
+            pred_val_name = self.img_val.name + PREDICT
             if pred_train_name in self.viewer.layers:
                 self.viewer.layers.remove(pred_train_name)
-            self.pred_train = np.zeros(self.img_train.value.data.shape, dtype=np.int16)
-            self.viewer.add_labels(self.pred_train, name=pred_train_name, visible=True)
+            if pred_val_name in self.viewer.layers:
+                self.viewer.layers.remove(pred_val_name)
 
-            pred_val_name = self.img_val.name + PREDICT
-            if self.img_train.value != self.img_val.value:
-                if pred_val_name in self.viewer.layers:
-                    self.viewer.layers.remove(pred_val_name)
-                self.pred_val = np.zeros(self.img_val.value.data.shape, dtype=np.int16)
-                self.viewer.add_labels(self.pred_val, name=pred_val_name, visible=True)
+            # place-holders
+            # TODO doesn't work if list!
+            self.pred_train = np.zeros(self.x_train.shape, dtype=np.float)
+            self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
+            self.pred_count = self.x_train.shape[0]
 
-            if self.is_3D:
-                self.pred_count = 1
-            else:
-                self.pred_count = self.img_train.value.data.shape[0]
+            if self.x_val is not None:
+                self.pred_val = np.zeros(self.x_val.shape, dtype=np.float)
+                self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
+                self.pred_count += self.x_val.shape[0]
 
-            # check if there is validation data and add it to the prediction count
-            if self.img_train.value != self.img_val.value:
-                if self.is_3D:
-                    self.pred_count += 1
-                else:
-                    self.pred_count += self.img_val.value.data.shape[0]
-
-            self.predict_worker = predict_worker(self)
-            self.predict_worker.yielded.connect(lambda x: self.update_predict(x))
+            self.predict_worker = prediction_after_training_worker(self)
+            self.predict_worker.yielded.connect(lambda x: self._update_prediction(x))
             self.predict_worker.start()
 
     def _training_done(self):
@@ -311,7 +305,7 @@ class TrainWidget(QWidget):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
 
-    def _update_predict(self, update):
+    def _update_prediction(self, update):
         if self.state == State.RUNNING:
             if update == Updates.DONE:
                 self.prediction_done()

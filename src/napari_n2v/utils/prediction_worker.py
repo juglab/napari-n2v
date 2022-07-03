@@ -4,42 +4,33 @@ from napari_n2v.utils import Updates, create_model
 
 
 @thread_worker(start_thread=False)
-def predict_worker(widget):
+def prediction_after_training_worker(widget):
+    # TODO probably doesn't work if images are lists from the disk
     model = widget.model
 
-    # check if it is 3D
-    if widget.checkbox_3d.isChecked():
-        im_dims = 'ZYX'
-    else:
-        im_dims = 'YX'
+    # get images
+    _x_train = widget.x_train
 
-    # get train images
-    train_image = widget.img_train.value.data
+    # get axes
+    axes = widget.axes_widget.get_axes()
 
     # denoise training images
     counter = 0
-    if im_dims == 'YX':
-        for i in range(train_image.shape[0]):
-            widget.pred_train[i, ...] = model.predict(train_image[i, ...].astype(np.float32), im_dims)
-            counter += 1
-            yield {Updates.PRED: counter}
-    else:
-        widget.pred_train = model.predict(train_image.astype(np.float32), im_dims)
-        yield {Updates.PRED: 1}
+    for i in range(_x_train.shape[0]):
+        widget.pred_train[i, ...] = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:], n_tiles=10)
+        counter += 1
+        yield {Updates.PRED: counter}
 
     # check if there is validation data
-    if widget.img_train.value != widget.img_val.value:
-        val_image = widget.img_val.value.data
+    if widget.x_val is not None:
+        _x_val = widget.x_val
 
         # denoised val images
-        if im_dims == 'YX':
-            for i in range(val_image.shape[0]):
-                widget.pred_val[i, ...] = model.predict(val_image[i, ...].astype(np.float32), im_dims)
-                counter += 1
-                yield {Updates.PRED: counter}
-        else:
-            widget.pred_val = model.predict(val_image.astype(np.float32), im_dims)
-            yield {Updates.PRED: 2}
+        for i in range(_x_val.shape[0]):
+            widget.pred_val[i, ...] = model.predict(_x_val[i, ...].astype(np.float32), axes=axes[1:], n_tiles=10)
+            counter += 1
+            yield {Updates.PRED: counter}
+
     yield Updates.DONE
 
 
@@ -47,6 +38,8 @@ def predict_worker(widget):
 def prediction_worker(widget):
     import os
     import threading
+
+    # TODO lazy load
 
     # TODO remove (just used because I currently cannot use the GPU)
     import tensorflow as tf
