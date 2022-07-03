@@ -129,6 +129,7 @@ class TrainWidget(QWidget):
         # TODO add tooltips
         others = QWidget()
         formLayout = QFormLayout()
+        formLayout.addRow('', self.axes_widget)
         formLayout.addRow('Enable 3D', self.enable_3d.native)
         formLayout.addRow('N epochs', self.n_epochs_spin)
         formLayout.addRow('N steps', self.n_steps_spin)
@@ -213,6 +214,7 @@ class TrainWidget(QWidget):
         # place-holders for the trained model, prediction and parameters (bioimage.io)
         self.model = None
         self.x_train, self.x_val, self.pred_train, self.pred_val = None, None, None, None
+        self.new_axes = None
         self.inputs, self.outputs = None, None
         self.tf_version = None
         self.train_worker = None
@@ -278,12 +280,13 @@ class TrainWidget(QWidget):
 
             # place-holders
             # TODO doesn't work if list!
-            self.pred_train = np.zeros(self.x_train.shape, dtype=np.float)
+            self.pred_train = np.zeros(self.x_train.shape, dtype=np.float32)
+            # TODO: reshape for napari: YX dims at the end
             self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
             self.pred_count = self.x_train.shape[0]
 
             if self.x_val is not None:
-                self.pred_val = np.zeros(self.x_val.shape, dtype=np.float)
+                self.pred_val = np.zeros(self.x_val.shape, dtype=np.float32)
                 self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
                 self.pred_count += self.x_val.shape[0]
 

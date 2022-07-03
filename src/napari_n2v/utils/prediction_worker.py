@@ -12,12 +12,13 @@ def prediction_after_training_worker(widget):
     _x_train = widget.x_train
 
     # get axes
-    axes = widget.axes_widget.get_axes()
+    axes = widget.new_axes
 
     # denoise training images
     counter = 0
     for i in range(_x_train.shape[0]):
-        widget.pred_train[i, ...] = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:], n_tiles=10)
+        # TODO: reshape for napari: YX dims at the end
+        widget.pred_train[i, ...] = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:])
         counter += 1
         yield {Updates.PRED: counter}
 
@@ -27,7 +28,7 @@ def prediction_after_training_worker(widget):
 
         # denoised val images
         for i in range(_x_val.shape[0]):
-            widget.pred_val[i, ...] = model.predict(_x_val[i, ...].astype(np.float32), axes=axes[1:], n_tiles=10)
+            widget.pred_val[i, ...] = model.predict(_x_val[i, ...].astype(np.float32), axes=axes[1:])
             counter += 1
             yield {Updates.PRED: counter}
 
