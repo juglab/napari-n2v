@@ -282,6 +282,7 @@ class TrainWidget(QWidget):
             # TODO doesn't work if list!
             self.pred_train = np.zeros(self.x_train.shape, dtype=np.float32)
             # TODO: reshape for napari: YX dims at the end
+            # TODO check what the prediction is doing and compare
             self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
             self.pred_count = self.x_train.shape[0]
 

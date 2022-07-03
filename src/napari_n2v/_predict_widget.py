@@ -2,15 +2,23 @@
 """
 import napari
 import numpy as np
-from napari_n2v.utils import State, Updates, DENOISING, prediction_worker
-from napari_n2v.widgets import load_button, layer_choice, threshold_spin
+from napari_n2v.utils import State, Updates, DENOISING, prediction_worker, loading_worker
+from napari_n2v.widgets import (
+    AxesWidget,
+    FolderWidget,
+    load_button,
+    layer_choice
+)
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QPushButton,
     QProgressBar,
-    QCheckBox
+    QCheckBox,
+    QTabWidget
 )
+
+SAMPLE = 'Sample data'
 
 
 class PredictWidget(QWidget):
@@ -21,22 +29,47 @@ class PredictWidget(QWidget):
         self.viewer = napari_viewer
 
         self.setLayout(QVBoxLayout())
+        self.setMaximumHeight(320)
+
+        ###############################
+        # QTabs
+        self.tabs = QTabWidget()
+        tab_layers = QWidget()
+        tab_layers.setLayout(QVBoxLayout())
+
+        tab_disk = QWidget()
+        tab_disk.setLayout(QVBoxLayout())
+
+        # add tabs
+        self.tabs.addTab(tab_layers, 'From layers')
+        self.tabs.addTab(tab_disk, 'From disk')
+        self.tabs.setMaximumHeight(120)
+
+        # image layer tab
+        self.images = layer_choice(annotation=napari.layers.Image, name="Images")
+        tab_layers.layout().addWidget(self.images.native)
+
+        # disk tab
+        self.lazy_loading = QCheckBox('Lazy loading')
+        tab_disk.layout().addWidget(self.lazy_loading)
+        self.images_folder = FolderWidget('Choose')
+        tab_disk.layout().addWidget(self.images_folder)
+
+        # add to main layout
+        self.layout().addWidget(self.tabs)
+        self.images.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
 
         # load model button
         self.load_button = load_button()
         self.layout().addWidget(self.load_button.native)
 
-        # image layer
-        self.images = layer_choice(napari_viewer, annotation=napari.layers.Image, name="Images")
-        self.layout().addWidget(self.images.native)
+        # load 3D enabling checkbox
+        self.enable_3d = QCheckBox('Enable 3D')
+        self.layout().addWidget(self.enable_3d)
 
-        # 3D checkbox
-        self.checkbox_3d = QCheckBox('3D')
-        self.layout().addWidget(self.checkbox_3d)
-
-        # threshold slider
-        self.threshold_spin = threshold_spin()
-        self.layout().addWidget(self.threshold_spin.native)
+        # axes widget
+        self.axes_widget = AxesWidget()
+        self.layout().addWidget(self.axes_widget)
 
         # progress bar
         self.pb_prediction = QProgressBar()
@@ -48,13 +81,64 @@ class PredictWidget(QWidget):
         self.layout().addWidget(self.pb_prediction)
 
         # predict button
-        self.worker = None
-        self.denoi_prediction = None
         self.predict_button = QPushButton("Predict", self)
-        self.predict_button.clicked.connect(self._start_prediction)
         self.layout().addWidget(self.predict_button)
 
+        # place holders
+        self.worker = None
+        self.denoi_prediction = None
         self.n_im = 0
+
+        # actions
+        self.tabs.currentChanged.connect(self._update_tab_axes)
+        self.predict_button.clicked.connect(self._start_prediction)
+        self.images.changed.connect(self._update_layer_axes)
+        self.images_folder.text_field.textChanged.connect(self._update_disk_axes)
+        self.enable_3d.stateChanged.connect(self._update_3D)
+
+    def _update_3D(self):
+        self.axes_widget.update_is_3D(self.enable_3d.isChecked())
+        self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _update_layer_axes(self):
+        if self.images.value is not None:
+            shape = self.images.value.data.shape
+
+            # update shape length in the axes widget
+            self.axes_widget.update_axes_number(len(shape))
+            self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _add_image(self, image):
+        if SAMPLE in self.viewer.layers:
+            self.viewer.layers.remove(SAMPLE)
+
+        if image is not None:
+            self.viewer.add_image(image, name=SAMPLE, visible=True)
+
+            # update the axes widget
+            self.axes_widget.update_axes_number(len(image.shape))
+            self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _update_disk_axes(self):
+        path = self.images_folder.get_folder()
+
+        # load one image
+        load_worker = loading_worker(path)
+        load_worker.yielded.connect(lambda x: self._add_image(x))
+        load_worker.start()
+
+    def _update_tab_axes(self):
+        """
+        Updates the axes widget following the newly selected tab.
+
+        :return:
+        """
+        self.load_from_disk = self.tabs.currentIndex() == 1
+
+        if self.load_from_disk:
+            self._update_disk_axes()
+        else:
+            self._update_layer_axes()
 
     def _update(self, updates):
         if Updates.N_IMAGES in updates:
@@ -75,20 +159,28 @@ class PredictWidget(QWidget):
 
     def _start_prediction(self):
         if self.state == State.IDLE:
-            self.state = State.RUNNING
+            if self.axes_widget.is_valid():
+                self.state = State.RUNNING
 
-            self.predict_button.setText('Stop')
+                self.predict_button.setText('Stop')
 
-            if DENOISING in self.viewer.layers:
-                self.viewer.layers.remove(DENOISING)
+                if DENOISING in self.viewer.layers:
+                    self.viewer.layers.remove(DENOISING)
 
-            self.denoi_prediction = np.zeros(self.images.value.data.shape, dtype=np.int16)
-            viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+                if self.load_from_disk == 0:
+                    self.denoi_prediction = np.zeros(self.images.value.data.shape, dtype=np.float32)
+                    viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+                else:
+                    self.denoi_prediction = np.zeros(self.shape, dtype=np.float32)
+                    viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
-            self.worker = prediction_worker(self)
-            self.worker.yielded.connect(lambda x: self._update(x))
-            self.worker.returned.connect(self._done)
-            self.worker.start()
+                self.worker = prediction_worker(self)
+                self.worker.yielded.connect(lambda x: self._update(x))
+                self.worker.returned.connect(self._done)
+                self.worker.start()
+            else:
+                # TODO feedback to users
+                pass
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
