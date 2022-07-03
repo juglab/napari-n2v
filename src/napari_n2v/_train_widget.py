@@ -107,8 +107,8 @@ class TrainWidget(QWidget):
         self.batch_size_spin = QSpinBox()
         self.batch_size_spin.setMaximum(512)
         self.batch_size_spin.setMinimum(1)
-        self.batch_size_spin.setSingleStep(8)
-        self.batch_size_spin.setValue(16)
+        self.batch_size_spin.setSingleStep(1)
+        self.batch_size_spin.setValue(8)
 
         # patch XY size
         self.patch_XY_spin = QSpinBox()
@@ -119,12 +119,12 @@ class TrainWidget(QWidget):
 
         # 3D checkbox
         self.enable_3d = enable_3d()
-        self.patch_size_Z = QSpinBox()
-        self.patch_size_Z.setMaximum(512)
-        self.patch_size_Z.setMinimum(16)
-        self.patch_size_Z.setSingleStep(8)
-        self.patch_size_Z.setValue(16)
-        self.patch_size_Z.setVisible(False)
+        self.patch_Z_spin = QSpinBox()
+        self.patch_Z_spin.setMaximum(512)
+        self.patch_Z_spin.setMinimum(16)
+        self.patch_Z_spin.setSingleStep(8)
+        self.patch_Z_spin.setValue(16)
+        self.patch_Z_spin.setVisible(False)
 
         # add widgets
         # TODO add tooltips
@@ -135,7 +135,7 @@ class TrainWidget(QWidget):
         formLayout.addRow('N steps', self.n_steps_spin)
         formLayout.addRow('Batch size', self.batch_size_spin)
         formLayout.addRow('Patch XY', self.patch_XY_spin)
-        formLayout.addRow('Patch Z', self.patch_size_Z)
+        formLayout.addRow('Patch Z', self.patch_Z_spin)
         others.setLayout(formLayout)
         self.layout().addWidget(others)
 
@@ -299,7 +299,7 @@ class TrainWidget(QWidget):
 
     def _training_done(self):
         self.state = State.IDLE
-        self.train_button.setText('Train new')
+        self.train_button.setText('Train again')
         self.zero_model_button.setText('Zero model')
         self.zero_model_button.setEnabled(True)
 
@@ -342,7 +342,7 @@ class TrainWidget(QWidget):
         :return:
         """
         self.is_3D = state
-        self.patch_size_Z.setVisible(self.is_3D)
+        self.patch_Z_spin.setVisible(self.is_3D)
 
         # update axes widget
         self.axes_widget.update_is_3D(self.is_3D)

@@ -1,6 +1,6 @@
 import numpy as np
 from napari.qt.threading import thread_worker
-from napari_n2v.utils import Updates, prepare_data, create_model
+from napari_n2v.utils import Updates, create_model
 
 
 @thread_worker(start_thread=False)
@@ -70,7 +70,7 @@ def prediction_worker(widget):
         patch_shape = (patch_XY, patch_XY)
 
     # prepare data
-    X_train, X_val = prepare_data(images, None, patch_shape)
+    X_train, X_val = None, None #prepare_data(images, None, patch_shape)
 
     # create model
     if is_3d:

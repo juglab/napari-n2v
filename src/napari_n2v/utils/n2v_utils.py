@@ -1,10 +1,10 @@
 import warnings
 from enum import Enum
 from itertools import permutations
-from queue import Queue
+from pathlib import Path
 
 import numpy as np
-from tensorflow.keras.callbacks import Callback
+from tifffile import imread
 
 REF_AXES = 'TSZYXC'
 
@@ -37,66 +37,6 @@ class SaveMode(Enum):
         return list(map(lambda c: c.value, cls))
 
 
-def prepare_data(img_train, img_val, patch_shape=(64, 64)):
-    from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
-
-    # get images
-    if len(patch_shape) == 2:
-        X_train = img_train[..., np.newaxis]  # (1, S, Y, X, 1)
-    else:
-        X_train = img_train[np.newaxis, ..., np.newaxis]  # (1, S, Z, Y, X, 1)
-
-    # TODO: what if Time dimension
-    # create data generator
-    data_gen = N2V_DataGenerator()
-
-    # generate train patches
-    print(f'Patch {patch_shape}')
-    print(f'X train {X_train.shape}')
-    X_train_patches = data_gen.generate_patches_from_list([X_train], shape=patch_shape, shuffle=True)
-
-    if img_val is None:  # TODO: how to choose number of validation patches?
-        X_val_patches = X_train_patches[-5:]
-        X_train_patches = X_train_patches[:-5]
-    else:
-        if len(patch_shape) == 2:
-            X_val = img_val[..., np.newaxis]
-        else:
-            X_val = img_val[np.newaxis, ..., np.newaxis]
-
-        print(f'X val {X_val.shape}')
-        X_val_patches = data_gen.generate_patches_from_list([X_val], shape=patch_shape, shuffle=True)
-
-    print(f'Train patches: {X_train_patches.shape}')
-    print(f'Val patches: {X_val_patches.shape}')
-
-    return X_train_patches, X_val_patches
-
-
-class Updater(Callback):
-    def __init__(self):
-        self.queue = Queue(10)
-        self.epoch = 0
-        self.batch = 0
-
-    def on_epoch_begin(self, epoch, logs=None):
-        self.epoch = epoch
-        self.queue.put({Updates.EPOCH: self.epoch + 1})
-
-    def on_epoch_end(self, epoch, logs=None):
-        self.queue.put({Updates.LOSS: (self.epoch, logs['loss'], logs['val_loss'])})
-
-    def on_train_batch_begin(self, batch, logs=None):
-        self.batch = batch
-        self.queue.put({Updates.BATCH: self.batch + 1})
-
-    def on_train_end(self, logs=None):
-        self.queue.put(Updates.DONE)
-
-    def stop_training(self):
-        self.model.stop_training = True
-
-
 def create_model(X_patches,
                  n_epochs=100,
                  n_steps=400,
@@ -107,10 +47,6 @@ def create_model(X_patches,
     from n2v.models import N2VConfig, N2V
 
     # create config
-    # config = N2VConfig(X_patches, unet_kern_size=3,
-    #                  train_steps_per_epoch=n_steps, train_epochs=n_epochs, train_loss='mse',
-    #                 batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-    #                n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=neighborhood_radius)
     n2v_patch_shape = X_patches.shape[1:-1]
     config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
                        train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
@@ -121,7 +57,7 @@ def create_model(X_patches,
     model = N2V(config, model_name, basedir=basedir)
 
     # add updater
-    model.prepare_for_training(metrics=())
+    model.prepare_for_training(metrics={})
     model.callbacks.append(updater)
 
     return model
@@ -204,3 +140,103 @@ def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc', doc=
                 }]],
                 tensorflow_version=tf_version
                 )
+
+
+def load_from_disk(path, axes: str):
+    """
+
+    :param axes:
+    :param path:
+    :return:
+    """
+    images_path = Path(path)
+    image_files = [f for f in images_path.glob('*.tif*')]
+
+    images = []
+    dims_agree = True
+    for f in image_files:
+        images.append(imread(str(f)))
+        dims_agree = dims_agree and (images[0].shape == images[-1].shape)
+
+    if dims_agree:
+        if 'S' in axes:
+            ind_S = axes.find('S')
+            final_images = np.concatenate(images, axis=ind_S)
+        else:
+            final_images = np.stack(images, axis=0)
+        return final_images
+
+    return images
+
+
+def list_diff(l1, l2):
+    """
+    Return the difference of two lists.
+    :param l1:
+    :param l2:
+    :return: list of elements in l1 that are not in l2.
+    """
+    return list(set(l1) - set(l2))
+
+
+def get_shape_order(x, ref_axes, axes):
+    """
+    Return the new shape and axes order of x, if the axes were to be ordered according to
+    the reference axes.
+
+    :param x:
+    :param ref_axes: Reference axes order (string)
+    :param axes: New axes as a list of strings
+    :return:
+    """
+    # build indices look-up table: indices of each axe in `axes`
+    indices = [axes.find(k) for k in ref_axes]
+
+    # remove all non-existing axes (index == -1)
+    indices = tuple(filter(lambda k: k != -1, indices))
+
+    # find axes order and get new shape
+    new_axes = [axes[ind] for ind in indices]
+    new_shape = tuple([x.shape[ind] for ind in indices])
+
+    return new_shape, ''.join(new_axes), indices
+
+
+def reshape_data(x, axes: str):
+    """
+    """
+    _x = x
+    _axes = axes
+
+    # sanity checks
+    if 'X' not in axes or 'Y' not in axes:
+        raise ValueError('X or Y dimension missing in axes.')
+
+    if len(_axes) != len(_x.shape):
+        raise ValueError('Incompatible data and axes.')
+
+    assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
+
+    # get new x shape
+    new_x_shape, new_axes, indices = get_shape_order(_x, REF_AXES, _axes)
+
+    # if S is not in the list of axes, then add a singleton S
+    if 'S' not in new_axes:
+        new_axes = 'S' + new_axes
+        _x = _x[np.newaxis, ...]
+        new_x_shape = (1,) + new_x_shape
+
+    # remove T if necessary
+    if 'T' in new_axes:
+        new_x_shape = (-1,) + new_x_shape[2:]  # remove T and S
+        new_axes = new_axes.replace('T', '')
+
+    # reshape
+    _x = _x.reshape(new_x_shape)
+
+    # add channel
+    if 'C' not in new_axes:
+        _x = _x[..., np.newaxis]
+        new_axes = new_axes + 'C'
+
+    return _x, new_axes
