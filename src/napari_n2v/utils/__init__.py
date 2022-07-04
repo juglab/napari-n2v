@@ -10,7 +10,8 @@ from .n2v_utils import (
     get_images_count,
     reshape_napari,
     lazy_load_generator,
-    load_weights
+    load_weights,
+    create_config
 )
 from .n2v_utils import State, UpdateType, SaveMode
 from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE

@@ -13,7 +13,8 @@ from napari_n2v.utils import (
     load_from_disk,
     load_weights,
     reshape_data,
-    State
+    State,
+    create_config
 )
 
 
@@ -112,7 +113,9 @@ def _run_prediction(widget, model, axes, images):
     # create model
     model_name = 'n2v'
     base_dir = 'models'
+    is_list = False
     if type(images) == list:
+        is_list = True
         model = create_model(images[0], 1, 1, 1, model_name, base_dir, train=False)
     else:
         model = create_model(images, 1, 1, 1, model_name, base_dir, train=False)
@@ -127,6 +130,9 @@ def _run_prediction(widget, model, axes, images):
 
         if t is not None:
             _x, new_axes, i = t
+
+            # update config for std and mean
+            model.config = create_config(_x, 1, 1, 1, model_name, base_dir, train=False)
 
             # yield image number + 1
             yield {UpdateType.IMAGE: i + 1}
@@ -165,6 +171,9 @@ def _run_lazy_prediction(widget, model, axes, generator):
                 weight_name = widget.load_button.Model.value
                 assert len(weight_name.name) > 0, 'Model path cannot be empty.'
                 load_weights(model, weight_name)
+            else:
+                # update config for std and mean
+                model.config = create_config(image, 1, 1, 1, model_name, base_dir, train=False)
 
             # reshape data
             x, new_axes = reshape_data(image, axes)

@@ -40,6 +40,20 @@ class SaveMode(Enum):
         return list(map(lambda c: c.value, cls))
 
 
+def create_config(X_patches,
+                  n_epochs=100,
+                  n_steps=400,
+                  batch_size=16):
+    from n2v.models import N2VConfig
+
+    n2v_patch_shape = X_patches.shape[1:-1]
+    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
+                       train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
+                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
+                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
+    return config
+
+
 def create_model(X_patches,
                  n_epochs=100,
                  n_steps=400,
@@ -48,14 +62,13 @@ def create_model(X_patches,
                  basedir='models',
                  updater=None,
                  train=True):
-    from n2v.models import N2VConfig, N2V
+    from n2v.models import N2V
 
     # create config
-    n2v_patch_shape = X_patches.shape[1:-1]
-    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
-                       train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
-                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
+    config = create_config(X_patches,
+                           n_epochs,
+                           n_steps,
+                           batch_size)
 
     # create network
     model = N2V(config, model_name, basedir=basedir)
@@ -286,7 +299,7 @@ def get_size_from_shape(layer, axes):
     elif ind_T == -1 < ind_S:  # there is only S
         return shape[ind_T]
     elif ind_T > -1 and ind_S > -1:  # there are both
-        return shape[ind_T]*shape[ind_S]
+        return shape[ind_T] * shape[ind_S]
     else:
         return 1
 
