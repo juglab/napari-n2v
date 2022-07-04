@@ -1,12 +1,15 @@
+import os
 import warnings
 from enum import Enum
 from itertools import permutations
 from pathlib import Path
 
 import numpy as np
+from n2v.models import N2V
 from tifffile import imread
 
 REF_AXES = 'TSZYXC'
+NAPARI_AXES = 'SCTZYX'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
@@ -18,7 +21,7 @@ class State(Enum):
     RUNNING = 1
 
 
-class Updates(Enum):
+class UpdateType(Enum):
     EPOCH = 'epoch'
     BATCH = 'batch'
     LOSS = 'loss'
@@ -43,7 +46,8 @@ def create_model(X_patches,
                  batch_size=16,
                  model_name='n2v',
                  basedir='models',
-                 updater=None):
+                 updater=None,
+                 train=True):
     from n2v.models import N2VConfig, N2V
 
     # create config
@@ -56,9 +60,12 @@ def create_model(X_patches,
     # create network
     model = N2V(config, model_name, basedir=basedir)
 
+    if train:
+        model.prepare_for_training(metrics={})
+
     # add updater
-    model.prepare_for_training(metrics={})
-    model.callbacks.append(updater)
+    if updater:
+        model.callbacks.append(updater)
 
     return model
 
@@ -242,6 +249,31 @@ def reshape_data(x, axes: str):
     return _x, new_axes
 
 
+def reshape_napari(x, axes: str):
+    """
+
+    """
+    _x = x
+    _axes = axes
+
+    # sanity checks
+    if 'X' not in axes or 'Y' not in axes:
+        raise ValueError('X or Y dimension missing in axes.')
+
+    if len(_axes) != len(_x.shape):
+        raise ValueError('Incompatible data and axes.')
+
+    assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
+
+    # get new x shape
+    new_x_shape, new_axes, indices = get_shape_order(_x, NAPARI_AXES, _axes)
+
+    # reshape
+    _x = _x.reshape(new_x_shape)
+
+    return _x, new_axes
+
+
 def get_size_from_shape(layer, axes):
     ind_S = axes.find('S')
     ind_T = axes.find('T')
@@ -263,3 +295,44 @@ def get_images_count(path):
     images_path = Path(path)
 
     return len([f for f in images_path.glob('*.tif*')])
+
+
+def lazy_load_generator(path):
+    """
+
+    :param path:
+    :return:
+    """
+    images_path = Path(path)
+    image_files = [f for f in images_path.glob('*.tif*')]
+
+    def generator(file_list):
+        counter = 0
+        for f in file_list:
+            counter = counter + 1
+            yield imread(str(f)), f, counter
+
+    return generator(image_files), len(image_files)
+
+
+def load_weights(model: N2V, weights_path):
+    """
+
+    :param model:
+    :param weights_path:
+    :return:
+    """
+    _filename, file_ext = os.path.splitext(weights_path)
+    if file_ext == ".zip":
+        import bioimageio.core
+        # we assume we got a modelzoo file
+        rdf = bioimageio.core.load_resource_description(weights_path)
+        weights_name = rdf.weights['keras_hdf5'].source
+    else:
+        # we assure we have a path to a .h5
+        weights_name = weights_path
+
+    if not Path(weights_name).exists():
+        raise FileNotFoundError('Invalid path to weights.')
+
+    model.keras_model.load_weights(weights_name)

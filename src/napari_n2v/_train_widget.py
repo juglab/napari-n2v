@@ -26,12 +26,12 @@ from napari_n2v.widgets import (
 from napari_n2v.utils import (
     State,
     SaveMode,
-    Updates,
+    UpdateType,
     train_worker,
     prediction_after_training_worker,
     loading_worker,
     build_modelzoo,
-    get_size_from_shape,
+    reshape_napari,
     PREDICT,
     SAMPLE
 )
@@ -280,14 +280,14 @@ class TrainWidget(QWidget):
 
             # place-holders
             # TODO doesn't work if list!
-            self.pred_train = np.zeros(self.x_train.shape, dtype=np.float32)
-            # TODO: reshape for napari: YX dims at the end
-            # TODO check what the prediction is doing and compare
+            x_train, _ = reshape_napari(self.x_train)  # napari has axes YX at the end
+            self.pred_train = np.zeros(x_train.shape, dtype=np.float32)
             self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
             self.pred_count = self.x_train.shape[0]
 
             if self.x_val is not None:
-                self.pred_val = np.zeros(self.x_val.shape, dtype=np.float32)
+                x_val, _ = reshape_napari(self.x_val)  # napari has axes YX at the end
+                self.pred_val = np.zeros(x_val.shape, dtype=np.float32)
                 self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
                 self.pred_count += self.x_val.shape[0]
 
@@ -311,10 +311,10 @@ class TrainWidget(QWidget):
 
     def _update_prediction(self, update):
         if self.state == State.RUNNING:
-            if update == Updates.DONE:
+            if update == UpdateType.DONE:
                 self.prediction_done()
             else:
-                val = update[Updates.PRED]
+                val = update[UpdateType.PRED]
                 p_perc = int(100 * val / self.pred_count + 0.5)
                 self.pb_pred.setValue(p_perc)
                 self.pb_pred.setFormat(f'Prediction {val}/{self.pred_count}')
@@ -410,20 +410,20 @@ class TrainWidget(QWidget):
 
     def _update_all(self, updates):
         if self.state == State.RUNNING:
-            if Updates.EPOCH in updates:
-                val = updates[Updates.EPOCH]
-                e_perc = int(100 * updates[Updates.EPOCH] / self.n_epochs + 0.5)
+            if UpdateType.EPOCH in updates:
+                val = updates[UpdateType.EPOCH]
+                e_perc = int(100 * updates[UpdateType.EPOCH] / self.n_epochs + 0.5)
                 self.pb_epochs.setValue(e_perc)
                 self.pb_epochs.setFormat(f'Epoch {val}/{self.n_epochs}')
 
-            if Updates.BATCH in updates:
-                val = updates[Updates.BATCH]
+            if UpdateType.BATCH in updates:
+                val = updates[UpdateType.BATCH]
                 s_perc = int(100 * val / self.n_steps + 0.5)
                 self.pb_steps.setValue(s_perc)
                 self.pb_steps.setFormat(f'Step {val}/{self.n_steps}')
 
-            if Updates.LOSS in updates:
-                self.plot.update_plot(*updates[Updates.LOSS])
+            if UpdateType.LOSS in updates:
+                self.plot.update_plot(*updates[UpdateType.LOSS])
 
     def _save_model(self):
         if self.state == State.IDLE:

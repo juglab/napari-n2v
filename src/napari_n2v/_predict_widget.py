@@ -2,7 +2,8 @@
 """
 import napari
 import numpy as np
-from napari_n2v.utils import State, Updates, DENOISING, prediction_worker, loading_worker
+from napari_n2v.utils import State, UpdateType, DENOISING, prediction_worker, loading_worker, reshape_napari, \
+    get_images_count
 from napari_n2v.widgets import (
     AxesWidget,
     FolderWidget,
@@ -59,6 +60,7 @@ class PredictWidget(QWidget):
         self.layout().addWidget(self.tabs)
         self.images.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
 
+        ###############################
         # load model button
         self.load_button = load_button()
         self.layout().addWidget(self.load_button.native)
@@ -87,7 +89,9 @@ class PredictWidget(QWidget):
         # place holders
         self.worker = None
         self.denoi_prediction = None
+        self.sample_image = None
         self.n_im = 0
+        self.load_from_disk = False
 
         # actions
         self.tabs.currentChanged.connect(self._update_tab_axes)
@@ -114,6 +118,7 @@ class PredictWidget(QWidget):
 
         if image is not None:
             self.viewer.add_image(image, name=SAMPLE, visible=True)
+            self.sample_image = image
 
             # update the axes widget
             self.axes_widget.update_axes_number(len(image.shape))
@@ -141,25 +146,25 @@ class PredictWidget(QWidget):
             self._update_layer_axes()
 
     def _update(self, updates):
-        if Updates.N_IMAGES in updates:
-            self.n_im = updates[Updates.N_IMAGES]
+        if UpdateType.N_IMAGES in updates:
+            self.n_im = updates[UpdateType.N_IMAGES]
             self.pb_prediction.setValue(0)
             self.pb_prediction.setFormat(f'Prediction 0/{self.n_im}')
 
-        if Updates.IMAGE in updates:
-            val = updates[Updates.IMAGE]
+        if UpdateType.IMAGE in updates:
+            val = updates[UpdateType.IMAGE]
             perc = int(100 * val / self.n_im + 0.5)
             self.pb_prediction.setValue(perc)
             self.pb_prediction.setFormat(f'Prediction {val}/{self.n_im}')
             self.viewer.layers[DENOISING].refresh()
 
-        if Updates.DONE in updates:
+        if UpdateType.DONE in updates:
             self.pb_prediction.setValue(100)
             self.pb_prediction.setFormat(f'Prediction done')
 
     def _start_prediction(self):
         if self.state == State.IDLE:
-            if self.axes_widget.is_valid():
+            if self.axes_widget.is_valid() and self.load_button.Model.value != '':  # TODO check if condition works
                 self.state = State.RUNNING
 
                 self.predict_button.setText('Stop')
@@ -171,7 +176,18 @@ class PredictWidget(QWidget):
                     self.denoi_prediction = np.zeros(self.images.value.data.shape, dtype=np.float32)
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
                 else:
-                    self.denoi_prediction = np.zeros(self.shape, dtype=np.float32)
+                    _x, new_axes = reshape_napari(self.sample_image, self.axes_widget.get_axes())  # reshape sample image
+
+                    # add the number of images
+                    n = get_images_count(self.images_folder.get_folder())
+
+                    if 'S' in new_axes:
+                        ind_S = new_axes.find('S')
+                        new_shape = _x.shape[:ind_S] + (n,) + _x.shape[ind_S-1:] # TODO check that
+                    else:
+                        new_shape = (n, ) + _x.shape
+
+                    self.denoi_prediction = np.zeros(new_shape, dtype=np.float32)
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
                 self.worker = prediction_worker(self)

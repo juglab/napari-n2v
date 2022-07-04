@@ -7,9 +7,12 @@ from .n2v_utils import (
     load_from_disk,
     reshape_data,
     get_size_from_shape,
-    get_images_count
+    get_images_count,
+    reshape_napari,
+    lazy_load_generator,
+    load_weights
 )
-from .n2v_utils import State, Updates, SaveMode
+from .n2v_utils import State, UpdateType, SaveMode
 from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE
 from .prediction_worker import prediction_after_training_worker, prediction_worker
 from .training_worker import train_worker

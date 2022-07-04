@@ -6,7 +6,7 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 
 from napari.qt.threading import thread_worker
-from napari_n2v.utils import Updates, State, create_model, reshape_data
+from napari_n2v.utils import UpdateType, State, create_model, reshape_data
 
 
 class Updater(Callback):
@@ -17,17 +17,17 @@ class Updater(Callback):
 
     def on_epoch_begin(self, epoch, logs=None):
         self.epoch = epoch
-        self.queue.put({Updates.EPOCH: self.epoch + 1})
+        self.queue.put({UpdateType.EPOCH: self.epoch + 1})
 
     def on_epoch_end(self, epoch, logs=None):
-        self.queue.put({Updates.LOSS: (self.epoch, logs['loss'], logs['val_loss'])})
+        self.queue.put({UpdateType.LOSS: (self.epoch, logs['loss'], logs['val_loss'])})
 
     def on_train_batch_begin(self, batch, logs=None):
         self.batch = batch
-        self.queue.put({Updates.BATCH: self.batch + 1})
+        self.queue.put({UpdateType.BATCH: self.batch + 1})
 
     def on_train_end(self, logs=None):
-        self.queue.put(Updates.DONE)
+        self.queue.put(UpdateType.DONE)
 
     def stop_training(self):
         self.model.stop_training = True
@@ -77,11 +77,11 @@ def train_worker(widget, pretrained_model=None):
     while True:
         update = updater.queue.get(True)
 
-        if Updates.DONE == update:
+        if UpdateType.DONE == update:
             break
         elif widget.state != State.RUNNING:
             updater.stop_training()
-            yield Updates.DONE
+            yield UpdateType.DONE
             break
         else:
             yield update

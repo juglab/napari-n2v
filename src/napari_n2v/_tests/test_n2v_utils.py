@@ -4,7 +4,16 @@ import numpy as np
 import pytest
 from marshmallow import ValidationError
 
-from napari_n2v.utils import filter_dimensions, are_axes_valid, build_modelzoo, load_from_disk, reshape_data
+from napari_n2v.utils import (
+    filter_dimensions,
+    are_axes_valid,
+    build_modelzoo,
+    load_from_disk,
+    reshape_data,
+    lazy_load_generator,
+    load_weights,
+    reshape_napari
+)
 from napari_n2v._tests.test_utils import (
     save_img,
     create_data,
@@ -174,6 +183,118 @@ def test_reshape_data_single_no_CT(shape, axes, final_shape, final_axes):
     x = np.zeros(shape)
 
     _x, new_axes = reshape_data(x, axes)
+
+    assert _x.shape == final_shape
+    assert new_axes == final_axes
+
+
+def test_lazy_generator(tmp_path):
+    n = 10
+    save_img(tmp_path, n, (8, 8, 8))
+
+    # create lazy generator
+    gen, m = lazy_load_generator(tmp_path)
+    assert m == n
+
+    # check that it can load n images
+    for i in range(n):
+        ret = next(gen, None)
+        assert len(ret) == 3
+        assert all([r is not None for r in ret])
+
+    # test that next(gen, None) works
+    assert next(gen, None) is None
+
+    # test that next() throws error
+    with pytest.raises(StopIteration):
+        next(gen)
+
+
+###################################################################
+# test load_weights
+def test_load_weights_wrong_path(tmp_path):
+    model = create_model(tmp_path, (1, 16, 16, 1))
+
+    # create a new model and load from previous weights
+    model2 = create_model(tmp_path, (1, 16, 16, 1))
+
+    with pytest.raises(FileNotFoundError):
+        load_weights(model2, 'definitely not a path')
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (64, 16, 32, 3), (1, 8, 16, 16, 1), (8, 32, 16, 64, 3)])
+def test_load_weights_h5(tmp_path, shape):
+    model = create_model(tmp_path, shape)
+    path_to_h5 = save_weights_h5(model, tmp_path)
+
+    # create a new model and load previous weights
+    model2 = create_model(tmp_path, shape)
+    load_weights(model2, str(path_to_h5))
+
+
+@pytest.mark.parametrize('shape1, shape2', [((1, 16, 16, 1), (1, 8, 16, 16, 1)),
+                                            ((1, 8, 16, 16, 1), (1, 16, 16, 1))])
+def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
+    model = create_model(tmp_path, shape1)
+    path_to_h5 = save_weights_h5(model, tmp_path)
+
+    # create a new model with different shape
+    model2 = create_model(tmp_path, shape2)
+
+    # set previous weights
+    with pytest.raises(ValueError):
+        load_weights(model2, str(path_to_h5))
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (8, 16, 32, 3), (1, 8, 16, 16, 1), (1, 8, 16, 16, 1)])
+def test_load_weights_modelzoo(tmp_path, shape):
+    # save model_zoo
+    parameters = create_model_zoo_parameters(tmp_path, shape)
+    build_modelzoo(*parameters)
+
+    # create a new model and load from previous weights
+    model = create_model(tmp_path, shape)
+    load_weights(model, str(parameters[0]))
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 32, 3), (1, 8, 16, 16, 1), (1, 8, 16, 16, 1)])
+def test_load_weights_modelzoo(tmp_path, shape):
+    # save model_zoo
+    parameters = create_model_zoo_parameters(tmp_path, shape)
+    build_modelzoo(*parameters)
+
+    # create a new model and load from previous weights
+    model = create_model(tmp_path, shape)
+    load_weights(model, str(parameters[0]))
+
+
+@pytest.mark.parametrize('shape1, shape2', [((1, 16, 16, 1), (1, 8, 16, 16, 1)),
+                                            ((1, 8, 16, 16, 1), (1, 16, 16, 1))])
+def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
+    parameters = create_model_zoo_parameters(tmp_path, shape1)
+    build_modelzoo(*parameters)
+
+    # create a new model and load from previous weights
+    model = create_model(tmp_path, shape2)
+
+    # set previous weights
+    with pytest.raises(ValueError):
+        load_weights(model, str(parameters[0]))
+
+
+@pytest.mark.parametrize('shape, axes, final_shape, final_axes',
+                         [((16, 8), 'YX', (16, 8), 'YX'),
+                          ((16, 8), 'XY', (8, 16), 'YX'),
+                          ((16, 8, 5), 'XYZ', (5, 8, 16), 'ZYX'),
+                          ((5, 16, 8), 'ZXY', (5, 8, 16), 'ZYX'),
+                          ((12, 16, 8, 10), 'TXYS', (10, 12, 8, 16), 'STYX'),
+                          ((10, 5, 16, 8, 3), 'SZXYC', (10, 3, 5, 8, 16), 'SCZYX'),
+                          ((16, 10, 3, 8), 'YSCX', (10, 3, 16, 8), 'SCYX')
+                          ])
+def test_reshape_data_napari(shape, axes, final_shape, final_axes):
+    x = np.zeros(shape)
+
+    _x, new_axes = reshape_napari(x, axes)
 
     assert _x.shape == final_shape
     assert new_axes == final_axes
