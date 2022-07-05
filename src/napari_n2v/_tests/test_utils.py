@@ -2,18 +2,11 @@ import os
 import pytest
 from pathlib import Path
 
-import tifffile
 from tifffile import imwrite
 import numpy as np
 from n2v.models import N2V
-from napari_n2v.utils import generate_config
-from napari_n2v._tests.test_utils import (
-    save_img,
-    create_data,
-    create_model,
-    save_weights_h5,
-    create_model_zoo_parameters
-)
+from napari_n2v.utils import create_model, create_config
+
 
 ###################################################################
 # convenience functions: save images
@@ -53,11 +46,11 @@ def create_model(basedir, shape):
     # create model
     X = np.zeros(shape)
     name = 'myModel'
-    config = generate_config(X, patch_shape=shape[1:-1])
+    config = create_config(X)
 
     assert config.is_valid()
 
-    return DenoiSeg(config, name, basedir)
+    return N2V(config, name, basedir)
 
 
 @pytest.mark.parametrize('shape', [(1, 8, 8, 1),

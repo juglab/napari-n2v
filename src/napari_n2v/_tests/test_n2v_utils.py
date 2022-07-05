@@ -16,7 +16,6 @@ from napari_n2v.utils import (
 )
 from napari_n2v._tests.test_utils import (
     save_img,
-    create_data,
     create_model,
     save_weights_h5,
     create_model_zoo_parameters

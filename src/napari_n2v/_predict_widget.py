@@ -1,5 +1,7 @@
 """
 """
+from pathlib import Path
+
 import napari
 import numpy as np
 from napari_n2v.utils import State, UpdateType, DENOISING, prediction_worker, loading_worker, reshape_napari, \
@@ -62,8 +64,8 @@ class PredictWidget(QWidget):
 
         ###############################
         # load model button
-        self.load_button = load_button()
-        self.layout().addWidget(self.load_button.native)
+        self.load_model_button = load_button()
+        self.layout().addWidget(self.load_model_button.native)
 
         # load 3D enabling checkbox
         self.enable_3d = QCheckBox('Enable 3D')
@@ -164,7 +166,7 @@ class PredictWidget(QWidget):
 
     def _start_prediction(self):
         if self.state == State.IDLE:
-            if self.axes_widget.is_valid() and self.load_button.Model.value != '':  # TODO check if condition works
+            if self.axes_widget.is_valid() and Path(self.get_model_path()).exists():
                 self.state = State.RUNNING
 
                 self.predict_button.setText('Stop')
@@ -203,6 +205,9 @@ class PredictWidget(QWidget):
     def _done(self):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
+
+    def get_model_path(self):
+        return self.load_model_button.Model.value
 
 
 if __name__ == "__main__":

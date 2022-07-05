@@ -121,9 +121,11 @@ def _run_prediction(widget, model, axes, images):
         model = create_model(images, 1, 1, 1, model_name, base_dir, train=False)
 
     # load model weights
-    weight_name = widget.load_button.Model.value
-    assert len(weight_name.name) > 0, 'Model path cannot be empty.'
-    load_weights(model, weight_name)
+    weight_path = widget.get_model_path()
+    if not Path(weight_path).exists():
+        raise ValueError('Invalid model path.')
+
+    load_weights(model, weight_path)
 
     while True:
         t = next(gen)
@@ -168,9 +170,11 @@ def _run_lazy_prediction(widget, model, axes, generator):
                 model = create_model(image, 1, 1, 1, model_name, base_dir, train=False)
 
                 # load model weights
-                weight_name = widget.load_button.Model.value
-                assert len(weight_name.name) > 0, 'Model path cannot be empty.'
-                load_weights(model, weight_name)
+                weight_path = widget.get_model_path()
+                if not Path(weight_path).exists():
+                    raise ValueError('Invalid model path.')
+
+                load_weights(model, weight_path)
             else:
                 # update config for std and mean
                 model.config = create_config(image, 1, 1, 1, model_name, base_dir, train=False)
