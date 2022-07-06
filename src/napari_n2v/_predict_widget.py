@@ -4,8 +4,16 @@ from pathlib import Path
 
 import napari
 import numpy as np
-from napari_n2v.utils import State, UpdateType, DENOISING, prediction_worker, loading_worker, reshape_napari, \
-    get_images_count
+from napari_n2v.utils import (
+    State,
+    UpdateType,
+    DENOISING,
+    prediction_worker,
+    loading_worker,
+    reshape_napari,
+    get_images_count,
+    get_napari_shapes
+)
 from napari_n2v.widgets import (
     AxesWidget,
     FolderWidget,
@@ -175,7 +183,12 @@ class PredictWidget(QWidget):
                     self.viewer.layers.remove(DENOISING)
 
                 if self.load_from_disk == 0:
-                    self.denoi_prediction = np.zeros(self.images.value.data.shape, dtype=np.float32)
+                    # from napari layers
+                    im_shape = self.images.value.data.shape
+                    current_axes = self.get_axes()
+                    final_shape = get_napari_shapes(im_shape, current_axes)
+
+                    self.denoi_prediction = np.zeros(final_shape, dtype=np.float32).squeeze()
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
                 else:
                     _x, new_axes = reshape_napari(self.sample_image, self.axes_widget.get_axes())  # reshape sample image
@@ -185,11 +198,11 @@ class PredictWidget(QWidget):
 
                     if 'S' in new_axes:
                         ind_S = new_axes.find('S')
-                        new_shape = _x.shape[:ind_S] + (n,) + _x.shape[ind_S-1:] # TODO check that
+                        new_shape = _x.shape[:ind_S] + (n,) + _x.shape[ind_S-1:]  # TODO check that
                     else:
                         new_shape = (n, ) + _x.shape
 
-                    self.denoi_prediction = np.zeros(new_shape, dtype=np.float32)
+                    self.denoi_prediction = np.zeros(new_shape, dtype=np.float32).squeeze()
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
                 self.worker = prediction_worker(self)
@@ -208,6 +221,10 @@ class PredictWidget(QWidget):
 
     def get_model_path(self):
         return self.load_model_button.Model.value
+
+    # TODO call these methods throughout the workers
+    def get_axes(self):
+        return self.axes_widget.get_axes()
 
 
 if __name__ == "__main__":

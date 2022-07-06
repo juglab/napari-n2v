@@ -84,9 +84,9 @@ def prediction_worker(widget):
     if is_from_disk and is_lazy_loading:
         # yield generator size
         yield {UpdateType.N_IMAGES: n_img}
-        yield from _run_prediction(widget, axes, images)
-    else:
         yield from _run_lazy_prediction(widget, axes, images)
+    else:
+        yield from _run_prediction(widget, axes, images)
 
 
 def _run_prediction(widget, axes, images):
@@ -146,7 +146,7 @@ def _run_prediction(widget, axes, images):
             prediction = model.predict(_x, axes=new_axes)[0, ...]
 
             # update the layer in napari
-            widget.denoi_prediction[i, ...] = prediction
+            widget.denoi_prediction[i, ...] = reshape_napari(prediction, new_axes[1:])[0].squeeze()
 
             # check if stop requested
             if widget.state != State.RUNNING:
