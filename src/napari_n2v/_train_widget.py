@@ -435,7 +435,7 @@ class TrainWidget(QWidget):
                 if SaveMode.MODELZOO.value == export_type:
                     from bioimageio.core.build_spec import build_model
 
-                    axes = self.axes_widget.get_axes()
+                    axes = self.new_axes
                     axes = axes.replace('S', 'b').lower()
 
                     build_modelzoo(where + '.bioimage.io.zip',
