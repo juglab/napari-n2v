@@ -86,7 +86,7 @@ def prediction_worker(widget):
         yield from _run_lazy_prediction(widget, axes, images)
 
 
-def _run_prediction(widget, model, axes, images):
+def _run_prediction(widget, axes, images):
     def generator(data, axes_order):
         """
 
@@ -153,7 +153,7 @@ def _run_prediction(widget, model, axes, images):
     yield {UpdateType.DONE}
 
 
-def _run_lazy_prediction(widget, model, axes, generator):
+def _run_lazy_prediction(widget, axes, generator):
     model = None
     while True:
         next_tuple = next(generator, None)
