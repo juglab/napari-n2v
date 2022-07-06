@@ -11,10 +11,12 @@ from .n2v_utils import (
     reshape_napari,
     lazy_load_generator,
     load_weights,
-    create_config
+    create_config,
+    get_napari_shapes,
+    get_shape_order
 )
 from .n2v_utils import State, UpdateType, SaveMode
-from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE
+from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE, NAPARI_AXES
 from .prediction_worker import prediction_after_training_worker, prediction_worker
 from .training_worker import train_worker
 from .loading_worker import loading_worker

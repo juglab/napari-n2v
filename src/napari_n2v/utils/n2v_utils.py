@@ -199,25 +199,26 @@ def list_diff(l1, l2):
     return list(set(l1) - set(l2))
 
 
-def get_shape_order(x, ref_axes, axes):
+# TODO swap order ref_axes and axes_in
+def get_shape_order(shape_in, ref_axes, axes_in):
     """
     Return the new shape and axes order of x, if the axes were to be ordered according to
     the reference axes.
 
-    :param x:
+    :param shape_in:
     :param ref_axes: Reference axes order (string)
-    :param axes: New axes as a list of strings
+    :param axes_in: New axes as a list of strings
     :return:
     """
     # build indices look-up table: indices of each axe in `axes`
-    indices = [axes.find(k) for k in ref_axes]
+    indices = [axes_in.find(k) for k in ref_axes]
 
     # remove all non-existing axes (index == -1)
     indices = tuple(filter(lambda k: k != -1, indices))
 
     # find axes order and get new shape
-    new_axes = [axes[ind] for ind in indices]
-    new_shape = tuple([x.shape[ind] for ind in indices])
+    new_axes = [axes_in[ind] for ind in indices]
+    new_shape = tuple([shape_in[ind] for ind in indices])
 
     return new_shape, ''.join(new_axes), indices
 
@@ -238,7 +239,7 @@ def reshape_data(x, axes: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x, REF_AXES, _axes)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, REF_AXES, _axes)
 
     # if S is not in the list of axes, then add a singleton S
     if 'S' not in new_axes:
@@ -279,7 +280,7 @@ def reshape_napari(x, axes: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x, NAPARI_AXES, _axes)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, NAPARI_AXES, _axes)
 
     # reshape
     _x = _x.reshape(new_x_shape)
@@ -349,3 +350,21 @@ def load_weights(model: N2V, weights_path):
         raise FileNotFoundError('Invalid path to weights.')
 
     model.keras_model.load_weights(weights_name)
+
+
+# TODO write tests
+def get_napari_shapes(shape_in, axes_in):
+    """
+    Transform shape into what N2V expect and return the denoised and segmented output shapes in napari axes order.
+
+    :param shape_in:
+    :param axes_in:
+    :return:
+    """
+    # shape and axes for DenoiSeg
+    shape_n2v, axes_n2v, _ = get_shape_order(shape_in, REF_AXES, axes_in)
+
+    # shape and axes for napari
+    shape_out, _, _ = get_shape_order(shape_n2v, NAPARI_AXES, axes_n2v)
+
+    return shape_out

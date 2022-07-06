@@ -54,7 +54,7 @@ def train_worker(widget, pretrained_model=None):
         patch_shape = (patch_XY, patch_XY)
 
     # get data
-    _x_train, _x_val, new_axes = load_images(widget)
+    _x_train, _x_val, new_axes = load_images(widget)  # images are reshaped
     widget.x_train, widget.y_train, widget.new_axes = _x_train, _x_val, new_axes  # save for prediction
 
     # prepare data

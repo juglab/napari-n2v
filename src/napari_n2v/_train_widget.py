@@ -32,8 +32,10 @@ from napari_n2v.utils import (
     loading_worker,
     build_modelzoo,
     reshape_napari,
+    get_shape_order,
     PREDICT,
-    SAMPLE
+    SAMPLE,
+    NAPARI_AXES
 )
 
 
@@ -264,7 +266,6 @@ class TrainWidget(QWidget):
             self.state = State.IDLE
 
     def _start_prediction(self):
-        # TODO this is probably broken
         if self.state == State.IDLE:
             self.state = State.RUNNING
 
@@ -280,16 +281,16 @@ class TrainWidget(QWidget):
 
             # place-holders
             # TODO doesn't work if list!
-            x_train, _ = reshape_napari(self.x_train)  # napari has axes YX at the end
-            self.pred_train = np.zeros(x_train.shape, dtype=np.float32)
+            final_shape, _, _ = get_shape_order(self.x_train.shape, NAPARI_AXES, self.new_axes)  # napari axes end with YX
+            self.pred_train = np.zeros(final_shape, dtype=np.float32)
             self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
-            self.pred_count = self.x_train.shape[0]
+            self.pred_count = final_shape[0]
 
             if self.x_val is not None:
-                x_val, _ = reshape_napari(self.x_val)  # napari has axes YX at the end
-                self.pred_val = np.zeros(x_val.shape, dtype=np.float32)
+                final_shape_val, _, _ = get_shape_order(self.x_val.shape, NAPARI_AXES, self.new_axes)
+                self.pred_val = np.zeros(final_shape_val, dtype=np.float32)
                 self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
-                self.pred_count += self.x_val.shape[0]
+                self.pred_count += final_shape_val[0]
 
             self.predict_worker = prediction_after_training_worker(self)
             self.predict_worker.yielded.connect(lambda x: self._update_prediction(x))
@@ -312,7 +313,7 @@ class TrainWidget(QWidget):
     def _update_prediction(self, update):
         if self.state == State.RUNNING:
             if update == UpdateType.DONE:
-                self.prediction_done()
+                self._prediction_done()
             else:
                 val = update[UpdateType.PRED]
                 p_perc = int(100 * val / self.pred_count + 0.5)
@@ -457,7 +458,7 @@ if __name__ == "__main__":
     # add our plugin
     viewer.window.add_dock_widget(TrainWidget(viewer))
 
-    dims = '3D'  # 2D, 3D
+    dims = '2D'  # 2D, 3D
     if dims == '2D':
         data = n2v_2D_data()
 
