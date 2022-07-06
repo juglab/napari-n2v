@@ -282,13 +282,13 @@ class TrainWidget(QWidget):
             # place-holders
             # TODO doesn't work if list!
             final_shape, _, _ = get_shape_order(self.x_train.shape, NAPARI_AXES, self.new_axes)  # napari axes end with YX
-            self.pred_train = np.zeros(final_shape, dtype=np.float32)
+            self.pred_train = np.zeros(final_shape, dtype=np.float32).squeeze()
             self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
             self.pred_count = final_shape[0]
 
             if self.x_val is not None:
                 final_shape_val, _, _ = get_shape_order(self.x_val.shape, NAPARI_AXES, self.new_axes)
-                self.pred_val = np.zeros(final_shape_val, dtype=np.float32)
+                self.pred_val = np.zeros(final_shape_val, dtype=np.float32).squeeze()
                 self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
                 self.pred_count += final_shape_val[0]
 

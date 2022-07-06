@@ -20,6 +20,9 @@ from napari_n2v.utils import (
 
 @thread_worker(start_thread=False)
 def prediction_after_training_worker(widget):
+    """
+
+    """
     # TODO probably doesn't work if images are lists from the disk
     model = widget.model
 
@@ -35,7 +38,7 @@ def prediction_after_training_worker(widget):
         _x = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:])
 
         # reshape for napari
-        widget.pred_train[i, ...], _ = reshape_napari(_x, axes[1:])
+        widget.pred_train[i, ...] = reshape_napari(_x, axes[1:])[0].squeeze()
 
         counter += 1
         yield {UpdateType.PRED: counter}
@@ -49,7 +52,7 @@ def prediction_after_training_worker(widget):
             _x = model.predict(_x_val[i, ...].astype(np.float32), axes=axes[1:])
 
             # reshape for napari
-            widget.pred_val[i, ...], _ = reshape_napari(_x, axes[1:])
+            widget.pred_val[i, ...] = reshape_napari(_x, axes[1:])[0].squeeze()
 
             counter += 1
             yield {UpdateType.PRED: counter}
