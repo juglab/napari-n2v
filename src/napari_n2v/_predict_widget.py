@@ -191,18 +191,7 @@ class PredictWidget(QWidget):
                     self.denoi_prediction = np.zeros(final_shape, dtype=np.float32).squeeze()
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
                 else:
-                    _x, new_axes = reshape_napari(self.sample_image, self.axes_widget.get_axes())  # reshape sample image
-
-                    # add the number of images
-                    n = get_images_count(self.images_folder.get_folder())
-
-                    if 'S' in new_axes:
-                        ind_S = new_axes.find('S')
-                        new_shape = _x.shape[:ind_S] + (n,) + _x.shape[ind_S-1:]  # TODO check that
-                    else:
-                        new_shape = (n, ) + _x.shape
-
-                    self.denoi_prediction = np.zeros(new_shape, dtype=np.float32).squeeze()
+                    self.denoi_prediction = np.zeros((1,), dtype=np.float32).squeeze()
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
                 self.worker = prediction_worker(self)

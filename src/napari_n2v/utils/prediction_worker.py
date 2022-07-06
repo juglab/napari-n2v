@@ -14,7 +14,8 @@ from napari_n2v.utils import (
     load_weights,
     reshape_data,
     State,
-    create_config
+    create_config,
+    get_napari_shapes
 )
 
 
@@ -85,11 +86,58 @@ def prediction_worker(widget):
         # yield generator size
         yield {UpdateType.N_IMAGES: n_img}
         yield from _run_lazy_prediction(widget, axes, images)
+    elif is_from_disk and type(images) == tuple:  # load images from disk with different sizes
+        yield from _run_prediction_to_disk(widget, axes, images)
     else:
-        yield from _run_prediction(widget, axes, images)
+        yield from _run_prediction(widget, axes, images, is_from_disk)
 
 
-def _run_prediction(widget, axes, images):
+def _run_prediction(widget, axes, images, is_from_disk):
+    # reshape data
+    _data, _axes = reshape_data(images, axes)
+    yield {UpdateType.N_IMAGES: _data.shape[0]}
+
+    # if the images were loaded from disk, the layers in napari have the wrong shape
+    if is_from_disk:
+        shape_denoised = get_napari_shapes(_data.shape, _axes)
+        widget.denoi_prediction = np.zeros(shape_denoised, dtype=np.float32)
+
+    # create model
+    model_name = 'n2v'
+    base_dir = 'models'
+    model = create_model(_data, 1, 1, 1, model_name, base_dir, train=False)
+
+    # load model weights
+    weight_path = widget.get_model_path()
+    if not Path(weight_path).exists():
+        raise ValueError('Invalid model path.')
+
+    load_weights(model, weight_path)
+
+    for i_slice in range(_data.shape[0]):
+        _x = _data[np.newaxis, i_slice, ...]  # replace S dimension with singleton
+
+        # update config for std and mean
+        model.config = create_config(_x, 1, 1, 1)
+
+        # yield image number + 1
+        yield {UpdateType.IMAGE: i_slice + 1}
+
+        # predict
+        prediction = model.predict(_x, axes=_axes)
+
+        # update the layer in napari
+        widget.denoi_prediction[i_slice, ...] = reshape_napari(prediction, _axes)[0].squeeze()
+
+        # check if stop requested
+        if widget.state != State.RUNNING:
+            break
+
+    # update done
+    yield {UpdateType.DONE}
+
+
+def _run_prediction_to_disk(widget, axes, images):
     def generator(data, axes_order):
         """
 
@@ -97,17 +145,13 @@ def _run_prediction(widget, axes, images):
         :param axes_order:
         :return:
         """
-        if type(data) == list:
-            yield len(data)
-            for j, d in enumerate(data):
-                _data, _axes = reshape_data(d, axes_order)
-                yield _data, _axes, j
-        else:
-            _data, _axes = reshape_data(data, axes_order)
-            yield _data.shape[0]
-
-            for k in range(_data.shape[0]):
-                yield _data[np.newaxis, k, ...], _axes, k
+        yield len(data[0])
+        counter = 0
+        for im, f in zip(*data):
+            # reshape from napari to S(Z)YXC
+            _data, _axes = reshape_data(im, axes_order)
+            counter += counter + 1
+            yield _data, f, _axes, counter
 
     gen = generator(images, axes)
     n_img = next(gen)
@@ -116,12 +160,7 @@ def _run_prediction(widget, axes, images):
     # create model
     model_name = 'n2v'
     base_dir = 'models'
-    is_list = False
-    if type(images) == list:
-        is_list = True
-        model = create_model(images[0], 1, 1, 1, model_name, base_dir, train=False)
-    else:
-        model = create_model(images, 1, 1, 1, model_name, base_dir, train=False)
+    model = create_model(reshape_data(images[0], axes)[0], 1, 1, 1, model_name, base_dir, train=False)
 
     # load model weights
     weight_path = widget.get_model_path()
@@ -134,19 +173,20 @@ def _run_prediction(widget, axes, images):
         t = next(gen)
 
         if t is not None:
-            _x, new_axes, i = t
+            _x, _f, new_axes, i = t
 
             # update config for std and mean
-            model.config = create_config(_x, 1, 1, 1, model_name, base_dir, train=False)
+            model.config = create_config(_x, 1, 1, 1)
 
             # yield image number + 1
             yield {UpdateType.IMAGE: i + 1}
 
             # predict
-            prediction = model.predict(_x, axes=new_axes)[0, ...]
+            prediction = model.predict(_x, axes=new_axes)
 
-            # update the layer in napari
-            widget.denoi_prediction[i, ...] = reshape_napari(prediction, new_axes[1:])[0].squeeze()
+            # save to the disk
+            new_file_path_denoi = Path(_f.parent, _f.stem + '_denoised' + _f.suffix)
+            imwrite(new_file_path_denoi, prediction)
 
             # check if stop requested
             if widget.state != State.RUNNING:
@@ -180,7 +220,7 @@ def _run_lazy_prediction(widget, axes, generator):
                 load_weights(model, weight_path)
             else:
                 # update config for std and mean
-                model.config = create_config(image, 1, 1, 1, model_name, base_dir, train=False)
+                model.config = create_config(image, 1, 1, 1)
 
             # reshape data
             x, new_axes = reshape_data(image, axes)
