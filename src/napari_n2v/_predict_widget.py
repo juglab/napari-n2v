@@ -101,7 +101,7 @@ class PredictWidget(QWidget):
         self.denoi_prediction = None
         self.sample_image = None
         self.n_im = 0
-        self.load_from_disk = False
+        self.is_from_disk = False
 
         # actions
         self.tabs.currentChanged.connect(self._update_tab_axes)
@@ -148,9 +148,9 @@ class PredictWidget(QWidget):
 
         :return:
         """
-        self.load_from_disk = self.tabs.currentIndex() == 1
+        self.is_from_disk = self.tabs.currentIndex() == 1
 
-        if self.load_from_disk:
+        if self.is_from_disk:
             self._update_disk_axes()
         else:
             self._update_layer_axes()
@@ -182,7 +182,7 @@ class PredictWidget(QWidget):
                 if DENOISING in self.viewer.layers:
                     self.viewer.layers.remove(DENOISING)
 
-                if self.load_from_disk == 0:
+                if self.is_from_disk == 0:
                     # from napari layers
                     im_shape = self.images.value.data.shape
                     current_axes = self.get_axes()

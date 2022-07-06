@@ -271,6 +271,8 @@ class TrainWidget(QWidget):
 
             self.pb_pred.setValue(0)
 
+            self.predict_button.setText('Stop')
+
             # prepare layers name and remove them if they exist
             pred_train_name = self.img_train.name + PREDICT
             pred_val_name = self.img_val.name + PREDICT
@@ -464,7 +466,7 @@ if __name__ == "__main__":
 
         # add images
         viewer.add_image(data[0][0][0:50], name=data[0][1]['name'])
-        viewer.add_image(data[1][0][0:50], name=data[1][1]['name'])
+        viewer.add_image(data[1][0], name=data[1][1]['name'])
     else:
         data = n2v_3D_data()
 

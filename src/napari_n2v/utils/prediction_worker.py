@@ -64,7 +64,7 @@ def prediction_after_training_worker(widget):
 @thread_worker(start_thread=False)
 def prediction_worker(widget):
     # get info from widget
-    is_from_disk = widget.load_from_disk
+    is_from_disk = widget.is_from_disk
     is_lazy_loading = widget.lazy_loading.isChecked()
 
     # get axes
