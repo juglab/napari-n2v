@@ -47,7 +47,7 @@ def test_create_data(tmp_path, shape):
 # convenience functions: create and save models
 def create_model(basedir, shape):
     # create model
-    X = np.zeros(shape)
+    X = np.concatenate([np.ones(shape), np.zeros(shape)], axis=0)
     name = 'myModel'
     config = create_config(X)
 
@@ -57,9 +57,9 @@ def create_model(basedir, shape):
 
 
 @pytest.mark.parametrize('shape', [(1, 8, 8, 1),
-                                   (20, 8, 16, 3),
+                                   (20, 8, 16, 1),
                                    (1, 8, 16, 16, 1),
-                                   (42, 8, 16, 32, 3)])
+                                   (42, 8, 16, 32, 1)])
 def test_create_model(tmp_path, shape):
     create_model(tmp_path, shape)
 

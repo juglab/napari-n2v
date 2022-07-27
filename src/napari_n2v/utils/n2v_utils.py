@@ -9,7 +9,7 @@ from n2v.models import N2V
 from tifffile import imread
 
 REF_AXES = 'TSZYXC'
-NAPARI_AXES = 'SCTZYX'
+NAPARI_AXES = 'CTSZYX'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
@@ -112,12 +112,12 @@ def filter_dimensions(shape_length, is_3D):
 def are_axes_valid(axes: str):
     _axes = axes.upper()
 
-    # length 0 and >6 are not accepted
-    if 0 > len(_axes) > 6:
+    # length 0 and > 5 are not accepted (no channel)
+    if 0 > len(_axes) > 5:
         return False
 
-    # all characters must be in REF_AXES = 'STZYXC'
-    if not all([s in REF_AXES for s in _axes]):
+    # all characters must be in REF_AXES[:-1] = 'STZYX'
+    if not all([s in REF_AXES[:-1] for s in _axes]):
         return False
 
     # check for repeating characters
@@ -140,14 +140,13 @@ def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc', doc=
                 test_inputs=[inputs],
                 test_outputs=[outputs],
                 input_axes=[axes],
-                # TODO are the axes in and out always the same? (output has 3 seg classes and 1 denoised channels)
                 output_axes=[axes],
                 output_path=path,
                 name='Noise2Void',
                 description='Self-supervised denoising.',
                 authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
                 license="BSD-3-Clause",
-                documentation=os.path.abspath('../resources/documentation.md'),
+                documentation=os.path.abspath(doc),
                 tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
                 cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
                        'doi': "10.48550/arXiv.1811.10980"}],
@@ -200,7 +199,7 @@ def list_diff(l1, l2):
 
 
 # TODO swap order ref_axes and axes_in
-def get_shape_order(shape_in, ref_axes, axes_in):
+def get_shape_order(shape_in, axes_in, ref_axes):
     """
     Return the new shape and axes order of x, if the axes were to be ordered according to
     the reference axes.
@@ -224,8 +223,6 @@ def get_shape_order(shape_in, ref_axes, axes_in):
 
 
 def reshape_data(x, axes: str):
-    """
-    """
     _x = x
     _axes = axes
 
@@ -239,7 +236,7 @@ def reshape_data(x, axes: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x.shape, REF_AXES, _axes)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, _axes, REF_AXES)
 
     # if S is not in the list of axes, then add a singleton S
     if 'S' not in new_axes:
@@ -247,13 +244,20 @@ def reshape_data(x, axes: str):
         _x = _x[np.newaxis, ...]
         new_x_shape = (1,) + new_x_shape
 
+        # need to change the array of indices
+        indices = [0] + [1+i for i in indices]
+
+    # reshape by moving axes
+    destination = [i for i in range(len(indices))]
+    _x = np.moveaxis(_x, indices, destination)
+
     # remove T if necessary
     if 'T' in new_axes:
         new_x_shape = (-1,) + new_x_shape[2:]  # remove T and S
         new_axes = new_axes.replace('T', '')
 
-    # reshape
-    _x = _x.reshape(new_x_shape)
+        # reshape S and T together
+        _x = _x.reshape(new_x_shape)
 
     # add channel
     if 'C' not in new_axes:
@@ -263,15 +267,15 @@ def reshape_data(x, axes: str):
     return _x, new_axes
 
 
-def reshape_napari(x, axes: str):
+def reshape_napari(x, axes_in: str):
     """
-
+    Reshape the data according to the napari axes order (or any order if axes_out) it set.
     """
     _x = x
-    _axes = axes
+    _axes = axes_in
 
     # sanity checks
-    if 'X' not in axes or 'Y' not in axes:
+    if 'X' not in axes_in or 'Y' not in axes_in:
         raise ValueError('X or Y dimension missing in axes.')
 
     if len(_axes) != len(_x.shape):
@@ -280,10 +284,11 @@ def reshape_napari(x, axes: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x.shape, NAPARI_AXES, _axes)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, _axes, NAPARI_AXES)
 
-    # reshape
-    _x = _x.reshape(new_x_shape)
+    # reshape by moving the axes
+    destination = [i for i in range(len(indices))]
+    _x = np.moveaxis(_x, indices, destination)
 
     return _x, new_axes
 
