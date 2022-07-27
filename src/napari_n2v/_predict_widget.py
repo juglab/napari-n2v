@@ -174,7 +174,7 @@ class PredictWidget(QWidget):
 
     def _start_prediction(self):
         if self.state == State.IDLE:
-            if self.axes_widget.is_valid() and Path(self.get_model_path()).exists():
+            if self.axes_widget.is_valid() and not Path(self.get_model_path()).is_dir():
                 self.state = State.RUNNING
 
                 self.predict_button.setText('Stop')
@@ -229,9 +229,10 @@ if __name__ == "__main__":
     dim = '2D'
     if dim == '2D':
         data = n2v_2D_data()
-        viewer.add_image(data[0][0][0:30], name=data[0][1]['name'])
+        viewer.add_image(data[0][0][-10:], name=data[0][1]['name'])
     else:
         data = n2v_3D_data()
-        viewer.add_image(data[0][0], name=data[0][1]['name'])
+        viewer.add_image(data[0][0][4:20, 150:378, 150:378], name=data[0][1]['name'])
+        #viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()

@@ -39,6 +39,7 @@ def prediction_after_training_worker(widget):
         _x = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:])
 
         # reshape for napari
+        # TODO if data is 3D but S dim = 1, then this will fail bc widget[i, ...] is YX and reshape returns ZYX
         widget.pred_train[i, ...] = reshape_napari(_x, axes[1:])[0].squeeze()
 
         counter += 1

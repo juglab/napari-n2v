@@ -31,7 +31,6 @@ from napari_n2v.utils import (
     prediction_after_training_worker,
     loading_worker,
     build_modelzoo,
-    reshape_napari,
     get_shape_order,
     PREDICT,
     SAMPLE,
@@ -94,14 +93,14 @@ class TrainWidget(QWidget):
         self.n_epochs_spin = QSpinBox()
         self.n_epochs_spin.setMinimum(1)
         self.n_epochs_spin.setMaximum(1000)
-        self.n_epochs_spin.setValue(2)
+        self.n_epochs_spin.setValue(30)
         self.n_epochs = self.n_epochs_spin.value()
 
         # number of steps
         self.n_steps_spin = QSpinBox()
         self.n_steps_spin.setMaximum(1000)
         self.n_steps_spin.setMinimum(1)
-        self.n_steps_spin.setValue(2)
+        self.n_steps_spin.setValue(200)
         self.n_steps = self.n_steps_spin.value()
 
         # batch size
@@ -109,7 +108,7 @@ class TrainWidget(QWidget):
         self.batch_size_spin.setMaximum(512)
         self.batch_size_spin.setMinimum(1)
         self.batch_size_spin.setSingleStep(1)
-        self.batch_size_spin.setValue(8)
+        self.batch_size_spin.setValue(16)
 
         # patch XY size
         self.patch_XY_spin = QSpinBox()
@@ -435,8 +434,6 @@ class TrainWidget(QWidget):
 
                 export_type = self.save_choice.currentText()
                 if SaveMode.MODELZOO.value == export_type:
-                    from bioimageio.core.build_spec import build_model
-
                     axes = self.new_axes
                     axes = axes.replace('S', 'b').lower()
 
@@ -470,6 +467,7 @@ if __name__ == "__main__":
     else:
         data = n2v_3D_data()
 
+        #viewer.add_image(data[0][0][4:20, 150:378, 150:378], name=data[0][1]['name'])
         viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()
