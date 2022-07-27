@@ -46,7 +46,7 @@ def create_config(X_patches,
                   batch_size=16):
     from n2v.models import N2VConfig
 
-    n2v_patch_shape = X_patches.shape[1:-1]
+    n2v_patch_shape = list(X_patches.shape[1:-1])
     config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
                        train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
                        n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
@@ -368,3 +368,53 @@ def get_napari_shapes(shape_in, axes_in):
     shape_out, _, _ = get_shape_order(shape_n2v, NAPARI_AXES, axes_n2v)
 
     return shape_out
+
+
+def save_configuration(config, dir_path):
+    from csbdeep.utils import save_json
+
+    # sanity check
+    assert Path(dir_path).is_dir()
+
+    # save
+    final_path = Path(dir_path) / 'config.json'
+    save_json(vars(config), final_path)
+
+
+def load_configuration(path):
+    from csbdeep.utils import load_json
+    from n2v.models import N2VConfig
+
+    # load config
+    json_config = load_json(path)
+
+    # create N2V configuration
+    axes_length = len(json_config['axes'])
+    n_channels = json_config['n_channel_in']
+
+    if axes_length == 3:
+        X = np.zeros((1, 8, 8, n_channels))
+    else:
+        X = np.zeros((1, 8, 8, 8, n_channels))
+
+    return N2VConfig(X, **json_config)
+
+
+def load_model(weight_path):
+
+    if not Path(weight_path).exists():
+        raise ValueError('Invalid model path.')
+
+    if not (Path(weight_path).parent / 'config.json').exists():
+        raise ValueError('No config.json file found.')
+
+    # load configuration
+    config = load_configuration(Path(weight_path).parent / 'config.json')
+
+    # instantiate model
+    model = N2V(config, 'DenoiSeg', 'models')
+
+    # load weights
+    load_weights(model, weight_path)
+
+    return model

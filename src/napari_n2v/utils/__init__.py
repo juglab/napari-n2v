@@ -13,7 +13,10 @@ from .n2v_utils import (
     load_weights,
     create_config,
     get_napari_shapes,
-    get_shape_order
+    get_shape_order,
+    load_configuration,
+    save_configuration,
+    load_model
 )
 from .n2v_utils import State, UpdateType, SaveMode
 from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE, NAPARI_AXES

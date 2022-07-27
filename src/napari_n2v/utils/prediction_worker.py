@@ -7,15 +7,14 @@ from tifffile import imwrite
 
 from napari_n2v.utils import (
     UpdateType,
-    create_model,
     reshape_napari,
     lazy_load_generator,
     load_from_disk,
-    load_weights,
     reshape_data,
     State,
     create_config,
-    get_napari_shapes
+    get_napari_shapes,
+    load_model
 )
 
 
@@ -71,6 +70,10 @@ def prediction_worker(widget):
     # get axes
     axes = widget.axes_widget.get_axes()
 
+    # create model
+    weight_path = widget.get_model_path()
+    model = load_model(weight_path)
+
     # grab images
     if is_from_disk:
         if is_lazy_loading:
@@ -86,14 +89,14 @@ def prediction_worker(widget):
     if is_from_disk and is_lazy_loading:
         # yield generator size
         yield {UpdateType.N_IMAGES: n_img}
-        yield from _run_lazy_prediction(widget, axes, images)
+        yield from _run_lazy_prediction(widget, model, axes, images)
     elif is_from_disk and type(images) == tuple:  # load images from disk with different sizes
-        yield from _run_prediction_to_disk(widget, axes, images)
+        yield from _run_prediction_to_disk(widget, model, axes, images)
     else:
-        yield from _run_prediction(widget, axes, images, is_from_disk)
+        yield from _run_prediction(widget, axes, model, images, is_from_disk)
 
 
-def _run_prediction(widget, axes, images, is_from_disk):
+def _run_prediction(widget, model, axes, images, is_from_disk):
     # reshape data
     _data, _axes = reshape_data(images, axes)
     yield {UpdateType.N_IMAGES: _data.shape[0]}
@@ -102,18 +105,6 @@ def _run_prediction(widget, axes, images, is_from_disk):
     if is_from_disk:
         shape_denoised = get_napari_shapes(_data.shape, _axes)
         widget.denoi_prediction = np.zeros(shape_denoised, dtype=np.float32)
-
-    # create model
-    model_name = 'n2v'
-    base_dir = 'models'
-    model = create_model(_data, 1, 1, 1, model_name, base_dir, train=False)
-
-    # load model weights
-    weight_path = widget.get_model_path()
-    if not Path(weight_path).exists():
-        raise ValueError('Invalid model path.')
-
-    load_weights(model, weight_path)
 
     for i_slice in range(_data.shape[0]):
         _x = _data[np.newaxis, i_slice, ...]  # replace S dimension with singleton
@@ -138,7 +129,7 @@ def _run_prediction(widget, axes, images, is_from_disk):
     yield {UpdateType.DONE}
 
 
-def _run_prediction_to_disk(widget, axes, images):
+def _run_prediction_to_disk(widget, model, axes, images):
     def generator(data, axes_order):
         """
 
@@ -157,18 +148,6 @@ def _run_prediction_to_disk(widget, axes, images):
     gen = generator(images, axes)
     n_img = next(gen)
     yield {UpdateType.N_IMAGES: n_img}
-
-    # create model
-    model_name = 'n2v'
-    base_dir = 'models'
-    model = create_model(reshape_data(images[0], axes)[0], 1, 1, 1, model_name, base_dir, train=False)
-
-    # load model weights
-    weight_path = widget.get_model_path()
-    if not Path(weight_path).exists():
-        raise ValueError('Invalid model path.')
-
-    load_weights(model, weight_path)
 
     while True:
         t = next(gen)
@@ -197,8 +176,7 @@ def _run_prediction_to_disk(widget, axes, images):
     yield {UpdateType.DONE}
 
 
-def _run_lazy_prediction(widget, axes, generator):
-    model = None
+def _run_lazy_prediction(widget, model, axes, generator):
     while True:
         next_tuple = next(generator, None)
 
@@ -206,22 +184,6 @@ def _run_lazy_prediction(widget, axes, generator):
             image, file, i = next_tuple
 
             yield {UpdateType.IMAGE: i}
-
-            if i == 0:
-                # create model
-                model_name = 'n2v'
-                base_dir = 'models'
-                model = create_model(image, 1, 1, 1, model_name, base_dir, train=False)
-
-                # load model weights
-                weight_path = widget.get_model_path()
-                if not Path(weight_path).exists():
-                    raise ValueError('Invalid model path.')
-
-                load_weights(model, weight_path)
-            else:
-                # update config for std and mean
-                model.config = create_config(image, 1, 1, 1)
 
             # reshape data
             x, new_axes = reshape_data(image, axes)

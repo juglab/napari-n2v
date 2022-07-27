@@ -5,7 +5,10 @@ from pathlib import Path
 from tifffile import imwrite
 import numpy as np
 from n2v.models import N2V
-from napari_n2v.utils import create_model, create_config
+from napari_n2v.utils import (
+    create_model,
+    create_config
+)
 
 
 ###################################################################

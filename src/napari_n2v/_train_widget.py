@@ -1,5 +1,7 @@
 """
 """
+from pathlib import Path
+
 import napari
 import numpy as np
 from qtpy.QtWidgets import (
@@ -32,6 +34,7 @@ from napari_n2v.utils import (
     loading_worker,
     build_modelzoo,
     get_shape_order,
+    save_configuration,
     PREDICT,
     SAMPLE,
     NAPARI_AXES
@@ -446,6 +449,9 @@ class TrainWidget(QWidget):
 
                 else:
                     self.model.keras_model.save_weights(where + '.h5')
+
+                # save configuration as well
+                save_configuration(self.model.config, Path(where).parent)
 
 
 if __name__ == "__main__":

@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from marshmallow import ValidationError
+from n2v.models import N2VConfig
 
 from napari_n2v.utils import (
     filter_dimensions,
@@ -12,7 +13,10 @@ from napari_n2v.utils import (
     reshape_data,
     lazy_load_generator,
     load_weights,
-    reshape_napari
+    reshape_napari,
+    load_configuration,
+    save_configuration,
+    create_config
 )
 from napari_n2v._tests.test_utils import (
     save_img,
@@ -297,3 +301,43 @@ def test_reshape_data_napari(shape, axes, final_shape, final_axes):
 
     assert _x.shape == final_shape
     assert new_axes == final_axes
+
+
+@pytest.mark.parametrize('shape, patch_shape', [((1, 16, 16, 1), (16, 16)),
+                                                ((1, 16, 16, 16, 1), (16, 16, 16))])
+def test_save_configuration(tmp_path, shape, patch_shape):
+    X_patches = np.ones(shape)
+    n2v_patch_shape = X_patches.shape[1:-1]
+    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=2, train_epochs=3,
+                       train_loss='mse', batch_norm=True, train_batch_size=16, n2v_perc_pix=0.198,
+                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
+                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
+
+    # sanity check
+    assert config.is_valid()
+
+    # save config
+    save_configuration(config, tmp_path)
+
+    # check if exists
+    assert Path(tmp_path / 'config.json').exists()
+
+
+@pytest.mark.parametrize('shape, patch_shape', [((1, 16, 16, 1), (16, 16)),
+                                                ((1, 16, 16, 16, 1), (16, 16, 16))])
+def test_load_configuration(tmp_path, shape, patch_shape):
+    X_patches = np.concatenate([np.zeros(shape), np.ones(shape)], axis=0)
+    config = create_config(X_patches)
+
+    # sanity check
+    assert config.is_valid()
+
+    # save config
+    save_configuration(config, tmp_path)
+
+    # load config
+    config_loaded = load_configuration(tmp_path / 'config.json')
+    assert config_loaded.is_valid()
+
+    # todo: this doesn't work because tuple != list, but some config entries accept both...
+    #assert vars(config_loaded) == vars(config)
