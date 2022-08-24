@@ -82,3 +82,8 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
+
+# modelzoo
+*.h5
+*.npy
+*.md

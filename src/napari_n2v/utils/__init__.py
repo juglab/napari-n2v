@@ -18,7 +18,7 @@ from .n2v_utils import (
     save_configuration,
     load_model
 )
-from .n2v_utils import State, UpdateType, SaveMode
+from .n2v_utils import State, UpdateType, ModelSaveMode
 from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE, NAPARI_AXES
 from .prediction_worker import prediction_after_training_worker, prediction_worker
 from .training_worker import train_worker

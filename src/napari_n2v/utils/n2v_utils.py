@@ -31,7 +31,7 @@ class UpdateType(Enum):
     DONE = 'done'
 
 
-class SaveMode(Enum):
+class ModelSaveMode(Enum):
     MODELZOO = 'Bioimage.io'
     TF = 'TensorFlow'
 
@@ -43,14 +43,33 @@ class SaveMode(Enum):
 def create_config(X_patches,
                   n_epochs=100,
                   n_steps=400,
-                  batch_size=16):
+                  batch_size=16,
+                  unet_n_depth=2,
+                  unet_kern_size=3,
+                  unet_n_first=96,
+                  n2v_perc_pix=0.198,
+                  n2v_neighborhood_radius=2,
+                  train_learning_rate=0.0004
+                  ):
     from n2v.models import N2VConfig
 
     n2v_patch_shape = list(X_patches.shape[1:-1])
-    config = N2VConfig(X_patches, unet_kern_size=3, train_steps_per_epoch=n_steps, train_epochs=n_epochs,
-                       train_loss='mse', batch_norm=True, train_batch_size=batch_size, n2v_perc_pix=0.198,
-                       n2v_patch_shape=n2v_patch_shape, unet_n_first=96, unet_residual=True,
-                       n2v_manipulator='uniform_withCP', n2v_neighborhood_radius=2, single_net_per_channel=False)
+    config = N2VConfig(X_patches,
+                       unet_kern_size=unet_kern_size,
+                       unet_n_depth=unet_n_depth,
+                       train_steps_per_epoch=n_steps,
+                       train_epochs=n_epochs,
+                       train_loss='mse',
+                       batch_norm=True,
+                       train_batch_size=batch_size,
+                       n2v_perc_pix=n2v_perc_pix,
+                       n2v_patch_shape=n2v_patch_shape,
+                       unet_n_first=unet_n_first,
+                       unet_residual=True,
+                       n2v_manipulator='uniform_withCP',
+                       n2v_neighborhood_radius=n2v_neighborhood_radius,
+                       single_net_per_channel=False,
+                       train_learning_rate=train_learning_rate)
     return config
 
 
@@ -61,14 +80,22 @@ def create_model(X_patches,
                  model_name='n2v',
                  basedir='models',
                  updater=None,
+                 expert_settings=None,
                  train=True):
     from n2v.models import N2V
 
     # create config
-    config = create_config(X_patches,
-                           n_epochs,
-                           n_steps,
-                           batch_size)
+    if expert_settings is None:
+        config = create_config(X_patches,
+                               n_epochs,
+                               n_steps,
+                               batch_size)
+    else:
+        config = create_config(X_patches,
+                               n_epochs,
+                               n_steps,
+                               batch_size,
+                               **expert_settings.get_settings())
 
     # create network
     model = N2V(config, model_name, basedir=basedir)
@@ -245,7 +272,7 @@ def reshape_data(x, axes: str):
         new_x_shape = (1,) + new_x_shape
 
         # need to change the array of indices
-        indices = [0] + [1+i for i in indices]
+        indices = [0] + [1 + i for i in indices]
 
     # reshape by moving axes
     destination = [i for i in range(len(indices))]
@@ -406,7 +433,6 @@ def load_configuration(path):
 
 
 def load_model(weight_path):
-
     if not Path(weight_path).exists():
         raise ValueError('Invalid model path.')
 

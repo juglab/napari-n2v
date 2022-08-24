@@ -6,7 +6,9 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 
 from napari.qt.threading import thread_worker
-from napari_n2v.utils import UpdateType, State, create_model, reshape_data
+import napari.utils.notifications as ntf
+
+from napari_n2v.utils import UpdateType, State, create_model, reshape_data, load_model
 
 
 class Updater(Callback):
@@ -34,7 +36,7 @@ class Updater(Callback):
 
 
 @thread_worker(start_thread=False)
-def train_worker(widget, pretrained_model=None):
+def train_worker(widget, pretrained_model=None, expert_settings=None):
     import threading
 
     # create updater
@@ -63,12 +65,23 @@ def train_worker(widget, pretrained_model=None):
     # create model
     model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
     base_dir = 'models'
-    model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
+    model = create_model(X_train,
+                         n_epochs,
+                         n_steps,
+                         batch_size,
+                         model_name,
+                         base_dir,
+                         updater,
+                         expert_settings=expert_settings)
     widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
 
     # if we use a pretrained model (just trained or loaded)
     if pretrained_model:
         model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
+    elif expert_settings is not None and expert_settings.has_model():
+        # TODO check if models are compatible
+        new_model = load_model(expert_settings.get_model_path())
+        model.keras_model.set_weights(new_model.keras_model.get_weights())
 
     training = threading.Thread(target=train, args=(model, X_train, X_val))
     training.start()

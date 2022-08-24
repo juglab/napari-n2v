@@ -3,7 +3,7 @@ display_name: napari n2v
 contributions:
   commands: 
     - id: napari-n2v.make_n2v_widget
-      python_name: napari_n2v._train_widget:TrainWidget
+      python_name: napari_n2v._train_widget:TrainingWidgetWrapper
       title: Make N2V widget
     - id: napari-n2v.make_n2v_widget
       python_name: napari_n2v._predict_widget:PredictWidget

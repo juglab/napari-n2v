@@ -26,12 +26,6 @@ def two_layers_choice():
     return Container(widgets=[img, lbl])
 
 
-@magic_factory(auto_call=True,
-               Threshold={"widget_type": "FloatSpinBox", "min": 0, "max": 1., "step": 0.1, 'value': 0.6})
-def threshold_spin(Threshold: int):
-    pass
-
-
 @magic_factory(auto_call=True, Model={'mode': 'r', 'filter': '*.h5 *.zip'})
 def load_button(Model: Path):
     pass
