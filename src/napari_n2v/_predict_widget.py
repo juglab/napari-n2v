@@ -4,6 +4,8 @@ from pathlib import Path
 
 import napari
 import numpy as np
+
+from napari_n2v.resources import ICON_JUGLAB
 from napari_n2v.utils import (
     State,
     UpdateType,
@@ -18,18 +20,27 @@ from napari_n2v.widgets import (
     AxesWidget,
     FolderWidget,
     load_button,
-    layer_choice
+    layer_choice, ScrollWidgetWrapper, BannerWidget, create_gpu_label, create_progressbar
 )
+from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
     QWidget,
     QVBoxLayout,
+    QHBoxLayout,
     QPushButton,
     QProgressBar,
     QCheckBox,
-    QTabWidget
+    QTabWidget,
+    QGroupBox,
+    QLabel
 )
 
 SAMPLE = 'Sample data'
+
+
+class PredictWidgetWrapper(ScrollWidgetWrapper):
+    def __init__(self, napari_viewer):
+        super().__init__(PredictWidget(napari_viewer))
 
 
 class PredictWidget(QWidget):
@@ -40,9 +51,23 @@ class PredictWidget(QWidget):
         self.viewer = napari_viewer
 
         self.setLayout(QVBoxLayout())
-        self.setMaximumHeight(320)
+        self.setMinimumWidth(200)
+        self.setMaximumHeight(620)
 
         ###############################
+
+        # add banner
+        self.layout().addWidget(BannerWidget('N2V - Prediction',
+                                             ICON_JUGLAB,
+                                             'A self-supervised denoising algorithm.',
+                                             'https://github.com/juglab/napari-n2v',
+                                             'https://github.com/juglab/napari-n2v'))
+
+        # add GPU button
+        gpu_button = create_gpu_label()
+        gpu_button.setAlignment(Qt.AlignmentFlag.AlignRight)
+        self.layout().addWidget(gpu_button)
+
         # QTabs
         self.tabs = QTabWidget()
         tab_layers = QWidget()
@@ -71,30 +96,10 @@ class PredictWidget(QWidget):
         self.images.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
 
         ###############################
-        # load model button
-        self.load_model_button = load_button()
-        self.layout().addWidget(self.load_model_button.native)
-
-        # load 3D enabling checkbox
-        self.enable_3d = QCheckBox('Enable 3D')
-        self.layout().addWidget(self.enable_3d)
-
-        # axes widget
-        self.axes_widget = AxesWidget()
-        self.layout().addWidget(self.axes_widget)
+        self._build_params_widgets()
 
         # progress bar
-        self.pb_prediction = QProgressBar()
-        self.pb_prediction.setValue(0)
-        self.pb_prediction.setMinimum(0)
-        self.pb_prediction.setMaximum(100)
-        self.pb_prediction.setTextVisible(True)
-        self.pb_prediction.setFormat(f'Images ?/?')
-        self.layout().addWidget(self.pb_prediction)
-
-        # predict button
-        self.predict_button = QPushButton("Predict", self)
-        self.layout().addWidget(self.predict_button)
+        self._build_predict_widgets()
 
         # place holders
         self.worker = None
@@ -109,6 +114,47 @@ class PredictWidget(QWidget):
         self.images.changed.connect(self._update_layer_axes)
         self.images_folder.text_field.textChanged.connect(self._update_disk_axes)
         self.enable_3d.stateChanged.connect(self._update_3D)
+
+    def _build_params_widgets(self):
+        self.params_group = QGroupBox()
+        self.params_group.setTitle("Parameters")
+        self.params_group.setLayout(QVBoxLayout())
+        self.params_group.layout().setContentsMargins(20, 20, 20, 0)
+        # load model button
+        self.load_model_button = load_button()
+        self.params_group.layout().addWidget(self.load_model_button.native)
+        # load 3D enabling checkbox
+        self.enable_3d = QCheckBox('Enable 3D')
+        self.params_group.layout().addWidget(self.enable_3d)
+        # axes widget
+        self.axes_widget = AxesWidget()
+        self.params_group.layout().addWidget(self.axes_widget)
+        self.layout().addWidget(self.params_group)
+
+    def _build_predict_widgets(self):
+        self.predict_group = QGroupBox()
+        self.predict_group.setTitle("Prediction")
+        self.predict_group.setLayout(QVBoxLayout())
+        self.predict_group.layout().setContentsMargins(20, 20, 20, 0)
+
+        # prediction progress bar
+        self.pb_prediction = create_progressbar(text_format=f'Prediction ?/?')
+        self.pb_prediction.setToolTip('Show the progress of the prediction')
+
+        # predict button
+        predictions = QWidget()
+        predictions.setLayout(QHBoxLayout())
+        self.predict_button = QPushButton('Predict', self)
+        self.predict_button.setEnabled(True)
+        self.predict_button.setToolTip('Run the trained model on the images')
+
+        predictions.layout().addWidget(QLabel(''))
+        predictions.layout().addWidget(self.predict_button)
+
+        # add to the group
+        self.predict_group.layout().addWidget(self.pb_prediction)
+        self.predict_group.layout().addWidget(predictions)
+        self.layout().addWidget(self.predict_group)
 
     def _update_3D(self):
         self.axes_widget.update_is_3D(self.enable_3d.isChecked())
