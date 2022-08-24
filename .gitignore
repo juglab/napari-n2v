@@ -87,3 +87,5 @@ venv/
 *.h5
 *.npy
 *.md
+/src/napari_n2v/data/
+/src/napari_n2v/models/
