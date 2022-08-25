@@ -498,14 +498,12 @@ class TrainWidget(QWidget):
         if self.state == State.RUNNING:
             if UpdateType.EPOCH in updates:
                 val = updates[UpdateType.EPOCH]
-                e_perc = int(100 * updates[UpdateType.EPOCH] / self.n_epochs + 0.5)
-                self.pb_epochs.setValue(e_perc)
+                self.pb_epochs.setValue(val)
                 self.pb_epochs.setFormat(f'Epoch {val}/{self.n_epochs}')
 
             if UpdateType.BATCH in updates:
                 val = updates[UpdateType.BATCH]
-                s_perc = int(100 * val / self.n_steps + 0.5)
-                self.pb_steps.setValue(s_perc)
+                self.pb_steps.setValue(val)
                 self.pb_steps.setFormat(f'Step {val}/{self.n_steps}')
 
             if UpdateType.LOSS in updates:
