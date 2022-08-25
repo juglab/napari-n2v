@@ -1,7 +1,15 @@
 from magicgui.widgets import Container
-from qtpy.QtWidgets import QPushButton, QLabel, QWidget, QHBoxLayout
+from qtpy import QtGui, QtCore
+from qtpy.QtWidgets import (
+    QPushButton,
+    QLabel,
+    QWidget,
+    QHBoxLayout
+)
 import pyqtgraph as pg
 import webbrowser
+
+from napari_denoiseg.resources import ICON_TF
 
 
 class TBPlotWidget(Container):
@@ -32,9 +40,14 @@ class TBPlotWidget(Container):
         self.plot = self.graphics_widget.addPlot()
         self.plot.setLabel("bottom", "epoch")
         self.plot.setLabel("left", "loss")
+        self.plot.addLegend(offset=(125, -50))
 
         # tensorboard button
-        tb_button = QPushButton("Open in tensorboard")
+        tb_button = QPushButton("Open in TensorBoard")
+        tb_button.setToolTip('Open TensorBoard in your browser')
+        tb_button.setIcon(QtGui.QIcon(QtGui.QPixmap(ICON_TF)))
+        tb_button.setLayoutDirection(QtCore.Qt.LeftToRight)
+        tb_button.setIconSize(QtCore.QSize(32, 29))
         tb_button.clicked.connect(self.open_tb)
 
         # add to layout on the bottom left
@@ -88,8 +101,18 @@ class TBPlotWidget(Container):
         self.val_loss.append(val_loss)
 
         # replot
-        self.plot.plot(self.epochs, self.train_loss, pen=pg.mkPen(color=(204, 221, 255)), symbol='o', symbolSize=2)
-        self.plot.plot(self.epochs, self.val_loss, pen=pg.mkPen(color=(244, 173, 173)), symbol='o', symbolSize=2)
+        self.plot.plot(self.epochs,
+                       self.train_loss,
+                       pen=pg.mkPen(color=(204, 221, 255)),
+                       symbol='o',
+                       symbolSize=2,
+                       name='Train')
+        self.plot.plot(self.epochs,
+                       self.val_loss,
+                       pen=pg.mkPen(color=(244, 173, 173)),
+                       symbol='o',
+                       symbolSize=2,
+                       name='Val')
 
     def clear_plot(self):
         """
