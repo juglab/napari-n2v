@@ -28,7 +28,7 @@ class TrainingSettingsWidget(QDialog):
         # create widgets
         label_unet_depth = QLabel('U-Net depth')
         desc_unet_depth = 'Number of resolution levels of the U-Net architecture'
-        self.unet_depth = create_int_spinbox(value=unet_n_depth, min_value=4, max_value=5)
+        self.unet_depth = create_int_spinbox(value=unet_n_depth, min_value=2, max_value=5)
         label_unet_depth.setToolTip(desc_unet_depth)
         self.unet_depth.setToolTip(desc_unet_depth)
 
