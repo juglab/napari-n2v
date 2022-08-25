@@ -56,13 +56,16 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         patch_shape = (patch_XY, patch_XY)
 
     # get data
+    ntf.show_info('Loading data')
     _x_train, _x_val, new_axes = load_images(widget)  # images are reshaped
     widget.x_train, widget.x_val, widget.new_axes = _x_train, _x_val, new_axes  # save for prediction
 
     # prepare data
+    ntf.show_info('Shaping data')
     X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
 
     # create model
+    ntf.show_info('Creating model')
     model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
     base_dir = 'models'
     model = create_model(X_train,
@@ -83,6 +86,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         new_model = load_model(expert_settings.get_model_path())
         model.keras_model.set_weights(new_model.keras_model.get_weights())
 
+    ntf.show_info('Start training')
     training = threading.Thread(target=train, args=(model, X_train, X_val))
     training.start()
 
@@ -108,6 +112,8 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
     np.save(widget.inputs, example)
     np.save(widget.outputs, model.predict(example, new_axes, tta=False))
+
+    ntf.show_info('Done')
 
 
 def load_data_from_disk(source, axes):
@@ -196,6 +202,7 @@ def load_images(widget):
         # load train data
         _x_train, new_axes = load_data_from_disk(path_train_X, axes)
 
+        # TODO if this is a path, use pathlib
         if path_val_X == '' or path_val_X == path_train_X:
             _x_val = None
         else:

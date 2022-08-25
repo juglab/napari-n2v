@@ -355,19 +355,21 @@ class TrainWidget(QWidget):
                 if pred_val_name in self.viewer.layers:
                     self.viewer.layers.remove(pred_val_name)
 
-                # place-holders
-                # TODO doesn't work if list!
-                # TODO this is wrong here
+                # images are already in CSBDeep axes order
+                self.pred_count = self.x_train.shape[0]
+
                 final_shape, _, _ = get_shape_order(self.x_train.shape, self.new_axes, NAPARI_AXES)
                 self.pred_train = np.zeros(final_shape, dtype=np.float32).squeeze()
                 self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
-                self.pred_count = final_shape[0]
 
                 if self.x_val is not None:
+                    self.pred_count += self.x_val.shape[0]
+
                     final_shape_val, _, _ = get_shape_order(self.x_val.shape, self.new_axes, NAPARI_AXES)
                     self.pred_val = np.zeros(final_shape_val, dtype=np.float32).squeeze()
                     self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
-                    self.pred_count += final_shape_val[0]
+
+                self.pb_prediction.setMaximum(self.pred_count)
 
                 self.predict_worker = prediction_after_training_worker(self)
                 self.predict_worker.yielded.connect(lambda x: self._update_prediction(x))
@@ -559,7 +561,6 @@ if __name__ == "__main__":
     else:
         data = n2v_3D_data()
 
-        #viewer.add_image(data[0][0][4:20, 150:378, 150:378], name=data[0][1]['name'])
         viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()
