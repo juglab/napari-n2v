@@ -1,5 +1,6 @@
 from magicgui.widgets import Container
-from qtpy import QtGui, QtCore
+from qtpy.QtGui import QCursor, QIcon, QPixmap
+from qtpy.QtCore import Qt, QSize
 from qtpy.QtWidgets import (
     QPushButton,
     QLabel,
@@ -45,9 +46,10 @@ class TBPlotWidget(Container):
         # tensorboard button
         tb_button = QPushButton("Open in TensorBoard")
         tb_button.setToolTip('Open TensorBoard in your browser')
-        tb_button.setIcon(QtGui.QIcon(QtGui.QPixmap(ICON_TF)))
-        tb_button.setLayoutDirection(QtCore.Qt.LeftToRight)
-        tb_button.setIconSize(QtCore.QSize(32, 29))
+        tb_button.setIcon(QIcon(QPixmap(ICON_TF)))
+        tb_button.setLayoutDirection(Qt.LeftToRight)
+        tb_button.setIconSize(QSize(32, 29))
+        tb_button.setCursor(QCursor(Qt.CursorShape.PointingHandCursor))
         tb_button.clicked.connect(self.open_tb)
 
         # add to layout on the bottom left
