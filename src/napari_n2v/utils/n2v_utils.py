@@ -5,8 +5,11 @@ from itertools import permutations
 from pathlib import Path
 
 import numpy as np
-from n2v.models import N2V
 from tifffile import imread
+
+from n2v.models import N2V
+
+from napari_n2v.resources import DOC_BIOIMAGE
 
 REF_AXES = 'TSZYXC'
 NAPARI_AXES = 'CTSZYX'
@@ -155,14 +158,14 @@ def are_axes_valid(axes: str):
     return True
 
 
-def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc', doc='../resources/documentation.md'):
+def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
     import os
     from bioimageio.core.build_spec import build_model
 
     assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
-
+    doc = DOC_BIOIMAGE
     build_model(weight_uri=weights,
                 test_inputs=[inputs],
                 test_outputs=[outputs],
