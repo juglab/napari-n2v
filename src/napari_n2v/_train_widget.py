@@ -486,13 +486,15 @@ class TrainWidget(QWidget):
         if self.state == State.IDLE:
             self.n_epochs = self.n_epochs_spin.value()
             self.pb_epochs.setValue(0)
-            self.pb_epochs.setFormat(f'Epoch ?/{self.n_epochs_spin.value()}')
+            self.pb_epochs.setMaximum(self.n_epochs)
+            self.pb_epochs.setFormat(f'Epoch ?/{self.n_epochs}')
 
     def _update_steps(self):
         if self.state == State.IDLE:
             self.n_steps = self.n_steps_spin.value()
             self.pb_steps.setValue(0)
-            self.pb_steps.setFormat(f'Step ?/{self.n_steps_spin.value()}')
+            self.pb_steps.setMaximum(self.n_steps)
+            self.pb_steps.setFormat(f'Step ?/{self.n_steps}')
 
     def _update_all(self, updates):
         if self.state == State.RUNNING:
