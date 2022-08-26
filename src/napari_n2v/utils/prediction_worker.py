@@ -93,7 +93,7 @@ def prediction_worker(widget):
     elif is_from_disk and type(images) == tuple:  # load images from disk with different sizes
         yield from _run_prediction_to_disk(widget, model, axes, images)
     else:
-        yield from _run_prediction(widget, axes, model, images, is_from_disk)
+        yield from _run_prediction(widget, model, axes, images, is_from_disk)
 
 
 def _run_prediction(widget, model, axes, images, is_from_disk):
