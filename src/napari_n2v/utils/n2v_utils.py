@@ -3,11 +3,13 @@ import warnings
 from enum import Enum
 from itertools import permutations
 from pathlib import Path
+from typing import Union, Tuple, List
 
+import napari.layers
 import numpy as np
 from tifffile import imread
 
-from n2v.models import N2V
+from n2v.models import N2V, N2VConfig
 
 from napari_n2v.resources import DOC_BIOIMAGE
 
@@ -53,7 +55,7 @@ def create_config(X_patches,
                   n2v_perc_pix=0.198,
                   n2v_neighborhood_radius=2,
                   train_learning_rate=0.0004
-                  ):
+                  ) -> N2VConfig:
     from n2v.models import N2VConfig
 
     n2v_patch_shape = list(X_patches.shape[1:-1])
@@ -84,7 +86,7 @@ def create_model(X_patches,
                  basedir='models',
                  updater=None,
                  expert_settings=None,
-                 train=True):
+                 train=True) -> N2V:
     from n2v.models import N2V
 
     # create config
@@ -113,7 +115,7 @@ def create_model(X_patches,
     return model
 
 
-def filter_dimensions(shape_length, is_3D):
+def filter_dimensions(shape_length: int, is_3D: bool) -> List[str]:
     """
     """
     axes = list(REF_AXES)
@@ -158,7 +160,7 @@ def are_axes_valid(axes: str):
     return True
 
 
-def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
+def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):
     import os
     from bioimageio.core.build_spec import build_model
 
@@ -191,7 +193,7 @@ def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
                 )
 
 
-def load_from_disk(path, axes: str):
+def load_from_disk(path: Union[str, Path], axes: str):
     """
 
     :param axes:
@@ -229,7 +231,7 @@ def list_diff(l1, l2):
 
 
 # TODO swap order ref_axes and axes_in
-def get_shape_order(shape_in, axes_in, ref_axes):
+def get_shape_order(shape_in, ref_axes, axes_in):
     """
     Return the new shape and axes order of x, if the axes were to be ordered according to
     the reference axes.
@@ -266,7 +268,7 @@ def reshape_data(x, axes: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x.shape, _axes, REF_AXES)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, REF_AXES, _axes)
 
     # if S is not in the list of axes, then add a singleton S
     if 'S' not in new_axes:
@@ -314,7 +316,7 @@ def reshape_napari(x, axes_in: str):
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
     # get new x shape
-    new_x_shape, new_axes, indices = get_shape_order(_x.shape, _axes, NAPARI_AXES)
+    new_x_shape, new_axes, indices = get_shape_order(_x.shape, NAPARI_AXES, _axes)
 
     # reshape by moving the axes
     destination = [i for i in range(len(indices))]
@@ -323,7 +325,7 @@ def reshape_napari(x, axes_in: str):
     return _x, new_axes
 
 
-def get_size_from_shape(layer, axes):
+def get_size_from_shape(layer: napari.layers.Layer, axes):
     ind_S = axes.find('S')
     ind_T = axes.find('T')
 
@@ -340,13 +342,13 @@ def get_size_from_shape(layer, axes):
         return 1
 
 
-def get_images_count(path):
+def get_images_count(path: Union[str, Path]):
     images_path = Path(path)
 
     return len([f for f in images_path.glob('*.tif*')])
 
 
-def lazy_load_generator(path):
+def lazy_load_generator(path: Union[str, Path]):
     """
 
     :param path:
@@ -364,7 +366,7 @@ def lazy_load_generator(path):
     return generator(image_files), len(image_files)
 
 
-def load_weights(model: N2V, weights_path):
+def load_weights(model: N2V, weights_path: Union[str, Path]):
     """
 
     :param model:
@@ -388,7 +390,7 @@ def load_weights(model: N2V, weights_path):
 
 
 # TODO write tests
-def get_napari_shapes(shape_in, axes_in):
+def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     """
     Transform shape into what N2V expect and return the denoised and segmented output shapes in napari axes order.
 
@@ -405,7 +407,7 @@ def get_napari_shapes(shape_in, axes_in):
     return shape_out
 
 
-def save_configuration(config, dir_path):
+def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
     from csbdeep.utils import save_json
 
     # sanity check
@@ -416,7 +418,7 @@ def save_configuration(config, dir_path):
     save_json(vars(config), final_path)
 
 
-def load_configuration(path):
+def load_configuration(path: Union[str, Path]) -> N2VConfig:
     from csbdeep.utils import load_json
     from n2v.models import N2VConfig
 
@@ -435,7 +437,7 @@ def load_configuration(path):
     return N2VConfig(X, **json_config)
 
 
-def load_model(weight_path):
+def load_model(weight_path: Union[str, Path]) -> N2V:
     if not Path(weight_path).exists():
         raise ValueError('Invalid model path.')
 
