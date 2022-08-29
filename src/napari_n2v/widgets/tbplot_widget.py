@@ -10,7 +10,7 @@ from qtpy.QtWidgets import (
 import pyqtgraph as pg
 import webbrowser
 
-from napari_denoiseg.resources import ICON_TF
+from napari_n2v.resources import ICON_TF
 
 
 class TBPlotWidget(Container):

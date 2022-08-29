@@ -12,8 +12,6 @@ from napari_n2v.utils import (
     DENOISING,
     prediction_worker,
     loading_worker,
-    reshape_napari,
-    get_images_count,
     get_napari_shapes
 )
 from napari_n2v.widgets import (
@@ -235,7 +233,7 @@ class PredictWidget(QWidget):
                     final_shape = get_napari_shapes(im_shape, current_axes)
 
                     self.denoi_prediction = np.zeros(final_shape, dtype=np.float32).squeeze()
-                    viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+                    self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
                 else:
                     self.denoi_prediction = np.zeros((1, 1), dtype=np.float32)
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
