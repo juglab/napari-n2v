@@ -211,11 +211,13 @@ def load_from_disk(path, axes: str):
         if 'S' in axes:
             ind_S = axes.find('S')
             final_images = np.concatenate(images, axis=ind_S)
+            new_axes = axes
         else:
+            new_axes = 'S' + axes
             final_images = np.stack(images, axis=0)
-        return final_images
+        return final_images, new_axes
 
-    return images
+    return images, axes
 
 
 def list_diff(l1, l2):

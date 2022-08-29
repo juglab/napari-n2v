@@ -79,21 +79,24 @@ def prediction_worker(widget):
         if is_lazy_loading:
             images, n_img = lazy_load_generator(widget.images_folder.get_folder())
             assert n_img > 0
+
+            new_axes = axes
         else:
-            images = load_from_disk(widget.images_folder.get_folder(), axes)
+            images, new_axes = load_from_disk(widget.images_folder.get_folder(), axes)
             assert len(images.shape) > 0
     else:
         images = widget.images.value.data
+        new_axes = axes
         assert len(images.shape) > 0
 
     if is_from_disk and is_lazy_loading:
         # yield generator size
         yield {UpdateType.N_IMAGES: n_img}
-        yield from _run_lazy_prediction(widget, model, axes, images)
-    elif is_from_disk and type(images) == tuple:  # load images from disk with different sizes
-        yield from _run_prediction_to_disk(widget, model, axes, images)
-    else:
-        yield from _run_prediction(widget, axes, model, images, is_from_disk)
+        yield from _run_lazy_prediction(widget, model, new_axes, images)
+    elif is_from_disk and type(images) == list:  # load images from disk with different sizes
+        yield from _run_prediction_to_disk(widget, model, new_axes, images)
+    else:  # numpy array (from napari.layers or from the disk)
+        yield from _run_prediction(widget, new_axes, model, images, is_from_disk)
 
 
 def _run_prediction(widget, model, axes, images, is_from_disk):

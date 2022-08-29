@@ -237,7 +237,7 @@ class PredictWidget(QWidget):
                     self.denoi_prediction = np.zeros(final_shape, dtype=np.float32).squeeze()
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
                 else:
-                    self.denoi_prediction = np.zeros((1,), dtype=np.float32).squeeze()
+                    self.denoi_prediction = np.zeros((1, 1), dtype=np.float32)
                     viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
                 self.worker = prediction_worker(self)
