@@ -1,9 +1,20 @@
 """
 """
-from pathlib import Path
-
 import napari
-import numpy as np
+from napari.utils import notifications as ntf
+
+from qtpy.QtCore import Qt
+from qtpy.QtWidgets import (
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QPushButton,
+    QCheckBox,
+    QTabWidget,
+    QGroupBox,
+    QLabel,
+    QFormLayout
+)
 
 from napari_n2v.resources import ICON_JUGLAB
 from napari_n2v.utils import (
@@ -11,27 +22,20 @@ from napari_n2v.utils import (
     UpdateType,
     DENOISING,
     prediction_worker,
-    loading_worker,
-    get_napari_shapes
+    loading_worker
 )
 from napari_n2v.widgets import (
     AxesWidget,
     FolderWidget,
     load_button,
-    layer_choice, ScrollWidgetWrapper, BannerWidget, create_gpu_label, create_progressbar
+    layer_choice,
+    ScrollWidgetWrapper,
+    BannerWidget,
+    create_gpu_label,
+    create_progressbar,
+    create_int_spinbox
 )
-from qtpy.QtCore import Qt
-from qtpy.QtWidgets import (
-    QWidget,
-    QVBoxLayout,
-    QHBoxLayout,
-    QPushButton,
-    QProgressBar,
-    QCheckBox,
-    QTabWidget,
-    QGroupBox,
-    QLabel
-)
+
 
 SAMPLE = 'Sample data'
 
@@ -50,7 +54,7 @@ class PredictWidget(QWidget):
 
         self.setLayout(QVBoxLayout())
         self.setMinimumWidth(200)
-        self.setMaximumHeight(620)
+        self.setMaximumHeight(720)
 
         ###############################
 
@@ -95,8 +99,7 @@ class PredictWidget(QWidget):
 
         ###############################
         self._build_params_widgets()
-
-        # progress bar
+        self._build_tiling_widgets()
         self._build_predict_widgets()
 
         # place holders
@@ -104,7 +107,7 @@ class PredictWidget(QWidget):
         self.denoi_prediction = None
         self.sample_image = None
         self.n_im = 0
-        self.is_from_disk = False
+        self.load_from_disk = False
 
         # actions
         self.tabs.currentChanged.connect(self._update_tab_axes)
@@ -128,6 +131,30 @@ class PredictWidget(QWidget):
         self.axes_widget = AxesWidget()
         self.params_group.layout().addWidget(self.axes_widget)
         self.layout().addWidget(self.params_group)
+
+    def _build_tiling_widgets(self):
+        # tiling
+        self.tilling_group = QGroupBox()
+        self.tilling_group.setTitle("Tiling (optional)")
+        self.tilling_group.setLayout(QVBoxLayout())
+        self.tilling_group.layout().setContentsMargins(20, 20, 20, 0)
+
+        # checkbox
+        self.tiling_cbox = QCheckBox('Tile prediction')
+        self.tiling_cbox.setToolTip('Select to predict the image by tiles')
+        self.tilling_group.layout().addWidget(self.tiling_cbox)
+
+        # tiling spinbox
+        self.tiling_spin = create_int_spinbox(1, 1000, 4, tooltip='Minimum number of tiles to use')
+        self.tiling_spin.setEnabled(False)
+
+        tiling_form = QFormLayout()
+        tiling_form.addRow('Number of tiles', self.tiling_spin)
+        tiling_widget = QWidget()
+        tiling_widget.setLayout(tiling_form)
+        self.tilling_group.layout().addWidget(tiling_widget)
+
+        self.layout().addWidget(self.tilling_group)
 
     def _build_predict_widgets(self):
         self.predict_group = QGroupBox()
@@ -192,9 +219,9 @@ class PredictWidget(QWidget):
 
         :return:
         """
-        self.is_from_disk = self.tabs.currentIndex() == 1
+        self.load_from_disk = self.tabs.currentIndex() == 1
 
-        if self.is_from_disk:
+        if self.load_from_disk:
             self._update_disk_axes()
         else:
             self._update_layer_axes()
@@ -210,7 +237,7 @@ class PredictWidget(QWidget):
             perc = int(100 * val / self.n_im + 0.5)
             self.pb_prediction.setValue(perc)
             self.pb_prediction.setFormat(f'Prediction {val}/{self.n_im}')
-            self.viewer.layers[DENOISING].refresh()
+            # self.viewer.layers[DENOISING].refresh()
 
         if UpdateType.DONE in updates:
             self.pb_prediction.setValue(100)
@@ -218,39 +245,33 @@ class PredictWidget(QWidget):
 
     def _start_prediction(self):
         if self.state == State.IDLE:
-            if self.axes_widget.is_valid() and not Path(self.get_model_path()).is_dir():
-                self.state = State.RUNNING
+            if self.axes_widget.is_valid():
+                if self.get_model_path().exists() and self.get_model_path().is_file():
+                    self.state = State.RUNNING
 
-                self.predict_button.setText('Stop')
+                    self.predict_button.setText('Stop')
 
-                if DENOISING in self.viewer.layers:
-                    self.viewer.layers.remove(DENOISING)
+                    if DENOISING in self.viewer.layers:
+                        self.viewer.layers.remove(DENOISING)
 
-                if self.is_from_disk == 0:
-                    # from napari layers
-                    im_shape = self.images.value.data.shape
-                    current_axes = self.get_axes()
-                    final_shape = get_napari_shapes(im_shape, current_axes)
-
-                    self.denoi_prediction = np.zeros(final_shape, dtype=np.float32).squeeze()
-                    self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+                    self.worker = prediction_worker(self)
+                    self.worker.yielded.connect(lambda x: self._update(x))
+                    self.worker.returned.connect(self._done)
+                    self.worker.start()
                 else:
-                    self.denoi_prediction = np.zeros((1, 1), dtype=np.float32)
-                    viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
-
-                self.worker = prediction_worker(self)
-                self.worker.yielded.connect(lambda x: self._update(x))
-                self.worker.returned.connect(self._done)
-                self.worker.start()
+                    ntf.show_error('Select a model')
             else:
-                # TODO feedback to users
-                pass
+                ntf.show_error('Invalid axes')
+
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
     def _done(self):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
+
+        if self.denoi_prediction is not None:
+            viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
     def get_model_path(self):
         return self.load_model_button.Model.value
@@ -267,7 +288,7 @@ if __name__ == "__main__":
     viewer = napari.Viewer()
 
     # add our plugin
-    viewer.window.add_dock_widget(PredictWidget(viewer))
+    viewer.window.add_dock_widget(PredictWidgetWrapper(viewer))
 
     # add images
     dim = '2D'

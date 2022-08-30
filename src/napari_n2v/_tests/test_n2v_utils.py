@@ -116,20 +116,25 @@ def test_build_modelzoo_disallowed_batch(tmp_path, shape):
 
 ###################################################################
 # test load_from_disk
-@pytest.mark.parametrize('shape, axes', [((8, 8), 'YX'), ((4, 8, 8), 'ZYX'), ((5, 8, 8), 'SYX')])
+@pytest.mark.parametrize('shape, axes', [((8, 8), 'YX'),
+                                         ((4, 8, 8), 'ZYX'),
+                                         ((5, 8, 8), 'SYX'),
+                                         ((5, 8, 8, 3), 'SYXT')])
 def test_load_from_disk_same_shapes(tmp_path, shape, axes):
     n = 10
     save_img(tmp_path, n, shape)
 
     # load images
-    images = load_from_disk(tmp_path, axes)
+    images, new_axes = load_from_disk(tmp_path, axes)
     assert type(images) == np.ndarray
 
     if 'S' in axes:
+        assert new_axes == axes
         assert len(images.shape) == len(shape)
         assert images.shape[0] == n * shape[0]
         assert images.shape[1:] == shape[1:]
     else:
+        assert new_axes == 'S' + axes
         assert len(images.shape) == len(shape) + 1
         assert images.shape[0] == n
         assert images.shape[1:] == shape
@@ -147,11 +152,13 @@ def test_load_from_disk_different_shapes(tmp_path, shape1, shape2, axes):
     save_img(tmp_path, n[1], shape2, prefix='im2-')
 
     # load images
-    images = load_from_disk(tmp_path, axes)
-    assert type(images) == list
-    assert len(images) == n[0] + n[1]
+    images, new_axes = load_from_disk(tmp_path, axes)
+    assert type(images) == tuple
+    assert len(images[0]) == n[0] + n[1]
+    assert len(images[1]) == n[0] + n[1]
+    assert new_axes == axes
 
-    for img in images:
+    for img in images[0]:
         assert (img.shape == shape1) or (img.shape == shape2)
 
 

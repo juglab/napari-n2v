@@ -13,7 +13,7 @@ from n2v.models import N2V, N2VConfig
 
 from napari_n2v.resources import DOC_BIOIMAGE
 
-REF_AXES = 'TSZYXC'
+REF_AXES = 'TSZYXC'  # order of axes in N2V, not that `C` is allowed only for singleton
 NAPARI_AXES = 'CTSZYX'
 
 PREDICT = '_denoised'
@@ -149,6 +149,7 @@ def are_axes_valid(axes: str):
         return False
 
     # all characters must be in REF_AXES[:-1] = 'STZYX'
+    # We disallow the `C` channel here
     if not all([s in REF_AXES[:-1] for s in _axes]):
         return False
 
@@ -195,6 +196,9 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
 
 def load_from_disk(path: Union[str, Path], axes: str):
     """
+    Load images from disk. If the dimensions don't agree, the method returns a tuple of list ([images], [files]). If
+    the dimensions agree, the images are stacked along the `S` dimension of `axes` or along a new dimension if `S` is
+    not in `axes`.
 
     :param axes:
     :param path:
@@ -209,7 +213,7 @@ def load_from_disk(path: Union[str, Path], axes: str):
         images.append(imread(str(f)))
         dims_agree = dims_agree and (images[0].shape == images[-1].shape)
 
-    if dims_agree:
+    if len(images) > 0 and dims_agree:
         if 'S' in axes:
             ind_S = axes.find('S')
             final_images = np.concatenate(images, axis=ind_S)
@@ -219,7 +223,7 @@ def load_from_disk(path: Union[str, Path], axes: str):
             final_images = np.stack(images, axis=0)
         return final_images, new_axes
 
-    return images, axes
+    return (images, image_files), axes
 
 
 def list_diff(l1, l2):
