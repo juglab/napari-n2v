@@ -115,7 +115,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
 
     ntf.show_info('Done')
 
-
+# TODO errors here, implement tests, compare with napari_n2v.utils, tst for list
 def load_data_from_disk(source, axes):
     """
 
