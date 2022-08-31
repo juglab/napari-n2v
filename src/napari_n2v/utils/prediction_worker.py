@@ -9,7 +9,6 @@ from napari.utils import notifications as ntf
 
 from napari_n2v.utils import (
     UpdateType,
-    reshape_napari,
     lazy_load_generator,
     load_from_disk,
     reshape_data,
@@ -20,45 +19,53 @@ from napari_n2v.utils import (
 
 @thread_worker(start_thread=False)
 def prediction_after_training_worker(widget):
-    """
-
-    """
-    # TODO probably doesn't work if images are lists from the disk
+    # get model
     model = widget.model
 
-    # get images
+    # get tiling
+    is_tiled = widget.is_tiling_checked()
+    n_tiles = widget.get_n_tiles()
+
+    # get images (already in SXYC or SZYXC shape)
     _x_train = widget.x_train
+
+    # prepare prediction
+    widget.pred_train = np.zeros(_x_train.shape[:-1])
 
     # get axes
     axes = widget.new_axes
 
-    # denoise training images
-    counter = 0
-    for i in range(_x_train.shape[0]):
-        _x = model.predict(_x_train[i, ...].astype(np.float32), axes=axes[1:])
-
-        # reshape for napari
-        # TODO if data is 3D but S dim = 1, then this will fail bc widget[i, ...] is YX and reshape returns ZYX
-        widget.pred_train[i, ...] = reshape_napari(_x, axes[1:])[0].squeeze()
-
-        counter += 1
-        yield {UpdateType.PRED: counter}
+    # predict training data
+    yield from _predict(model, _x_train, axes, widget.pred_train, is_tiled, n_tiles)
 
     # check if there is validation data
     if widget.x_val is not None:
+        # get data
         _x_val = widget.x_val
 
-        # denoised val images
-        for i in range(_x_val.shape[0]):
-            _x = model.predict(_x_val[i, ...].astype(np.float32), axes=axes[1:])
+        # prepare prediction
+        widget.pred_val = np.zeros(_x_val.shape[:-1])
 
-            # reshape for napari
-            widget.pred_val[i, ...] = reshape_napari(_x, axes[1:])[0].squeeze()
-
-            counter += 1
-            yield {UpdateType.PRED: counter}
+        # predict training data
+        yield from _predict(model, _x_val, axes, widget.pred_val, is_tiled, n_tiles, counter_offset=_x_train.shape[0])
 
     yield UpdateType.DONE
+
+
+def _predict(model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_offset=0):
+    # denoise training images
+    for i in range(data.shape[0]):
+        if is_tiled:
+            tiles = (len(axes) - 2) * (n_tiles,) + (1,)
+
+            _x = model.predict(data[i, ...].astype(np.float32), axes=axes[1:], n_tiles=tiles)
+        else:
+            _x = model.predict(data[i, ...].astype(np.float32), axes=axes[1:])
+
+        yield {UpdateType.PRED: counter_offset + i + 1}
+
+        # add prediction
+        prediction[i, ...] = _x.squeeze()
 
 
 @thread_worker(start_thread=False)
@@ -67,8 +74,8 @@ def prediction_worker(widget):
     is_from_disk = widget.load_from_disk
     is_lazy_loading = widget.lazy_loading.isChecked()
 
-    is_tiled = widget.tiling_cbox.isChecked()
-    n_tiles = widget.tiling_spin.value()
+    is_tiled = widget.is_tiling_checked()
+    n_tiles = widget.get_n_tiles()
 
     # get axes
     axes = widget.axes_widget.get_axes()
@@ -125,7 +132,7 @@ def prediction_worker(widget):
         yield from _run_prediction(**parameters)
 
 
-# TODO: how about is_tiled = n_tiles != 1 ?
+# TODO: how about doing is_tiled = n_tiles != 1 ?
 def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
     """
     `images` is either a napari.layer or a numpy array.

@@ -261,6 +261,9 @@ def get_shape_order(shape_in, ref_axes, axes_in):
 
 
 def reshape_data(x, axes: str):
+    """
+    Reshape the data to 'SZYXC' or 'SYXC', merging 'S' and 'T' channels if necessary.
+    """
     _x = x
     _axes = axes
 

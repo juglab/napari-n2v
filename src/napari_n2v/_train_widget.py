@@ -19,7 +19,8 @@ from qtpy.QtWidgets import (
     QComboBox,
     QFileDialog,
     QLabel,
-    QTabWidget
+    QTabWidget,
+    QCheckBox
 )
 from napari_n2v.widgets import (
     TBPlotWidget,
@@ -96,6 +97,7 @@ class TrainWidget(QWidget):
         self.pred_count = 0
         self.weights_path = ''
         self.is_3D = False
+        self.pred_train_name, self.pred_val_name = None, None
 
         # actions
         self._set_actions()
@@ -289,6 +291,21 @@ class TrainWidget(QWidget):
         self.predict_group.setLayout(QVBoxLayout())
         self.predict_group.layout().setContentsMargins(20, 20, 20, 0)
 
+        # checkbox
+        self.tiling_cbox = QCheckBox('Tile prediction')
+        self.tiling_cbox.setToolTip('Select to predict the image by tiles')
+        self.predict_group.layout().addWidget(self.tiling_cbox)
+
+        # tiling spinbox
+        self.tiling_spin = create_int_spinbox(1, 1000, 4, tooltip='Minimum number of tiles to use')
+        self.tiling_spin.setEnabled(False)
+
+        tiling_form = QFormLayout()
+        tiling_form.addRow('Number of tiles', self.tiling_spin)
+        tiling_widget = QWidget()
+        tiling_widget.setLayout(tiling_form)
+        self.predict_group.layout().addWidget(tiling_widget)
+
         # prediction progress bar
         self.pb_prediction = create_progressbar(max_value=19,
                                                 text_format=f'Prediction ?/?')
@@ -348,26 +365,21 @@ class TrainWidget(QWidget):
                 self.predict_button.setText('Stop')
 
                 # prepare layers name and remove them if they exist
-                pred_train_name = self.img_train.name + PREDICT
-                pred_val_name = self.img_val.name + PREDICT
-                if pred_train_name in self.viewer.layers:
-                    self.viewer.layers.remove(pred_train_name)
-                if pred_val_name in self.viewer.layers:
-                    self.viewer.layers.remove(pred_val_name)
+                self.pred_train_name = self.img_train.name + PREDICT
+                self.pred_val_name = self.img_val.name + PREDICT
+                if self.pred_train_name in self.viewer.layers:
+                    self.viewer.layers.remove(self.pred_train_name)
+                if self.pred_val_name in self.viewer.layers:
+                    self.viewer.layers.remove(self.pred_val_name)
 
                 # images are already in CSBDeep axes order
                 self.pred_count = self.x_train.shape[0]
+                self.pred_train = None
 
-                final_shape, _, _ = get_shape_order(self.x_train.shape, self.new_axes, NAPARI_AXES)
-                self.pred_train = np.zeros(final_shape, dtype=np.float32).squeeze()
-                self.viewer.add_image(self.pred_train, name=pred_train_name, visible=True)
-
+                # also predict val if val is different from x_train
                 if self.x_val is not None:
                     self.pred_count += self.x_val.shape[0]
-
-                    final_shape_val, _, _ = get_shape_order(self.x_val.shape, self.new_axes, NAPARI_AXES)
-                    self.pred_val = np.zeros(final_shape_val, dtype=np.float32).squeeze()
-                    self.viewer.add_image(self.pred_val, name=pred_val_name, visible=True)
+                    self.pred_val = None
 
                 self.pb_prediction.setMaximum(self.pred_count)
 
@@ -393,6 +405,12 @@ class TrainWidget(QWidget):
         self.state = State.IDLE
         self.predict_button.setText('Predict again')
 
+        if self.pred_train is not None:
+            self.viewer.add_image(self.pred_train, name=self.pred_train_name, visible=True)
+
+        if self.pred_val is not None:
+            self.viewer.add_image(self.pred_val, name=self.pred_val_name, visible=True)
+
     def _update_prediction(self, update):
         if self.state == State.RUNNING:
             if update == UpdateType.DONE:
@@ -401,10 +419,6 @@ class TrainWidget(QWidget):
                 val = update[UpdateType.PRED]
                 self.pb_prediction.setValue(val)
                 self.pb_prediction.setFormat(f'Prediction {val}/{self.pred_count}')
-
-            self.viewer.layers[self.img_train.name + PREDICT].refresh()
-            if self.img_train.value != self.img_val.value:
-                self.viewer.layers[self.img_val.name + PREDICT].refresh()
 
     def _reset_model(self):
         """
@@ -415,7 +429,6 @@ class TrainWidget(QWidget):
             self.model = None
             self.reset_model_button.setText('')
             self.reset_model_button.setEnabled(False)
-            self.save_button.setText('')
             self.save_button.setEnabled(False)
             self.predict_button.setText('')
             self.predict_button.setEnabled(False)
@@ -543,6 +556,12 @@ class TrainWidget(QWidget):
 
                 # save configuration as well
                 save_configuration(self.model.config, Path(where).parent)
+
+    def is_tiling_checked(self):
+        return self.tiling_cbox.isChecked()
+
+    def get_n_tiles(self):
+        return self.tiling_spin.value()
 
 
 if __name__ == "__main__":
