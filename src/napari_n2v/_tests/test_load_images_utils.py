@@ -43,17 +43,21 @@ def test_load_data_from_disk_np(tmp_path, n, shape, axes):
 def test_load_data_from_disk_list(tmp_path, shape1, shape2, axes):
     # save images to the disk
     save_img(tmp_path, 1, shape1, prefix='s1')
-    save_img(tmp_path, 1, shape1, prefix='s2')
+    save_img(tmp_path, 1, shape2, prefix='s2')
 
     # load data
     _x, new_axes = load_and_reshape(tmp_path, axes)
 
     # check results
-    m = 1
-    if 'S' in axes:
-        m = shape[axes.find('S')]
+    assert type(_x) == tuple
+    assert len(_x[0]) == 2
 
-    assert _x.shape[0] == n * m
+    for im in _x[0]:
+        if 'Z' in axes:
+            assert len(im.shape) == 5
+        else:
+            assert len(im.shape) == 4
+
     if 'Z' in axes:
         assert new_axes == 'SZYXC'
     else:

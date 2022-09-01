@@ -184,13 +184,13 @@ def load_images(widget):
         path_val_X = widget.val_images_folder.get_folder()
 
         # load train data
-        _x_train, new_axes = load_data_from_disk(path_train_X, axes)
+        _x_train, new_axes = load_and_reshape(path_train_X, axes)
 
         # TODO if this is a path, use pathlib
         if path_val_X == '' or path_val_X == path_train_X:
             _x_val = None
         else:
-            _x_val, _ = load_data_from_disk(path_val_X, axes)
+            _x_val, _ = load_and_reshape(path_val_X, axes)
 
         return _x_train, _x_val, new_axes
 
@@ -206,9 +206,6 @@ def load_images(widget):
         return _x_train, _x_val, new_axes
 
 
-# TODO: here we loose the information on the file names, in case of a list, we
-#  cannot show the predictions later on in napari, therefore we should save it
-#  to the disk.
 def prepare_data(x_train, x_val, patch_shape=(64, 64)):
     """
     `x_train` and `x_val` can be np.arrays or tuple(list[np.arrays], list[str])

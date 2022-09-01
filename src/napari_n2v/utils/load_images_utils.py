@@ -2,8 +2,9 @@ from pathlib import Path
 
 import numpy as np
 from typing import Union
-
 from tifffile import imread
+
+from napari.utils import notifications as ntf
 
 from napari_n2v.utils import(
     reshape_data
@@ -19,15 +20,30 @@ def load_and_reshape(source, axes):
 
     # reshape data
     if type(_x) == tuple:
-        for i, e in enumerate(_x):
-            _x[i], new_axes = reshape_data(e, new_axes)
+        # loop over the images
+        # _x is now tuple( list[np.array], list[Path] )
+        skip = []
+        for i, img in enumerate(_x[0]):
+
+            try:
+                _x[0][i], final_axes = reshape_data(img, new_axes)
+            except ValueError:
+                ntf.show_error(f'Skipped {_x[1][i].stem}, wrong dimensions')
+                skip.append(i)
+
+        # remove skipped files
+        skip.reverse()
+        for i in skip:
+            _x[0].pop(i)
+            _x[1].pop(i)
+
     else:
         if 'S' not in new_axes:
             new_axes = 'S' + new_axes
 
-        _x, new_axes = reshape_data(_x, new_axes)
+        _x, final_axes = reshape_data(_x, new_axes)
 
-    return _x, new_axes
+    return _x, final_axes
 
 
 def load_from_disk(path: Union[str, Path], axes: str):

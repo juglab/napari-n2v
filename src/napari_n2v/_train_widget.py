@@ -328,8 +328,15 @@ class TrainWidget(QWidget):
 
     def _start_training(self,  pretrained_model=None):
         if self.state == State.IDLE:
-
             if self.axes_widget.is_valid():
+                # register which data tab: layers or disk
+                self.load_from_disk = self.tabs.currentIndex() == 1
+
+                if not self.load_from_disk:
+                    if self.img_train.value is None:
+                        ntf.show_error('No layer selected for training.')
+                        return
+
                 self.state = State.RUNNING
 
                 # register which data tab: layers or disk
@@ -373,13 +380,19 @@ class TrainWidget(QWidget):
                     self.viewer.layers.remove(self.pred_val_name)
 
                 # images are already in CSBDeep axes order
-                self.pred_count = self.x_train.shape[0]
+                if type(self.x_train) == tuple:  # np.arrayarray
+                    self.pred_count = len(self.x_train[0])
+                else:  # list of np.
+                    self.pred_count = self.x_train.shape[0]
                 self.pred_train = None
 
                 # also predict val if val is different from x_train
                 if self.x_val is not None:
-                    self.pred_count += self.x_val.shape[0]
-                    self.pred_val = None
+                    if type(self.x_val) == tuple:
+                        self.pred_count += len(self.x_val[0])
+                    else:
+                        self.pred_count += self.x_val.shape[0]
+                self.pred_val = None
 
                 self.pb_prediction.setMaximum(self.pred_count)
 

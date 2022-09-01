@@ -26,34 +26,81 @@ def prediction_after_training_worker(widget):
     is_tiled = widget.is_tiling_checked()
     n_tiles = widget.get_n_tiles()
 
-    # get images (already in SXYC or SZYXC shape)
+    # get images (already in SXYC or SZYXC shape), np.array or list[np.array]
     _x_train = widget.x_train
 
-    # prepare prediction
-    widget.pred_train = np.zeros(_x_train.shape[:-1])
+    # prepare prediction with the right shape, set to none if _x_train is a tuple
+    widget.pred_train = np.zeros(_x_train.shape[:-1]) if type(_x_train) != tuple else None
+
+    # get size of the training images (either first dim or length of list)
+    size_x = _x_train.shape[0] if type(_x_train) != tuple else len(len(_x_train[0]))
 
     # get axes
     axes = widget.new_axes
 
     # predict training data
-    yield from _predict(model, _x_train, axes, widget.pred_train, is_tiled, n_tiles)
+    yield from _predict(widget, model, _x_train, axes, widget.pred_train, is_tiled, n_tiles)
 
     # check if there is validation data
     if widget.x_val is not None:
         # get data
         _x_val = widget.x_val
 
-        # prepare prediction
-        widget.pred_val = np.zeros(_x_val.shape[:-1])
+        # prepare prediction with the right shape, set to none if _x_train is a tuple
+        widget.pred_val = np.zeros(_x_val.shape[:-1]) if type(_x_val) != tuple else None
 
         # predict training data
-        yield from _predict(model, _x_val, axes, widget.pred_val, is_tiled, n_tiles, counter_offset=_x_train.shape[0])
+        yield from _predict(widget,
+                            model,
+                            _x_val,
+                            axes,
+                            widget.pred_val,
+                            is_tiled,
+                            n_tiles,
+                            counter_offset=size_x)
 
     yield UpdateType.DONE
 
 
-def _predict(model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_offset=0):
+def _predict(widget, model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_offset=0):
     # denoise training images
+    if type(data) == tuple:  # data is a tuple( list[np.array], list[Path] )
+        yield from _predict_list(widget, model, data, axes, is_tiled, n_tiles, counter_offset)
+    else:
+        yield from _predict_np(widget, model, data, axes, prediction, is_tiled, n_tiles, counter_offset)
+
+
+def _predict_list(widget, model, data, axes, is_tiled=False, n_tiles=4, counter_offset=0):
+    for im_ind, im in enumerate(data[0]):
+        file = data[1][im_ind]
+
+        prediction = np.zeros(im.shape[:-1])
+        for i in range(im.shape[0]):
+            if is_tiled:
+                tiles = (len(axes) - 2) * (n_tiles,) + (1,)
+
+                _x = model.predict(im[i, ...].astype(np.float32), axes=axes[1:], n_tiles=tiles)
+            else:
+                _x = model.predict(im[i, ...].astype(np.float32), axes=axes[1:])
+
+            # add prediction
+            prediction[i, ...] = _x.squeeze()
+
+            if widget.state == State.IDLE:
+                break
+
+        yield {UpdateType.PRED: counter_offset + im_ind + 1}
+
+        # save images
+        parent = Path(file.parent, 'results')
+        if not parent.exists():
+            os.mkdir(parent)
+
+        new_file_path_denoi = Path(parent, file.stem + '_denoised' + file.suffix)
+        imwrite(new_file_path_denoi, prediction)
+
+
+def _predict_np(widget, model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_offset=0):
     for i in range(data.shape[0]):
         if is_tiled:
             tiles = (len(axes) - 2) * (n_tiles,) + (1,)
@@ -66,6 +113,9 @@ def _predict(model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_o
 
         # add prediction
         prediction[i, ...] = _x.squeeze()
+
+        if widget.state == State.IDLE:
+            break
 
 
 @thread_worker(start_thread=False)

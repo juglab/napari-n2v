@@ -3,7 +3,7 @@ import time
 import numpy as np
 import pytest
 
-from napari_n2v._tests.test_utils import create_model, save_img, save_weights_h5
+from napari_n2v._tests.test_utils import create_simple_model, save_img, save_weights_h5
 from napari_n2v.utils import reshape_data
 from napari_n2v.utils.prediction_worker import (
     _run_lazy_prediction,
@@ -31,7 +31,7 @@ class MonkeyPatchWidget:
                           ((16, 32, 32), 'ZYX'),
                           ((5, 16, 16, 5), 'SYXT'),
                           ((5, 16, 32, 32), 'SZYX')])
-def test_predict_after_training(tmp_path, n_tiles, shape, axes):
+def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
     # create data
     x = np.ones(shape)
 
@@ -39,14 +39,17 @@ def test_predict_after_training(tmp_path, n_tiles, shape, axes):
     _x, new_axes = reshape_data(x, axes)
 
     # create model
-    model = create_model(tmp_path, _x.shape)
+    model = create_simple_model(tmp_path, _x.shape)
+
+    # create widget
+    widget = MonkeyPatchWidget()
 
     # prediction variable
     pred = np.ones(_x.shape[:-1])
 
     # predict
     results = []
-    predictor = _predict(model, _x, new_axes, pred, is_tiled=n_tiles != 1, n_tiles=n_tiles)
+    predictor = _predict(widget, model, _x, new_axes, pred, is_tiled=n_tiles != 1, n_tiles=n_tiles)
     while True:
         t = next(predictor, None)
 
@@ -60,6 +63,55 @@ def test_predict_after_training(tmp_path, n_tiles, shape, axes):
     assert [pred[i, ...].max() != 1 for i in range(pred.shape[0])]
 
 
+@pytest.mark.parametrize('n_tiles', [1, 2])
+@pytest.mark.parametrize('shape1, shape2, axes',
+                         [((16, 16), (32, 32), 'YX'),
+                          ((5, 16, 16), (3, 16, 16), 'SYX'),  # TODO why shouldn't this be same size?
+                          ((5, 16, 16), (5, 32, 32), 'TYX'),
+                          ((16, 32, 32), (32, 32, 32), 'ZYX'),
+                          ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXT'),
+                          ((5, 16, 32, 32), (5, 16, 16, 16), 'SZYX')])
+def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
+    m1, m2 = 1, 1
+    n1, n2 = 1, 1
+    if 'S' in axes:
+        m1, m2 = shape1[axes.find('S')], shape2[axes.find('S')]
+    if 'T' in axes:
+        n1, n2 = shape1[axes.find('T')], shape2[axes.find('T')]
+
+    # create data
+    x1 = np.ones(shape1)
+    x2 = np.ones(shape2)
+
+    # shape for n2v
+    _x1, new_axes = reshape_data(x1, axes)
+    _x2, _ = reshape_data(x2, axes)
+    _x = ([_x1, _x2], [tmp_path / 'x1.tif', tmp_path / 'x2.tif'])
+
+    # create model
+    model = create_simple_model(tmp_path, _x1.shape)
+
+    # create widget
+    widget = MonkeyPatchWidget()
+
+    # predict
+    results = []
+    predictor = _predict(widget, model, _x, new_axes, None, is_tiled=n_tiles != 1, n_tiles=n_tiles)
+    while True:
+        t = next(predictor, None)
+
+        if t is not None:
+            results.append(t)
+        else:
+            break
+
+    # check results
+    assert len(results) == m1*n1+m2*n2
+
+    final_path = tmp_path / 'results'
+    assert len([f for f in final_path.glob('*.tif')]) == 2
+
+
 @pytest.mark.parametrize('n', [1, 3])
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
@@ -71,7 +123,7 @@ def test_predict_after_training(tmp_path, n_tiles, shape, axes):
                           ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX')])
 def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, axes):
     # create model and save it to disk
-    model = create_model(tmp_path, shape_n2v)
+    model = create_simple_model(tmp_path, shape_n2v)
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # create files
@@ -106,7 +158,7 @@ def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, a
                           ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX')])
 def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
-    model = create_model(tmp_path, shape_n2v)
+    model = create_simple_model(tmp_path, shape_n2v)
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # create files
@@ -143,7 +195,7 @@ def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, 
                           ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX')])
 def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
-    model = create_model(tmp_path, shape_n2v)
+    model = create_simple_model(tmp_path, shape_n2v)
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # create files
@@ -183,7 +235,7 @@ def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, sha
                           ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX')])
 def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, axes):
     # create model and save it to disk
-    model = create_model(tmp_path, shape_n2v)
+    model = create_simple_model(tmp_path, shape_n2v)
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # create files
@@ -219,7 +271,7 @@ def test_run_prediction_from_layers(tmp_path, make_napari_viewer, n_tiles, shape
     viewer.add_image(img, name=name)
 
     # create model and save it to disk
-    model = create_model(tmp_path, shape_n2v)
+    model = create_simple_model(tmp_path, shape_n2v)
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # run prediction (it is a generator)
