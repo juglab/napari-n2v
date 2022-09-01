@@ -4,16 +4,21 @@ from .n2v_utils import (
     filter_dimensions,
     are_axes_valid,
     build_modelzoo,
-    load_from_disk,
     reshape_data,
     get_size_from_shape,
     get_images_count,
     reshape_napari,
-    lazy_load_generator,
-    load_weights,
     create_config,
     get_napari_shapes,
     get_shape_order,
+)
+from .load_images_utils import (
+    load_and_reshape,
+    load_from_disk,
+    lazy_load_generator,
+)
+from .io_utils import (
+    load_weights,
     load_configuration,
     save_configuration,
     load_model

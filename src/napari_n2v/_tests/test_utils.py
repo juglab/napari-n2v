@@ -6,7 +6,6 @@ from tifffile import imwrite
 import numpy as np
 from n2v.models import N2V
 from napari_n2v.utils import (
-    create_model,
     create_config
 )
 
@@ -45,7 +44,7 @@ def test_create_data(tmp_path, shape):
 
 
 # convenience functions: create and save models
-def create_model(basedir, shape):
+def create_simple_model(basedir, shape):
     # create model
     X = np.concatenate([np.ones(shape), np.zeros(shape)], axis=0)
     name = 'myModel'
@@ -61,7 +60,7 @@ def create_model(basedir, shape):
                                    (1, 8, 16, 16, 1),
                                    (42, 8, 16, 32, 1)])
 def test_create_model(tmp_path, shape):
-    create_model(tmp_path, shape)
+    create_simple_model(tmp_path, shape)
 
 
 def save_weights_h5(model, basedir):
@@ -79,7 +78,7 @@ def save_weights_h5(model, basedir):
                                    (1, 8, 16, 16, 1),
                                    (1, 8, 16, 32, 1)])
 def test_saved_weights_h5(tmp_path, shape):
-    model = create_model(tmp_path, shape)
+    model = create_simple_model(tmp_path, shape)
     path_to_weights = save_weights_h5(model, tmp_path)
 
     assert path_to_weights.name.endswith('.h5')
@@ -89,7 +88,7 @@ def test_saved_weights_h5(tmp_path, shape):
 # TODO: why is it saving in the current directory and not in folder?
 def create_model_zoo_parameters(folder, shape):
     # create model and save it to disk
-    model = create_model(folder, shape)
+    model = create_simple_model(folder, shape)
     path_to_h5 = str(save_weights_h5(model, folder).absolute())
 
     # path to modelzoo

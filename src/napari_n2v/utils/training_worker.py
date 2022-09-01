@@ -8,7 +8,14 @@ from tensorflow.keras.callbacks import Callback
 from napari.qt.threading import thread_worker
 import napari.utils.notifications as ntf
 
-from napari_n2v.utils import UpdateType, State, create_model, reshape_data, load_model
+from napari_n2v.utils import (
+    UpdateType,
+    State,
+    create_model,
+    reshape_data,
+    load_model,
+    load_and_reshape
+)
 
 
 class Updater(Callback):
@@ -115,29 +122,6 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
 
     ntf.show_info('Done')
 
-# TODO errors here, implement tests, compare with napari_n2v.utils, tst for list
-def load_data_from_disk(source, axes):
-    """
-
-    """
-    from napari_n2v.utils import load_from_disk
-
-    # load data
-    _x = load_from_disk(source, axes)
-
-    # reshape data
-    # TODO test what happens when x is a list
-    if type(_x) == list:
-        for i, e in enumerate(_x):
-            _x[i], new_axes = reshape_data(e, axes)
-    else:
-        if 'S' not in axes and _x.shape[0] > 1:
-            new_axes = 'S' + axes
-
-        _x, new_axes = reshape_data(_x, new_axes)
-
-    return _x, new_axes
-
 
 def check_napari_data(x_train, x_val, axes: str):
     """
@@ -222,14 +206,20 @@ def load_images(widget):
         return _x_train, _x_val, new_axes
 
 
+# TODO: here we loose the information on the file names, in case of a list, we
+#  cannot show the predictions later on in napari, therefore we should save it
+#  to the disk.
 def prepare_data(x_train, x_val, patch_shape=(64, 64)):
+    """
+    `x_train` and `x_val` can be np.arrays or tuple(list[np.arrays], list[str])
+    """
     from n2v.internals.N2V_DataGenerator import N2V_DataGenerator
 
     # create data generator
     data_gen = N2V_DataGenerator()
 
     # generate train patches
-    _x_train = [x_train] if type(x_train) != list else x_train
+    _x_train = [x_train] if type(x_train) != tuple else x_train[0]
 
     X_train_patches = data_gen.generate_patches_from_list(_x_train, shape=patch_shape, shuffle=True)
 
@@ -237,7 +227,7 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64)):
         X_val_patches = X_train_patches[-5:]
         X_train_patches = X_train_patches[:-5]
     else:
-        _x_val = [x_val] if type(x_val) != list else x_val
+        _x_val = [x_val] if type(x_val) != tuple else x_val[0]
         X_val_patches = data_gen.generate_patches_from_list(_x_val, shape=patch_shape, shuffle=True)
 
     print(f'Train patches: {X_train_patches.shape}')

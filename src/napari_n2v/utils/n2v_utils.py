@@ -1,4 +1,3 @@
-import os
 import warnings
 from enum import Enum
 from itertools import permutations
@@ -7,7 +6,6 @@ from typing import Union, Tuple, List
 
 import napari.layers
 import numpy as np
-from tifffile import imread
 
 from n2v.models import N2V, N2VConfig
 
@@ -194,38 +192,6 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
                 )
 
 
-def load_from_disk(path: Union[str, Path], axes: str):
-    """
-    Load images from disk. If the dimensions don't agree, the method returns a tuple of list ([images], [files]). If
-    the dimensions agree, the images are stacked along the `S` dimension of `axes` or along a new dimension if `S` is
-    not in `axes`.
-
-    :param axes:
-    :param path:
-    :return:
-    """
-    images_path = Path(path)
-    image_files = [f for f in images_path.glob('*.tif*')]
-
-    images = []
-    dims_agree = True
-    for f in image_files:
-        images.append(imread(str(f)))
-        dims_agree = dims_agree and (images[0].shape == images[-1].shape)
-
-    if len(images) > 0 and dims_agree:
-        if 'S' in axes:
-            ind_S = axes.find('S')
-            final_images = np.concatenate(images, axis=ind_S)
-            new_axes = axes
-        else:
-            new_axes = 'S' + axes
-            final_images = np.stack(images, axis=0)
-        return final_images, new_axes
-
-    return (images, image_files), axes
-
-
 def list_diff(l1, l2):
     """
     Return the difference of two lists.
@@ -357,47 +323,6 @@ def get_images_count(path: Union[str, Path]):
     return len([f for f in images_path.glob('*.tif*')])
 
 
-def lazy_load_generator(path: Union[str, Path]):
-    """
-
-    :param path:
-    :return:
-    """
-    images_path = Path(path)
-    image_files = [f for f in images_path.glob('*.tif*')]
-
-    def generator(file_list):
-        counter = 0
-        for f in file_list:
-            counter = counter + 1
-            yield imread(str(f)), f, counter
-
-    return generator(image_files), len(image_files)
-
-
-def load_weights(model: N2V, weights_path: Union[str, Path]):
-    """
-
-    :param model:
-    :param weights_path:
-    :return:
-    """
-    _filename, file_ext = os.path.splitext(weights_path)
-    if file_ext == ".zip":
-        import bioimageio.core
-        # we assume we got a modelzoo file
-        rdf = bioimageio.core.load_resource_description(weights_path)
-        weights_name = rdf.weights['keras_hdf5'].source
-    else:
-        # we assure we have a path to a .h5
-        weights_name = weights_path
-
-    if not Path(weights_name).exists():
-        raise FileNotFoundError('Invalid path to weights.')
-
-    model.keras_model.load_weights(weights_name)
-
-
 # TODO write tests
 def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     """
@@ -414,52 +339,3 @@ def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     shape_out, _, _ = get_shape_order(shape_n2v, NAPARI_AXES, axes_n2v)
 
     return shape_out
-
-
-def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
-    from csbdeep.utils import save_json
-
-    # sanity check
-    assert Path(dir_path).is_dir()
-
-    # save
-    final_path = Path(dir_path) / 'config.json'
-    save_json(vars(config), final_path)
-
-
-def load_configuration(path: Union[str, Path]) -> N2VConfig:
-    from csbdeep.utils import load_json
-    from n2v.models import N2VConfig
-
-    # load config
-    json_config = load_json(path)
-
-    # create N2V configuration
-    axes_length = len(json_config['axes'])
-    n_channels = json_config['n_channel_in']
-
-    if axes_length == 3:
-        X = np.zeros((1, 8, 8, n_channels))
-    else:
-        X = np.zeros((1, 8, 8, 8, n_channels))
-
-    return N2VConfig(X, **json_config)
-
-
-def load_model(weight_path: Union[str, Path]) -> N2V:
-    if not Path(weight_path).exists():
-        raise ValueError('Invalid model path.')
-
-    if not (Path(weight_path).parent / 'config.json').exists():
-        raise ValueError('No config.json file found.')
-
-    # load configuration
-    config = load_configuration(Path(weight_path).parent / 'config.json')
-
-    # instantiate model
-    model = N2V(config, 'DenoiSeg', 'models')
-
-    # load weights
-    load_weights(model, weight_path)
-
-    return model
