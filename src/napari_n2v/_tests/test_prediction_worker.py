@@ -1,5 +1,3 @@
-import time
-
 import numpy as np
 import pytest
 
@@ -72,13 +70,6 @@ def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
                           ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXT'),
                           ((5, 16, 32, 32), (5, 16, 16, 16), 'SZYX')])
 def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
-    m1, m2 = 1, 1
-    n1, n2 = 1, 1
-    if 'S' in axes:
-        m1, m2 = shape1[axes.find('S')], shape2[axes.find('S')]
-    if 'T' in axes:
-        n1, n2 = shape1[axes.find('T')], shape2[axes.find('T')]
-
     # create data
     x1 = np.ones(shape1)
     x2 = np.ones(shape2)
@@ -106,7 +97,7 @@ def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
             break
 
     # check results
-    assert len(results) == m1*n1+m2*n2
+    assert len(results) == 2
 
     final_path = tmp_path / 'results'
     assert len([f for f in final_path.glob('*.tif')]) == 2
@@ -134,7 +125,7 @@ def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, a
     assert m == n
 
     # run prediction (it is a generator)
-    mk = MonkeyPatchWidget(path_to_h5)
+    mk = MonkeyPatchWidget()
     parameters = (mk, model, axes, gen)
     hist = list(_run_lazy_prediction(*parameters,
                                      is_tiled=n_tiles != 1,  # use tiles if n_tiles != 1
@@ -171,7 +162,7 @@ def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, 
     assert m == 2 * n
 
     # run prediction (it is a generator)
-    mk = MonkeyPatchWidget(path_to_h5)
+    mk = MonkeyPatchWidget()
     parameters = (mk, model, axes, gen)
     hist = list(_run_lazy_prediction(*parameters,
                                      is_tiled=n_tiles != 1,  # use tiles if n_tiles != 1
@@ -209,7 +200,7 @@ def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, sha
     assert new_axes == axes if 'S' in axes else 'S' + axes
 
     # run prediction
-    mk = MonkeyPatchWidget(path_to_h5)
+    mk = MonkeyPatchWidget()
     parameters = (mk, model, new_axes, images)
     hist = list(_run_prediction_to_disk(*parameters,
                                         is_tiled=n_tiles != 1,  # use tiles if n_tiles != 1
@@ -245,7 +236,7 @@ def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, 
     images, new_axes = load_from_disk(tmp_path, axes)
 
     # run prediction (it is a generator)
-    mk = MonkeyPatchWidget(path_to_h5)
+    mk = MonkeyPatchWidget()
     parameters = (mk, model, new_axes, images)
     hist = list(_run_prediction(*parameters,
                                 is_tiled=n_tiles != 1,  # use tiles if n_tiles != 1
@@ -275,7 +266,7 @@ def test_run_prediction_from_layers(tmp_path, make_napari_viewer, n_tiles, shape
     path_to_h5 = save_weights_h5(model, tmp_path)
 
     # run prediction (it is a generator)
-    mk = MonkeyPatchWidget(path_to_h5)
+    mk = MonkeyPatchWidget()
     parameters = (mk, model, axes, viewer.layers['images'].data)
     hist = list(_run_prediction(*parameters,
                                 is_tiled=n_tiles != 1,  # use tiles if n_tiles != 1
