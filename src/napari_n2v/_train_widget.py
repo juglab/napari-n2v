@@ -5,8 +5,6 @@ from pathlib import Path
 import napari
 import napari.utils.notifications as ntf
 
-import numpy as np
-
 from qtpy import QtGui
 from qtpy.QtCore import Qt
 from qtpy.QtWidgets import (
@@ -42,11 +40,9 @@ from napari_n2v.utils import (
     train_worker,
     prediction_after_training_worker,
     loading_worker,
-    get_shape_order,
     save_configuration,
     PREDICT,
-    SAMPLE,
-    NAPARI_AXES
+    SAMPLE
 )
 from napari_n2v.resources import ICON_GEAR, ICON_JUGLAB
 
@@ -81,9 +77,9 @@ class TrainWidget(QWidget):
         self._build_data_selection_widgets(napari_viewer)
         self._build_training_param_widgets()
         self._build_train_widgets()
+        self._build_progress_widgets()
         self._build_predict_widgets()
         self._build_save_widgets()
-        self._build_progress_widgets()
         self.expert_settings = None
 
         # place-holders for the trained model, prediction and parameters (bioimage.io)
