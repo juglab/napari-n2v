@@ -32,6 +32,7 @@ class UpdateType(Enum):
     N_IMAGES = 'number of images'
     IMAGE = 'image'
     DONE = 'done'
+    CRASHED = 'crashed'
 
 
 class ModelSaveMode(Enum):

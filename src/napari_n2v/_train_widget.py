@@ -406,8 +406,8 @@ class TrainWidget(QWidget):
 
     def _training_done(self):
         self.state = State.IDLE
-        self.train_button.setText('Train again')
-        self.reset_model_button.setText('Zero model')
+        self.train_button.setText('Continue training')
+        self.reset_model_button.setText('Reset model')
         self.reset_model_button.setEnabled(True)
 
         self.save_button.setEnabled(True)
@@ -538,6 +538,10 @@ class TrainWidget(QWidget):
 
             if UpdateType.LOSS in updates:
                 self.plot.update_plot(*updates[UpdateType.LOSS])
+
+            if UpdateType.CRASHED in updates:
+                self.state = State.IDLE
+                self.train_button.setText('Train')
 
     def _save_model(self):
         if self.state == State.IDLE:

@@ -20,6 +20,7 @@ from napari_n2v.utils import (
 
 class Updater(Callback):
     def __init__(self):
+        super().__init__()
         self.queue = Queue(10)
         self.epoch = 0
         self.batch = 0
@@ -37,6 +38,9 @@ class Updater(Callback):
 
     def on_train_end(self, logs=None):
         self.queue.put(UpdateType.DONE)
+
+    def on_train_crashed(self):
+        self.queue.put((UpdateType.CRASHED, ))  # needs to be an iterable
 
     def stop_training(self):
         self.model.stop_training = True
@@ -94,7 +98,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         model.keras_model.set_weights(new_model.keras_model.get_weights())
 
     ntf.show_info('Start training')
-    training = threading.Thread(target=train, args=(model, X_train, X_val))
+    training = threading.Thread(target=train, args=(model, X_train, X_val, updater))
     training.start()
 
     # loop looking for update events
@@ -141,7 +145,7 @@ def check_napari_data(x_train, x_val, axes: str):
     if x_val is not None and len(axes) != len(x_val.shape):
         raise ValueError('Val images dimensions and axes are incompatible.')
 
-    if x_val is not None and  len(x_train.shape) != len(x_val.shape):
+    if x_val is not None and len(x_train.shape) != len(x_val.shape):
         raise ValueError('Train and val images dimensions are incompatible.')
 
 
@@ -233,8 +237,9 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64)):
     return X_train_patches, X_val_patches
 
 
-def train(model, X_patches, X_val_patches):
-    model.train(X_patches, X_val_patches)
-
-
-
+def train(model, X_patches, X_val_patches, updater):
+    try:
+        model.train(X_patches, X_val_patches)
+    except AssertionError as e:
+        ntf.show_error(e.args[0])
+        updater.on_train_crashed()
