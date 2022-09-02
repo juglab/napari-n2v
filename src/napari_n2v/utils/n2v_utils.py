@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Union, Tuple, List
 
 import napari.layers
+from napari.utils import notifications as ntf
 import numpy as np
 
 from n2v.models import N2V, N2VConfig
@@ -48,33 +49,25 @@ def create_config(X_patches,
                   n_epochs=100,
                   n_steps=400,
                   batch_size=16,
-                  unet_n_depth=2,
-                  unet_kern_size=3,
-                  unet_n_first=96,
-                  n2v_perc_pix=0.198,
-                  n2v_neighborhood_radius=2,
-                  train_learning_rate=0.0004
+                  **kwargs
                   ) -> N2VConfig:
     from n2v.models import N2VConfig
 
+    # n2v patch shape
     n2v_patch_shape = list(X_patches.shape[1:-1])
-    config = N2VConfig(X_patches,
-                       unet_kern_size=unet_kern_size,
-                       unet_n_depth=unet_n_depth,
-                       train_steps_per_epoch=n_steps,
-                       train_epochs=n_epochs,
-                       train_loss='mse',
-                       batch_norm=True,
-                       train_batch_size=batch_size,
-                       n2v_perc_pix=n2v_perc_pix,
-                       n2v_patch_shape=n2v_patch_shape,
-                       unet_n_first=unet_n_first,
-                       unet_residual=True,
-                       n2v_manipulator='uniform_withCP',
-                       n2v_neighborhood_radius=n2v_neighborhood_radius,
-                       single_net_per_channel=False,
-                       train_learning_rate=train_learning_rate)
-    return config
+
+    parameters = {
+        'train_steps_per_epoch': n_steps,
+        'train_epochs': n_epochs,
+        'train_loss': 'mse',
+        'batch_norm': True,
+        'train_batch_size': batch_size,
+        'n2v_patch_shape': n2v_patch_shape,
+        'unet_residual': True,
+        'n2v_manipulator': 'uniform_withCP',
+        'single_net_per_channel': False  # TODO should allow channels with this option
+    }
+    return N2VConfig(X_patches, **parameters, **kwargs)
 
 
 def create_model(X_patches,
@@ -100,6 +93,9 @@ def create_model(X_patches,
                                n_steps,
                                batch_size,
                                **expert_settings.get_settings())
+
+    if not config.is_valid():
+        ntf.show_error('Invalid configuration.')
 
     # create network
     model = N2V(config, model_name, basedir=basedir)

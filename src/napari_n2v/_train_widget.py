@@ -203,6 +203,7 @@ class TrainWidget(QWidget):
         formLayout.addRow('Patch XY', self.patch_XY_spin)
         formLayout.addRow('Patch Z', self.patch_Z_spin)
         formLayout.minimumSize()
+
         hlayout = QVBoxLayout()
         hlayout.addWidget(self.training_expert_btn, alignment=Qt.AlignRight | Qt.AlignVCenter)
         hlayout.addLayout(formLayout)
@@ -539,6 +540,7 @@ class TrainWidget(QWidget):
                 self.state = State.IDLE
                 self.train_button.setText('Train')
 
+    # TODO refactor this into own method in io_utils
     def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
@@ -557,7 +559,8 @@ class TrainWidget(QWidget):
                     # if 'c' not in axes:
                     #     axes = axes + 'c'
 
-                    build_modelzoo(where + '.bioimage.io.zip',
+                    path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
+                    build_modelzoo(path,
                                    self.model.logdir / "weights_best.h5",
                                    self.inputs,
                                    self.outputs,
@@ -565,7 +568,8 @@ class TrainWidget(QWidget):
                                    axes)
 
                 else:
-                    self.model.keras_model.save_weights(where + '.h5')
+                    path = where if where.endswith('.h5') else where + '.h5'
+                    self.model.keras_model.save_weights(path)
 
                 # save configuration as well
                 save_configuration(self.model.config, Path(where).parent)
