@@ -22,6 +22,7 @@ def load_and_reshape(source, axes):
     if type(_x) == tuple:
         # loop over the images
         # _x is now tuple( list[np.array], list[Path] )
+        final_axes = None
         skip = []
         for i, img in enumerate(_x[0]):
 
@@ -30,6 +31,9 @@ def load_and_reshape(source, axes):
             except ValueError:
                 ntf.show_error(f'Skipped {_x[1][i].stem}, wrong dimensions')
                 skip.append(i)
+            finally:
+                if final_axes is None:
+                    final_axes = axes
 
         # remove skipped files
         skip.reverse()

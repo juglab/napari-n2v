@@ -281,6 +281,12 @@ class PredictWidget(QWidget):
     def get_axes(self):
         return self.axes_widget.get_axes()
 
+    def is_tiling_checked(self):
+        return self.tiling_cbox.isChecked()
+
+    def get_n_tiles(self):
+        return self.tiling_spin.value()
+
 
 if __name__ == "__main__":
     from napari_n2v._sample_data import n2v_2D_data, n2v_3D_data

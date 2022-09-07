@@ -12,7 +12,7 @@ from n2v.models import N2V, N2VConfig
 
 from napari_n2v.resources import DOC_BIOIMAGE
 
-REF_AXES = 'TSZYXC'  # order of axes in N2V, not that `C` is allowed only for singleton
+REF_AXES = 'TSZYXC'
 NAPARI_AXES = 'CTSZYX'
 
 PREDICT = '_denoised'
@@ -34,6 +34,8 @@ class UpdateType(Enum):
     IMAGE = 'image'
     DONE = 'done'
     CRASHED = 'crashed'
+    FAILED = 'failed'
+
 
 
 class ModelSaveMode(Enum):
@@ -64,7 +66,6 @@ def create_config(X_patches,
         'train_batch_size': batch_size,
         'n2v_patch_shape': n2v_patch_shape,
         'unet_residual': True,
-        'n2v_manipulator': 'uniform_withCP',
         'single_net_per_channel': False  # TODO should allow channels with this option
     }
     return N2VConfig(X_patches, **parameters, **kwargs)

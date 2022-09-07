@@ -1,4 +1,6 @@
 import os
+import warnings
+
 import numpy as np
 from queue import Queue
 
@@ -7,6 +9,7 @@ from tensorflow.keras.callbacks import Callback
 
 from napari.qt.threading import thread_worker
 import napari.utils.notifications as ntf
+from tensorflow.python.framework.errors_impl import ResourceExhaustedError, NotFoundError, UnknownError, InternalError
 
 from napari_n2v.utils import (
     UpdateType,
@@ -40,12 +43,13 @@ class Updater(Callback):
         self.queue.put(UpdateType.DONE)
 
     def on_train_crashed(self):
-        self.queue.put((UpdateType.CRASHED, ))  # needs to be an iterable
+        self.queue.put(UpdateType.CRASHED)
 
     def stop_training(self):
         self.model.stop_training = True
 
 
+# TODO this method has become confusing, we need more visibility for the events (crashing, failing to start, done..etc.)
 @thread_worker(start_thread=False)
 def train_worker(widget, pretrained_model=None, expert_settings=None):
     import threading
@@ -73,21 +77,34 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
 
     # prepare data
     ntf.show_info('Shaping data')
-    X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
+    if expert_settings is None:
+        X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
+    else:
+        # todo if structN2V we should augment only by flip along the right directions, currently no augmentation
+        X_train, X_val = prepare_data(_x_train, _x_val, patch_shape, augment=expert_settings.has_mask())
 
     # create model
     ntf.show_info('Creating model')
     model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
     base_dir = 'models'
-    model = create_model(X_train,
-                         n_epochs,
-                         n_steps,
-                         batch_size,
-                         model_name,
-                         base_dir,
-                         updater,
-                         expert_settings=expert_settings)
     widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
+
+    try:
+        model = create_model(X_train,
+                             n_epochs,
+                             n_steps,
+                             batch_size,
+                             model_name,
+                             base_dir,
+                             updater,
+                             expert_settings=expert_settings)
+    except InternalError as e:
+        ntf.show_error(e.message)
+        warnings.warn('InternalError could be caused by the GPU already being used by another process.')
+
+        # stop the training process gracefully
+        yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
+        return
 
     # if we use a pretrained model (just trained or loaded)
     if pretrained_model:
@@ -105,7 +122,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     while True:
         update = updater.queue.get(True)
 
-        if UpdateType.DONE == update:
+        if update == UpdateType.DONE or update == UpdateType.CRASHED:
             break
         elif widget.state != State.RUNNING:
             updater.stop_training()
@@ -118,6 +135,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     widget.tf_version = tf.__version__
 
     # save input/output for bioimage.io
+    # TODO here TF will throw an error if the GPU is busy (UnknownError). Is there a way to gracefully escape it?
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
     widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
     widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
@@ -210,7 +228,7 @@ def load_images(widget):
         return _x_train, _x_val, new_axes
 
 
-def prepare_data(x_train, x_val, patch_shape=(64, 64)):
+def prepare_data(x_train, x_val, patch_shape=(64, 64), augment=True):
     """
     `x_train` and `x_val` can be np.arrays or tuple(list[np.arrays], list[str])
     """
@@ -222,7 +240,7 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64)):
     # generate train patches
     _x_train = [x_train] if type(x_train) != tuple else x_train[0]
 
-    X_train_patches = data_gen.generate_patches_from_list(_x_train, shape=patch_shape, shuffle=True)
+    X_train_patches = data_gen.generate_patches_from_list(_x_train, shape=patch_shape, shuffle=True, augment=augment)
 
     if x_val is None:  # TODO: how to choose number of validation patches?
         X_val_patches = X_train_patches[-5:]
@@ -237,9 +255,30 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64)):
     return X_train_patches, X_val_patches
 
 
+def train_error(updater, args, msg: str):
+    # TODO all necessary?
+    ntf.show_error(msg)
+    warnings.warn(msg)
+    print(args)
+    updater.on_train_crashed()
+
+
 def train(model, X_patches, X_val_patches, updater):
     try:
         model.train(X_patches, X_val_patches)
+
     except AssertionError as e:
-        ntf.show_error(e.args[0])
-        updater.on_train_crashed()
+        # TODO there's probably a lot more than that
+        msg = 'AssertionError can be caused by n2v masked pixel % being too low'
+        train_error(updater, e.args, msg)
+    except MemoryError as e:
+        msg = 'MemoryError can be an OOM error on the GPU (reduce batch and/or patch size, close other processes).'
+        train_error(updater, str(e), msg)
+    except ResourceExhaustedError as e:
+        msg = 'ResourceExhaustedError can be an OOM error on the GPU (reduce batch and/or patch size)'
+        train_error(updater, e.message, msg)
+    except (NotFoundError, UnknownError) as e:
+        msg = 'NotFoundError or UnknownError can be caused by an improper loading of cudnn, try restarting.'
+        train_error(updater, e.args, msg)
+
+    # TODO add other possible errors and general error catching

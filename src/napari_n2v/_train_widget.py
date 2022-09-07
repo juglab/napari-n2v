@@ -145,8 +145,8 @@ class TrainWidget(QWidget):
         buttons = QWidget()
         form = QFormLayout()
 
-        form.addRow('Train images', self.train_images_folder)
-        form.addRow('Val images', self.val_images_folder)
+        form.addRow('Train', self.train_images_folder)
+        form.addRow('Val', self.val_images_folder)
 
         buttons.setLayout(form)
         tab_disk.layout().addWidget(buttons)
@@ -402,14 +402,15 @@ class TrainWidget(QWidget):
             self.state = State.IDLE
 
     def _training_done(self):
-        self.state = State.IDLE
-        self.train_button.setText('Continue training')
-        self.reset_model_button.setText('Reset model')
-        self.reset_model_button.setEnabled(True)
+        if self.state == State.RUNNING:
+            self.state = State.IDLE
+            self.train_button.setText('Continue training')
+            self.reset_model_button.setText('Reset model')
+            self.reset_model_button.setEnabled(True)
 
-        self.save_button.setEnabled(True)
-        self.predict_button.setEnabled(True)
-        self.predict_button.setText('Predict')
+            self.save_button.setEnabled(True)
+            self.predict_button.setEnabled(True)
+            self.predict_button.setText('Predict')
 
     def _prediction_done(self):
         self.state = State.IDLE
@@ -536,10 +537,6 @@ class TrainWidget(QWidget):
             if UpdateType.LOSS in updates:
                 self.plot.update_plot(*updates[UpdateType.LOSS])
 
-            if UpdateType.CRASHED in updates:
-                self.state = State.IDLE
-                self.train_button.setText('Train')
-
     # TODO refactor this into own method in io_utils
     def _save_model(self):
         if self.state == State.IDLE:
@@ -590,7 +587,7 @@ if __name__ == "__main__":
     # add our plugin
     viewer.window.add_dock_widget(TrainingWidgetWrapper(viewer))
 
-    dims = '2D'  # 2D, 3D
+    dims = '3D'  # 2D, 3D
     if dims == '2D':
         data = n2v_2D_data()
 
