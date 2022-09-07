@@ -126,7 +126,6 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
             break
         elif widget.state != State.RUNNING:
             updater.stop_training()
-            yield UpdateType.DONE
             break
         else:
             yield update

@@ -61,11 +61,8 @@ def create_config(X_patches,
     parameters = {
         'train_steps_per_epoch': n_steps,
         'train_epochs': n_epochs,
-        'batch_norm': True,
         'train_batch_size': batch_size,
-        'n2v_patch_shape': n2v_patch_shape,
-        'unet_residual': True,
-        'single_net_per_channel': False  # TODO should allow channels with this option
+        'n2v_patch_shape': n2v_patch_shape
     }
     return N2VConfig(X_patches, **parameters, **kwargs)
 

@@ -6,7 +6,8 @@ from qtpy.QtWidgets import (
     QVBoxLayout,
     QLineEdit,
     QGroupBox,
-    QComboBox
+    QComboBox,
+    QCheckBox
 )
 from .qt_widgets import create_int_spinbox, create_double_spinbox
 from .magicgui_widgets import load_button
@@ -48,20 +49,22 @@ def get_losses():
 # TODO Although this a widget, the presence in the widgets module of some important N2V-related settings is confusing
 class TrainingSettingsWidget(QDialog):
 
-    def __init__(self, parent):
+    def __init__(self, parent, is_3D=False):
         super().__init__(parent)
         self.setWindowTitle('Expert settings')
         self.setLayout(QVBoxLayout())
 
         # defaults values
         unet_n_depth = 2
-        unet_kern_size = 3
+        unet_kern_size = 5 if not is_3D else 3
         unet_n_first = 96
         train_learning_rate = 0.0004
         n2v_perc_pix = 0.198
         n2v_neighborhood_radius = 2
         n2v_pm = get_pms()[0]
         loss = get_losses()[0]
+        unet_residuals = False
+        single_net_per_channel = True
 
         # groups
         self.retraining = QGroupBox()
@@ -88,11 +91,20 @@ class TrainingSettingsWidget(QDialog):
         self.unet_kernelsize.setToolTip(desc_unet_kernelsize)
 
         label_unet_n_first = QLabel('U-Net n filters')
-        desc_unet_n_first = 'Number of convolution filters for first U-Net resolution level (value is doubled after ' \
-                            'each down-sampling operation) '
+        desc_unet_n_first = 'Number of convolution filters for first U-Net resolution level\n' \
+                            '(value is doubled after each down-sampling operation)'
         self.unet_n_first = create_int_spinbox(value=unet_n_first, min_value=8, step=8)
         label_unet_n_first.setToolTip(desc_unet_n_first)
         self.unet_n_first.setToolTip(desc_unet_n_first)
+
+        label_unet_residuals = QLabel('U-Net residuals')
+        desc_unet_residuals = 'If checked, model will internally predict the residual w.r.t.\n' \
+                              'the input (typically better), this requires the number of input\n' \
+                              'and output image channels to be equal'
+        self.unet_residuals = QCheckBox()
+        self.unet_residuals.setChecked(unet_residuals)
+        label_unet_residuals.setToolTip(desc_unet_residuals)
+        self.unet_residuals.setToolTip(desc_unet_residuals)
 
         label_train_learning_rate = QLabel('Learning rate')
         desc_train_learning_rate = 'Fixed learning rate'
@@ -115,8 +127,7 @@ class TrainingSettingsWidget(QDialog):
 
         label_n2v_perc_pix = QLabel('N2V pixel %')
         desc_n2v_perc_pix = 'Percentage of pixel to mask per patch'
-        self.n2v_perc_pix = create_double_spinbox(value=n2v_perc_pix, step=0.1, max_value=100)
-        self.n2v_perc_pix.setDecimals(1)
+        self.n2v_perc_pix = create_double_spinbox(value=n2v_perc_pix, step=0.001, max_value=100, n_decimal=3)
         self.n2v_perc_pix.setToolTip(desc_n2v_perc_pix)
         label_n2v_perc_pix.setToolTip(desc_n2v_perc_pix)
 
@@ -137,16 +148,26 @@ class TrainingSettingsWidget(QDialog):
         self.n2v_neighborhood_radius.setToolTip(desc_n2v_neighborhood_radius)
         label_n2v_neighborhood_radius.setToolTip(desc_n2v_neighborhood_radius)
 
+        label_single_net = QLabel('Split channels')
+        desc_single_net = 'Enabling this creates a unet for each channel and each channel will be ' \
+                          'treated independently.'
+        self.single_net = QCheckBox()
+        self.single_net.setChecked(single_net_per_channel)
+        label_single_net.setToolTip(desc_single_net)
+        self.single_net.setToolTip(desc_single_net)
+
         # arrange form layout
         form = QFormLayout()
         form.addRow(label_unet_depth, self.unet_depth)
         form.addRow(label_unet_kernelsize, self.unet_kernelsize)
         form.addRow(label_unet_n_first, self.unet_n_first)
+        form.addRow(label_unet_residuals, self.unet_residuals)
         form.addRow(label_train_learning_rate, self.train_learning_rate)
         form.addRow(label_loss, self.loss_combobox)
         form.addRow(label_n2v_perc_pix, self.n2v_perc_pix)
         form.addRow(label_n2v_manipulator, self.n2v_pmanipulator)
         form.addRow(label_n2v_neighborhood_radius, self.n2v_neighborhood_radius)
+        form.addRow(label_single_net, self.single_net)
 
         self.expert_settings.setLayout(form)
 
@@ -224,7 +245,7 @@ class TrainingSettingsWidget(QDialog):
 
             # check that it is odd, otherwise extend by one
             if len(mask) % 2 == 0:
-                mask = mask[: len(mask)//2] + ['1'] + mask[len(mask)//2:]
+                mask = mask[: len(mask) // 2] + ['1'] + mask[len(mask) // 2:]
 
             # check orientation
             if self.is_horizontal:
@@ -240,9 +261,11 @@ class TrainingSettingsWidget(QDialog):
         return {'unet_kern_size': self.unet_kernelsize.value(),
                 'unet_n_first': self.unet_n_first.value(),
                 'unet_n_depth': self.unet_depth.value(),
+                'unet_residual': self.unet_residuals.isChecked(),
                 'train_learning_rate': self.train_learning_rate.value(),
                 'train_loss': self.loss,
                 'n2v_perc_pix': self.n2v_perc_pix.value(),
                 'n2v_manipulator': self.n2v_pm,
                 'n2v_neighborhood_radius': self.n2v_neighborhood_radius.value(),
+                'single_net_per_channel': self.single_net.isChecked(),
                 'structN2Vmask': self._get_structN2V(is_3D)}

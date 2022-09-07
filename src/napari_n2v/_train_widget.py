@@ -214,7 +214,7 @@ class TrainWidget(QWidget):
 
     def _training_expert_setter(self):
         if self.expert_settings is None:
-            self.expert_settings = TrainingSettingsWidget(self)
+            self.expert_settings = TrainingSettingsWidget(self, self.is_3D)
         self.expert_settings.show()
 
     def _build_train_widgets(self):
@@ -402,15 +402,14 @@ class TrainWidget(QWidget):
             self.state = State.IDLE
 
     def _training_done(self):
-        if self.state == State.RUNNING:
-            self.state = State.IDLE
-            self.train_button.setText('Continue training')
-            self.reset_model_button.setText('Reset model')
-            self.reset_model_button.setEnabled(True)
+        self.state = State.IDLE
+        self.train_button.setText('Continue training')
+        self.reset_model_button.setText('Reset model')
+        self.reset_model_button.setEnabled(True)
 
-            self.save_button.setEnabled(True)
-            self.predict_button.setEnabled(True)
-            self.predict_button.setText('Predict')
+        self.save_button.setEnabled(True)
+        self.predict_button.setEnabled(True)
+        self.predict_button.setText('Predict')
 
     def _prediction_done(self):
         self.state = State.IDLE
