@@ -102,11 +102,11 @@ class TrainingSettingsWidget(QDialog):
         label_train_learning_rate.setToolTip(desc_train_learning_rate)
         self.train_learning_rate.setToolTip(desc_train_learning_rate)
 
-        label_loss = QLabel('Loss')
+        label_loss = QLabel('Train loss')
         desc_loss = 'Loss used to train the network.'
         self.loss_combobox = QComboBox()
         for s in get_losses():
-            self.loss.addItem(s)
+            self.loss_combobox.addItem(s)
         self.loss = loss
         self.loss_combobox.activated[str].connect(self._onLossChange)
 
@@ -143,6 +143,7 @@ class TrainingSettingsWidget(QDialog):
         form.addRow(label_unet_kernelsize, self.unet_kernelsize)
         form.addRow(label_unet_n_first, self.unet_n_first)
         form.addRow(label_train_learning_rate, self.train_learning_rate)
+        form.addRow(label_loss, self.loss_combobox)
         form.addRow(label_n2v_perc_pix, self.n2v_perc_pix)
         form.addRow(label_n2v_manipulator, self.n2v_pmanipulator)
         form.addRow(label_n2v_neighborhood_radius, self.n2v_neighborhood_radius)
@@ -195,6 +196,9 @@ class TrainingSettingsWidget(QDialog):
         self.layout().addWidget(self.expert_settings)
         self.layout().addWidget(self.structN2V)
 
+    def _onLossChange(self, val):
+        self.loss = val
+
     def _onPMChange(self, val):
         self.n2v_pm = val
 
@@ -237,6 +241,7 @@ class TrainingSettingsWidget(QDialog):
                 'unet_n_first': self.unet_n_first.value(),
                 'unet_n_depth': self.unet_depth.value(),
                 'train_learning_rate': self.train_learning_rate.value(),
+                'train_loss': self.loss,
                 'n2v_perc_pix': self.n2v_perc_pix.value(),
                 'n2v_manipulator': self.n2v_pm,
                 'n2v_neighborhood_radius': self.n2v_neighborhood_radius.value(),

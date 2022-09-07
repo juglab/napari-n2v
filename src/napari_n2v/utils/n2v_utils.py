@@ -61,7 +61,6 @@ def create_config(X_patches,
     parameters = {
         'train_steps_per_epoch': n_steps,
         'train_epochs': n_epochs,
-        'train_loss': 'mse',
         'batch_norm': True,
         'train_batch_size': batch_size,
         'n2v_patch_shape': n2v_patch_shape,

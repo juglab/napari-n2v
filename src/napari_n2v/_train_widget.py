@@ -587,7 +587,7 @@ if __name__ == "__main__":
     # add our plugin
     viewer.window.add_dock_widget(TrainingWidgetWrapper(viewer))
 
-    dims = '3D'  # 2D, 3D
+    dims = '2D'  # 2D, 3D
     if dims == '2D':
         data = n2v_2D_data()
 
