@@ -10,5 +10,5 @@ def loading_worker(path):
     image_files = [f for f in images_path.glob('*.tif*')]
 
     # load the first image
-    if len(image_files) > 1:
+    if len(image_files) > 0:
         yield imread(str(image_files[0]))

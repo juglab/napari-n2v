@@ -474,6 +474,7 @@ class TrainWidget(QWidget):
             self.axes_widget.set_text_field(self.axes_widget.get_default_text())
 
     def _update_disk_axes(self):
+        # TODO: this is quite complex for loading a single image... Should load it directly
         """
         Load an example image from the disk and update the axes widget based on its shape.
 
