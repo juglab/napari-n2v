@@ -13,7 +13,7 @@ from n2v.models import N2V, N2VConfig
 from napari_n2v.resources import DOC_BIOIMAGE
 
 REF_AXES = 'TSZYXC'
-NAPARI_AXES = 'CTSZYX'
+NAPARI_AXES = 'CTSZYX'  # TODO actually wrong, napari can display SYXC if dim(C) = 3 or 4
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
@@ -111,9 +111,7 @@ def filter_dimensions(shape_length: int, is_3D: bool) -> List[str]:
     """
     """
     axes = list(REF_AXES)
-    axes.remove('Y')  # skip YX, constraint
-    axes.remove('X')
-    n = shape_length - 2
+    n = shape_length
 
     if not is_3D:  # if not 3D, remove it from the
         axes.remove('Z')
@@ -122,7 +120,10 @@ def filter_dimensions(shape_length: int, is_3D: bool) -> List[str]:
         warnings.warn('Data shape length is too large.')
         return []
     else:
-        all_permutations = [''.join(p) + 'YX' for p in permutations(axes, n)]
+        all_permutations = [''.join(p) for p in permutations(axes, n)]
+
+        # X and Y must be in each permutation and contiguous (#FancyComments)
+        all_permutations = [p for p in all_permutations if ('XY' in p) or ('YX' in p)]
 
         if is_3D:
             all_permutations = [p for p in all_permutations if 'Z' in p]
@@ -136,13 +137,12 @@ def filter_dimensions(shape_length: int, is_3D: bool) -> List[str]:
 def are_axes_valid(axes: str):
     _axes = axes.upper()
 
-    # length 0 and > 5 are not accepted (no channel)
-    if 0 > len(_axes) > 5:
+    # length 0 and > 6
+    if 0 > len(_axes) > 6:
         return False
 
-    # all characters must be in REF_AXES[:-1] = 'STZYX'
-    # We disallow the `C` channel here
-    if not all([s in REF_AXES[:-1] for s in _axes]):
+    # all characters must be in REF_AXES = 'STZYXC'
+    if not all([s in REF_AXES for s in _axes]):
         return False
 
     # check for repeating characters
@@ -150,7 +150,8 @@ def are_axes_valid(axes: str):
         if i != _axes.rfind(s):
             return False
 
-    return True
+    # prior: X and Y contiguous (#FancyComments)
+    return ('XY' in _axes) or ('YX' in _axes)
 
 
 def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):

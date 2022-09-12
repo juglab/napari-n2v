@@ -144,7 +144,10 @@ class TrainingSettingsWidget(QDialog):
 
         label_n2v_neighborhood_radius = QLabel('N2V radius')
         desc_n2v_neighborhood_radius = 'Neighborhood radius for n2v manipulator'
-        self.n2v_neighborhood_radius = create_int_spinbox(value=n2v_neighborhood_radius, min_value=3, max_value=16)
+        self.n2v_neighborhood_radius = create_int_spinbox(value=n2v_neighborhood_radius,
+                                                          min_value=3,
+                                                          step=2,
+                                                          max_value=17)
         self.n2v_neighborhood_radius.setToolTip(desc_n2v_neighborhood_radius)
         label_n2v_neighborhood_radius.setToolTip(desc_n2v_neighborhood_radius)
 

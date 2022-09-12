@@ -38,8 +38,8 @@ class AxesWidget(QWidget):
     def __init__(self, n_axes=3, is_3D=False):
         super().__init__()
 
-        # max axes is 5, no channel
-        assert 0 < n_axes <= 5
+        # max axes is 6
+        assert 0 < n_axes <= 6
 
         self.n_axes = n_axes
         self.is_3D = is_3D
@@ -62,7 +62,7 @@ class AxesWidget(QWidget):
         self.layout().addWidget(self.text_field)
         self.text_field.textChanged.connect(self._validate_text)
         self.text_field.setToolTip('Enter the axes order as they are in your images, e.g. SZYX.\n'
-                                   'Accepted axes are S(ample), T(ime), Z, Y, and X. Red\n'
+                                   'Accepted axes are S(ample), T(ime), C(hannel), Z, Y, and X. Red\n'
                                    'color highlighting means that a character is not recognized,\n'
                                    'orange means that the axes order is not allowed. YX axes are\n'
                                    'mandatory.')
@@ -72,9 +72,9 @@ class AxesWidget(QWidget):
 
     def get_default_text(self):
         if self.is_3D:
-            defaults = ['YX', 'ZYX', 'SZYX', 'STZYX']
+            defaults = ['YX', 'ZYX', 'SZYX', 'STZYX', 'STCZYX']
         else:
-            defaults = ['YX', 'SYX', 'STYX', 'ST?YX']
+            defaults = ['YX', 'SYX', 'STYX', 'STCYX', 'STC?YX']
 
         return defaults[self.n_axes-2]
 
@@ -128,6 +128,6 @@ if __name__ == "__main__":
     viewer = napari.Viewer()
 
     # add our plugin
-    viewer.window.add_dock_widget(AxesWidget(3, False))
+    viewer.window.add_dock_widget(AxesWidget(4, False))
 
     napari.run()

@@ -24,14 +24,14 @@ def test_filter_dimensions(shape, is_3D):
     if is_3D:
         assert all(['Z' in p for p in permutations])
 
-    assert all(['YX' == p[-2:] for p in permutations])
+    assert all([('YX' in p) or ('XY' in p) for p in permutations])
 
 
 def test_filter_dimensions_len6_Z():
     permutations = filter_dimensions(6, True)
 
     assert all(['Z' in p for p in permutations])
-    assert all(['YX' == p[-2:] for p in permutations])
+    assert all([('YX' in p) or ('XY' in p) for p in permutations])
 
 
 @pytest.mark.parametrize('shape, is_3D', [(2, True), (6, False), (7, True)])
@@ -42,13 +42,17 @@ def test_filter_dimensions_error(shape, is_3D):
 
 
 @pytest.mark.parametrize('axes, valid', [('XSYCZ', False),
-                                         ('YZX', True),
+                                         ('YXZ', True),
+                                         ('YXz', True),
+                                         ('ZYx', True),
+                                         ('YXC', True),
+                                         ('CYX', True),
                                          ('TCS', False),
                                          ('xsYcZ', False),
-                                         ('YzX', True),
+                                         ('YzX', False),
                                          ('tCS', False),
-                                         ('SCZXYT', False),
-                                         ('SZXCZY', False),
+                                         ('CSZXYT', True),
+                                         ('ZSXCZY', False),
                                          ('Xx', False),
                                          ('SZXGY', False),
                                          ('I5SYX', False),
@@ -60,10 +64,13 @@ def test_are_axes_valid(axes, valid):
 ###################################################################
 # test build_modelzoo
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1),
+                                   (1, 16, 16, 3),
                                    (1, 16, 8, 1),
-                                   (1, 16, 8, 1),
+                                   (1, 16, 8, 3),
                                    (1, 16, 16, 8, 1),
                                    (1, 16, 16, 8, 1),
+                                   (1, 16, 16, 8, 3),
+                                   (1, 16, 16, 8, 3),
                                    (1, 8, 16, 32, 1)])
 def test_build_modelzoo_allowed_shapes(tmp_path, shape):
     # create model and save it to disk
@@ -74,7 +81,7 @@ def test_build_modelzoo_allowed_shapes(tmp_path, shape):
     assert Path(parameters[0]).exists()
 
 
-@pytest.mark.parametrize('shape', [(8,), (8, 16), (1, 16, 16), (32, 16, 8, 16, 32, 1)])
+@pytest.mark.parametrize('shape', [(8,), (8, 16), (3, 16, 16), (32, 16, 8, 16, 32, 1)])
 def test_build_modelzoo_disallowed_shapes(tmp_path, shape):
     """
     Test ModelZoo creation based on disallowed shapes.
@@ -109,7 +116,6 @@ def test_build_modelzoo_disallowed_batch(tmp_path, shape):
                          [((16, 8), 'YX', (1, 16, 8, 1), 'SYXC'),
                           ((16, 8), 'XY', (1, 8, 16, 1), 'SYXC'),
                           ((16, 3, 8), 'XZY', (1, 3, 8, 16, 1), 'SZYXC'),
-                          ((16, 3, 8), 'XYZ', (1, 8, 3, 16, 1), 'SZYXC'),
                           ((16, 3, 8), 'ZXY', (1, 16, 8, 3, 1), 'SZYXC'),
                           ((16, 3, 12), 'SXY', (16, 12, 3, 1), 'SYXC'),
                           ((5, 5, 2), 'XYS', (2, 5, 5, 1), 'SYXC'),

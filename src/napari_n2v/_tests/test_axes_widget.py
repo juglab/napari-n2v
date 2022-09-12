@@ -17,7 +17,7 @@ def test_axes_widget_Z_defaults(qtbot, shape_length):
     assert widget.is_valid()
 
 
-@pytest.mark.parametrize('shape_length, is_3D', [(2, True), (5, False)])
+@pytest.mark.parametrize('shape_length, is_3D', [(2, True), (6, False)])
 def test_axes_widget_invalid_defaults(qtbot, shape_length, is_3D):
     widget = AxesWidget(shape_length, is_3D)
 
@@ -25,7 +25,7 @@ def test_axes_widget_invalid_defaults(qtbot, shape_length, is_3D):
 
 
 def test_axes_widget_change_dims(qtbot):
-    widget = AxesWidget(5, False)  # default text is now invalid, regardless of is_3D or n_axes
+    widget = AxesWidget(6, False)  # default text is now invalid, regardless of is_3D or n_axes
     assert not widget.is_valid()  # cannot be valid with n=6 and no 3D
 
     # change is_3D

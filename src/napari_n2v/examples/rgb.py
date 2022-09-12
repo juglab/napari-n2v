@@ -30,6 +30,6 @@ if __name__ == "__main__":
 
     img_path = Path(data_dir / 'longBeach.png')
     img = io.imread(img_path)
-    viewer.add_image(img, name='rgb data')
+    viewer.add_image(img[..., :3], name='rgb data')  # remove alpha channel
 
     napari.run()

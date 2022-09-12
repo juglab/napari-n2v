@@ -74,7 +74,7 @@ def _predict_list(widget, model, data, axes, is_tiled=False, n_tiles=4, counter_
     for im_ind, im in enumerate(data[0]):
         file = data[1][im_ind]
 
-        prediction = np.zeros(im.shape[:-1])
+        prediction = np.zeros(im.shape)
         for i in range(im.shape[0]):
             if is_tiled:
                 tiles = (len(axes) - 2) * (n_tiles,) + (1,)
@@ -84,7 +84,7 @@ def _predict_list(widget, model, data, axes, is_tiled=False, n_tiles=4, counter_
                 _x = model.predict(im[i, ...].astype(np.float32), axes=axes[1:])
 
             # add prediction
-            prediction[i, ...] = _x.squeeze()
+            prediction[i, ...] = _x
 
             if widget.state == State.IDLE:
                 break
@@ -112,7 +112,7 @@ def _predict_np(widget, model, data, axes, prediction, is_tiled=False, n_tiles=4
         yield {UpdateType.PRED: counter_offset + i + 1}
 
         # add prediction
-        prediction[i, ...] = _x.squeeze()
+        prediction[i, ...] = _x
 
         if widget.state == State.IDLE:
             break
@@ -194,7 +194,7 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
 
     # create a numpy array to store the results
     # (note: napari and N2V have different axes orders)
-    shape_out = _data.shape[:-1]
+    shape_out = _data.shape
     predict_all = np.zeros(shape_out, dtype=np.float32)
 
     for i_slice in range(_data.shape[0]):
@@ -213,9 +213,9 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
             # TODO: why is this different than in the other functions, why is sample S's (1,) allowed?
             tiles = (1,) + (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes, n_tiles=tiles).squeeze()
+            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes, n_tiles=tiles)
         else:
-            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes).squeeze()
+            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
 
     widget.denoi_prediction = predict_all.squeeze()
 
@@ -259,16 +259,16 @@ def _run_prediction_to_disk(widget, model, axes, images, is_tiled=False, n_tiles
             yield {UpdateType.IMAGE: i + 1}
 
             # shape prediction
-            shape_out = _x.shape[:-1]
-            prediction = np.zeros(shape_out, dtype=np.float32)
+            shape_out = _x.shape
+            prediction = np.zeros(shape_out, dtype=np.float32)  # (S,(Z), Y, X, C)
 
             for i_s in range(_x.shape[0]):
                 if is_tiled:
                     tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles).squeeze()
+                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
                 else:
-                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:]).squeeze()
+                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
 
             # save to the disk
             parent = Path(_f.parent, 'results')
@@ -302,16 +302,17 @@ def _run_lazy_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4)
                 _x, new_axes = reshape_data(image, axes)
 
                 # run prediction
-                shape_out = _x.shape[:-1]
-                prediction = np.zeros(shape_out, dtype=np.float32)
+                shape_out = _x.shape
+                prediction = np.zeros(shape_out, dtype=np.float32)  # (S,(Z), Y, X, C)
 
                 for i_s in range(_x.shape[0]):
                     if is_tiled:
                         tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles).squeeze()
+                        # model.predict returns ((Z), Y, Z, C)
+                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
                     else:
-                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:]).squeeze()
+                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
 
                 # save predictions
                 parent = Path(file.parent, 'results')
@@ -325,7 +326,8 @@ def _run_lazy_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4)
                 if widget.state != State.RUNNING:
                     break
 
-            except ValueError:
+            except ValueError as e:
+                print(e.args)
                 ntf.show_error(f'Wrong image shapes  {file.stem} {image.shape}')
         else:
             break

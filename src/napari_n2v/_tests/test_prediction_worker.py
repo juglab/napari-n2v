@@ -25,10 +25,13 @@ class MonkeyPatchWidget:
 @pytest.mark.parametrize('shape, axes',
                          [((16, 16), 'YX'),
                           ((5, 16, 16), 'SYX'),
+                          ((16, 16, 3), 'YXC'),
                           ((5, 16, 16), 'TYX'),
                           ((16, 32, 32), 'ZYX'),
                           ((5, 16, 16, 5), 'SYXT'),
-                          ((5, 16, 32, 32), 'SZYX')])
+                          ((5, 16, 16, 3), 'SYXC'),
+                          ((5, 16, 32, 32), 'SZYX'),
+                          ((5, 16, 3, 32, 32), 'SZCYX')])
 def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
     # create data
     x = np.ones(shape)
@@ -43,7 +46,7 @@ def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
     widget = MonkeyPatchWidget()
 
     # prediction variable
-    pred = np.ones(_x.shape[:-1])
+    pred = np.ones(_x.shape)
 
     # predict
     results = []
@@ -64,10 +67,12 @@ def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape1, shape2, axes',
                          [((16, 16), (32, 32), 'YX'),
-                          ((5, 16, 16), (3, 16, 16), 'SYX'),  # TODO why shouldn't this be same size?
+                          ((5, 16, 16), (3, 16, 16), 'SYX'),
                           ((5, 16, 16), (5, 32, 32), 'TYX'),
+                          ((5, 16, 16), (5, 32, 32), 'CYX'),
                           ((16, 32, 32), (32, 32, 32), 'ZYX'),
                           ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXT'),
+                          ((5, 16, 16, 3), (5, 32, 32, 3), 'SYXC'),
                           ((5, 16, 32, 32), (5, 16, 16, 16), 'SZYX')])
 def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
     # create data
@@ -103,19 +108,48 @@ def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
     assert len([f for f in final_path.glob('*.tif')]) == 2
 
 
+@pytest.mark.parametrize('shape1, shape2, axes',
+                         [((5, 16, 16), (3, 16, 16), 'CYX'),
+                          ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXC')])
+def test_predict_after_training_list_incompatible_C(tmp_path, shape1, shape2, axes):
+    # create data
+    x1 = np.ones(shape1)
+    x2 = np.ones(shape2)
+
+    # shape for n2v
+    _x1, new_axes = reshape_data(x1, axes)
+    _x2, _ = reshape_data(x2, axes)
+    _x = ([_x1, _x2], [tmp_path / 'x1.tif', tmp_path / 'x2.tif'])
+
+    # create model
+    model = create_simple_model(tmp_path, _x1.shape)
+
+    # create widget
+    widget = MonkeyPatchWidget()
+
+    # predict
+    with pytest.raises(ValueError):
+        predictor = _predict(widget, model, _x, new_axes, None)
+        while True:
+            t = next(predictor, None)
+
+
 @pytest.mark.parametrize('n', [1, 3])
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
+                          ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
                           ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
+                          ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
                           ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
                           ((5, 16, 16, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX')])
+                          ((5, 16, 16, 3), (5, 16, 16, 3), 'SYXC'),
+                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX'),
+                          ((5, 16, 3, 32, 32), (5, 16, 32, 32, 3), 'SZCYX')])
 def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
-    path_to_h5 = save_weights_h5(model, tmp_path)
 
     # create files
     save_img(tmp_path, n, shape)
@@ -143,10 +177,13 @@ def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, a
 @pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
                          [((16, 16), (32, 32), (1, 16, 16, 1), 'YX'),
                           ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'SYX'),
+                          ((16, 16, 3), (32, 32, 3), (1, 16, 16, 3), 'YXC'),
                           ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (16, 16, 16), (1, 16, 32, 32, 1), 'ZYX'),
+                          ((16, 32, 3, 32), (16, 16, 3, 16), (1, 16, 32, 32, 3), 'ZYCX'),
                           ((5, 16, 16, 5), (3, 32, 32, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX')])
+                          ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX'),
+                          ((5, 3, 16, 32, 32), (3, 3, 16, 16, 16), (5, 16, 32, 32, 3), 'SCZYX')])
 def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
@@ -176,14 +213,50 @@ def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, 
     assert len(image_files) == 2 * n
 
 
+@pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
+                         [((16, 16, 3), (32, 32, 4), (1, 16, 16, 3), 'YXC'),
+                          ((16, 32, 3, 32), (16, 16, 1, 16), (1, 16, 32, 32, 3), 'ZYCX'),
+                          ((5, 3, 16, 32, 32), (3, 5, 16, 16, 16), (5, 16, 32, 32, 3), 'SCZYX')])
+def test_run_lazy_prediction_different_C(tmp_path, shape1, shape2, shape_n2v, axes):
+    # create model and save it to disk
+    model = create_simple_model(tmp_path, shape_n2v)
+    path_to_h5 = save_weights_h5(model, tmp_path)
+
+    # create files
+    n = 1
+    save_img(tmp_path, n, shape1, prefix='i1_')
+    save_img(tmp_path, n, shape2, prefix='i2_')
+
+    # instantiate generator
+    gen, m = lazy_load_generator(tmp_path)
+    assert m == 2 * n
+
+    # run prediction (it is a generator)
+    mk = MonkeyPatchWidget()
+    parameters = (mk, model, axes, gen)
+    hist = list(_run_lazy_prediction(*parameters))
+    assert hist[-1] == {UpdateType.DONE}
+    assert len(hist) == 2 * n + 1
+
+    # check that images have been saved
+    folder = tmp_path / 'results'
+    image_files = [f for f in folder.glob('*.tif*')]
+    assert len(image_files) == n
+
+
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
                          [((16, 16), (32, 32), (1, 16, 16, 1), 'YX'),
+                          ((16, 16, 3), (32, 32, 3), (1, 16, 16, 3), 'YXC'),
                           ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'SYX'),
+                          ((3, 16, 16), (3, 32, 32), (1, 16, 16, 3), 'CYX'),
                           ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (16, 16, 16), (1, 16, 32, 32, 1), 'ZYX'),
+                          ((16, 32, 32, 3), (16, 16, 16, 3), (1, 16, 32, 32, 3), 'ZYXC'),
+                          ((16, 3, 32, 32), (16, 3, 16, 16), (1, 16, 32, 32, 3), 'ZCYX'),
                           ((5, 16, 16, 5), (3, 32, 32, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX')])
+                          ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX'),
+                          ((5, 16, 32, 32, 3), (3, 16, 16, 16, 3), (5, 16, 32, 32, 3), 'SZYXC')])
 def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
@@ -219,11 +292,16 @@ def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, sha
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
+                          ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
                           ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
+                          ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
+                          ((16, 32, 32, 3), (1, 16, 32, 32, 3), 'ZYXC'),
+                          ((16, 3, 32, 32), (1, 16, 32, 32, 3), 'ZCYX'),
                           ((5, 16, 16, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX')])
+                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX'),
+                          ((5, 16, 32, 32, 3), (5, 16, 32, 32, 3), 'SZYXC')])
 def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
@@ -248,11 +326,15 @@ def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, 
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
+                          ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
+                          ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
+                          ((16, 32, 32, 3), (1, 16, 32, 32, 3), 'ZYXC'),
+                          ((16, 3, 32, 32), (1, 16, 32, 32, 3), 'ZCYX'),
                           ((5, 3, 16, 16), (15, 16, 16, 1), 'TSYX'),
-                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX')])
+                          ((5, 16, 32, 32, 3), (5, 16, 32, 32, 3), 'SZYXC')])
 def test_run_prediction_from_layers(tmp_path, make_napari_viewer, n_tiles, shape, shape_n2v, axes):
     viewer = make_napari_viewer()
 
