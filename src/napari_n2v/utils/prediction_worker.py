@@ -30,7 +30,7 @@ def prediction_after_training_worker(widget):
     _x_train = widget.x_train
 
     # prepare prediction with the right shape, set to none if _x_train is a tuple
-    widget.pred_train = np.zeros(_x_train.shape[:-1]) if type(_x_train) != tuple else None
+    widget.pred_train = np.zeros(_x_train.shape) if type(_x_train) != tuple else None
 
     # get size of the training images (either first dim or length of list)
     size_x = _x_train.shape[0] if type(_x_train) != tuple else len(len(_x_train[0]))
@@ -41,13 +41,26 @@ def prediction_after_training_worker(widget):
     # predict training data
     yield from _predict(widget, model, _x_train, axes, widget.pred_train, is_tiled, n_tiles)
 
+    # if we are loading from napari layers and there are channels
+    if widget.pred_train is not None and widget.pred_train.shape[-1] > 1:
+        # normalise to the range 0-1
+        # TODO is there really no better way?
+        if widget.pred_train.max() > 255:
+            widget.pred_train = widget.pred_train / 65535
+        else:
+            widget.pred_train = widget.pred_train / 255
+
+    if widget.pred_train is not None:
+        # remove singleton dims
+        widget.pred_train = widget.pred_train.squeeze()
+
     # check if there is validation data
     if widget.x_val is not None:
         # get data
         _x_val = widget.x_val
 
         # prepare prediction with the right shape, set to none if _x_train is a tuple
-        widget.pred_val = np.zeros(_x_val.shape[:-1]) if type(_x_val) != tuple else None
+        widget.pred_val = np.zeros(_x_val.shape) if type(_x_val) != tuple else None
 
         # predict training data
         yield from _predict(widget,
@@ -58,6 +71,19 @@ def prediction_after_training_worker(widget):
                             is_tiled,
                             n_tiles,
                             counter_offset=size_x)
+
+        # if we are loading from napari layers and there are channels
+        if widget.pred_val is not None and widget.pred_val.shape[-1] > 1:
+            # normalise to the range 0-1
+            # TODO is there really no better way?
+            if widget.pred_val.max() > 255:
+                widget.pred_val = widget.pred_val / 65535
+            else:
+                widget.pred_val = widget.pred_val / 255
+
+        if widget.pred_val is not None:
+            # remove singleton dims
+            widget.pred_val = widget.pred_val.squeeze()
 
     yield UpdateType.DONE
 
@@ -97,7 +123,7 @@ def _predict_list(widget, model, data, axes, is_tiled=False, n_tiles=4, counter_
             os.mkdir(parent)
 
         new_file_path_denoi = Path(parent, file.stem + '_denoised' + file.suffix)
-        imwrite(new_file_path_denoi, prediction)
+        imwrite(new_file_path_denoi, prediction.squeeze())
 
 
 def _predict_np(widget, model, data, axes, prediction, is_tiled=False, n_tiles=4, counter_offset=0):
@@ -217,7 +243,13 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
         else:
             predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
 
-    widget.denoi_prediction = predict_all.squeeze()
+    # if there are channels, we normalize to the range 0-1
+    if predict_all.shape[-1] > 1:
+        norm_factor = 65535 if predict_all.max() > 255 else 255
+    else:
+        norm_factor = 1
+
+    widget.denoi_prediction = (predict_all / norm_factor).squeeze()
 
     # update done
     yield {UpdateType.DONE}
@@ -276,7 +308,7 @@ def _run_prediction_to_disk(widget, model, axes, images, is_tiled=False, n_tiles
                 os.mkdir(parent)
 
             new_file_path_denoi = Path(parent, _f.stem + '_denoised' + _f.suffix)
-            imwrite(new_file_path_denoi, prediction)
+            imwrite(new_file_path_denoi, prediction.squeeze())
 
             # check if stop requested
             if widget.state != State.RUNNING:
@@ -320,7 +352,7 @@ def _run_lazy_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4)
                     os.mkdir(parent)
 
                 new_file_path_denoi = Path(parent, file.stem + '_denoised' + file.suffix)
-                imwrite(new_file_path_denoi, prediction)
+                imwrite(new_file_path_denoi, prediction.squeeze())
 
                 # check if stop requested
                 if widget.state != State.RUNNING:

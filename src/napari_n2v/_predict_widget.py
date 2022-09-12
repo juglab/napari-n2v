@@ -115,6 +115,7 @@ class PredictWidget(QWidget):
         self.images.changed.connect(self._update_layer_axes)
         self.images_folder.text_field.textChanged.connect(self._update_disk_axes)
         self.enable_3d.stateChanged.connect(self._update_3D)
+        self.tiling_cbox.stateChanged.connect(self._update_tiling)
 
     def _build_params_widgets(self):
         self.params_group = QGroupBox()
@@ -180,6 +181,9 @@ class PredictWidget(QWidget):
         self.predict_group.layout().addWidget(self.pb_prediction)
         self.predict_group.layout().addWidget(predictions)
         self.layout().addWidget(self.predict_group)
+
+    def _update_tiling(self, state):
+        self.tiling_spin.setEnabled(state)
 
     def _update_3D(self):
         self.axes_widget.update_is_3D(self.enable_3d.isChecked())

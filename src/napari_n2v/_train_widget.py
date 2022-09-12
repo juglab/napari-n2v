@@ -113,6 +113,7 @@ class TrainWidget(QWidget):
         self.n_steps_spin.valueChanged.connect(self._update_steps)
         self.predict_button.clicked.connect(self._start_prediction)
         self.save_button.clicked.connect(self._save_model)
+        self.tiling_cbox.stateChanged.connect(self._update_tiling)
 
     def _build_data_selection_widgets(self, napari_viewer):
         # QTabs
@@ -456,6 +457,9 @@ class TrainWidget(QWidget):
         # update axes widget
         self.axes_widget.update_is_3D(self.is_3D)
         self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+    def _update_tiling(self, state):
+        self.tiling_spin.setEnabled(state)
 
     def _update_layer_axes(self):
         """

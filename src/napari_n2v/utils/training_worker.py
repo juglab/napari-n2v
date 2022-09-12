@@ -153,9 +153,6 @@ def check_napari_data(x_train, x_val, axes: str):
     :return:
     """
 
-    if axes[-2:] != 'YX':
-        raise ValueError('X and Y axes are in the wrong order.')
-
     if len(axes) != len(x_train.shape):
         raise ValueError('Train images dimensions and axes are incompatible.')
 

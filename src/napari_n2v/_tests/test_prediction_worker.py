@@ -345,7 +345,6 @@ def test_run_prediction_from_layers(tmp_path, make_napari_viewer, n_tiles, shape
 
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
-    path_to_h5 = save_weights_h5(model, tmp_path)
 
     # run prediction (it is a generator)
     mk = MonkeyPatchWidget()
