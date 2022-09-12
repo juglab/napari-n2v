@@ -1,5 +1,7 @@
 """
 """
+import os
+import pathlib
 from pathlib import Path
 
 import napari
@@ -18,6 +20,7 @@ from qtpy.QtWidgets import (
     QTabWidget
 )
 
+from napari_n2v.utils.n2v_utils import cwd
 from napari_n2v.widgets import (
     TBPlotWidget,
     AxesWidget,
@@ -436,22 +439,23 @@ class TrainWidget(QWidget):
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
 
                 export_type = self.save_choice.currentText()
-                if SaveMode.MODELZOO.value == export_type:
-                    axes = self.new_axes
-                    axes = axes.replace('S', 'b').lower()
+                with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+                    if SaveMode.MODELZOO.value == export_type:
+                        axes = self.new_axes
+                        axes = axes.replace('S', 'b').lower()
 
-                    build_modelzoo(where + '.bioimage.io.zip',
-                                   self.model.logdir / "weights_best.h5",
-                                   self.inputs,
-                                   self.outputs,
-                                   self.tf_version,
-                                   axes)
+                        build_modelzoo(where + '.bioimage.io.zip',
+                                       self.model.logdir / "weights_best.h5",
+                                       self.inputs,
+                                       self.outputs,
+                                       self.tf_version,
+                                       axes)
 
-                else:
-                    self.model.keras_model.save_weights(where + '.h5')
+                    else:
+                        self.model.keras_model.save_weights(where + '.h5')
 
-                # save configuration as well
-                save_configuration(self.model.config, Path(where).parent)
+                    # save configuration as well
+                    save_configuration(self.model.config, Path(where).parent)
 
 
 if __name__ == "__main__":

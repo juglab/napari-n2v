@@ -1,5 +1,7 @@
 import os
+import pathlib
 import warnings
+from contextlib import contextmanager
 from enum import Enum
 from itertools import permutations
 from pathlib import Path
@@ -7,6 +9,8 @@ from pathlib import Path
 import numpy as np
 from n2v.models import N2V
 from tifffile import imread
+
+from napari_n2v.resources import DOC_BIOIMAGE
 
 REF_AXES = 'TSZYXC'
 NAPARI_AXES = 'CTSZYX'
@@ -63,24 +67,24 @@ def create_model(X_patches,
                  updater=None,
                  train=True):
     from n2v.models import N2V
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        # create config
+        config = create_config(X_patches,
+                               n_epochs,
+                               n_steps,
+                               batch_size)
 
-    # create config
-    config = create_config(X_patches,
-                           n_epochs,
-                           n_steps,
-                           batch_size)
+        # create network
+        model = N2V(config, model_name, basedir=basedir)
 
-    # create network
-    model = N2V(config, model_name, basedir=basedir)
+        if train:
+            model.prepare_for_training(metrics={})
 
-    if train:
-        model.prepare_for_training(metrics={})
+        # add updater
+        if updater:
+            model.callbacks.append(updater)
 
-    # add updater
-    if updater:
-        model.callbacks.append(updater)
-
-    return model
+        return model
 
 
 def filter_dimensions(shape_length, is_3D):
@@ -128,38 +132,41 @@ def are_axes_valid(axes: str):
     return True
 
 
-def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc', doc='../resources/documentation.md'):
+def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
     import os
     from bioimageio.core.build_spec import build_model
 
     assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
-
-    build_model(weight_uri=weights,
-                test_inputs=[inputs],
-                test_outputs=[outputs],
-                input_axes=[axes],
-                output_axes=[axes],
-                output_path=path,
-                name='Noise2Void',
-                description='Self-supervised denoising.',
-                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                license="BSD-3-Clause",
-                documentation=os.path.abspath(doc),
-                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                       'doi': "10.48550/arXiv.1811.10980"}],
-                preprocessing=[[{
-                    "name": "zero_mean_unit_variance",
-                    "kwargs": {
-                        "axes": "yx",
-                        "mode": "per_dataset"
-                    }
-                }]],
-                tensorflow_version=tf_version
-                )
-
+    doc = DOC_BIOIMAGE
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        build_model(weight_uri=weights,
+                    test_inputs=[inputs],
+                    test_outputs=[outputs],
+                    input_axes=[axes],
+                    output_axes=[axes],
+                    output_path=path,
+                    name='Noise2Void',
+                    description='Self-supervised denoising.',
+                    authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                    license="BSD-3-Clause",
+                    documentation=os.path.abspath(doc),
+                    tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
+                    cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                           'doi': "10.48550/arXiv.1811.10980"}],
+                    preprocessing=[[{
+                        "name": "zero_mean_unit_variance",
+                        "kwargs": {
+                            "axes": "yx",
+                            "mode": "per_dataset"
+                        }
+                    }]],
+                    tensorflow_version=tf_version
+                    )
+        head, _ = os.path.split(path)
+        head = os.path.join(os.path.normcase(head), "config.json")
+        os.remove(os.path.abspath(head))
 
 def load_from_disk(path, axes: str):
     """
@@ -423,3 +430,15 @@ def load_model(weight_path):
     load_weights(model, weight_path)
 
     return model
+
+
+@contextmanager
+def cwd(path):
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+    oldpwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(oldpwd)

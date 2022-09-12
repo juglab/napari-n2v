@@ -1,4 +1,6 @@
 import os
+import pathlib
+
 import numpy as np
 from queue import Queue
 
@@ -7,6 +9,7 @@ from tensorflow.keras.callbacks import Callback
 
 from napari.qt.threading import thread_worker
 from napari_n2v.utils import UpdateType, State, create_model, reshape_data
+from napari_n2v.utils.n2v_utils import cwd
 
 
 class Updater(Callback):
@@ -63,15 +66,16 @@ def train_worker(widget, pretrained_model=None):
     # create model
     model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
     base_dir = 'models'
-    model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
-    widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        model = create_model(X_train, n_epochs, n_steps, batch_size, model_name, base_dir, updater)
+        widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
 
-    # if we use a pretrained model (just trained or loaded)
-    if pretrained_model:
-        model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
+        # if we use a pretrained model (just trained or loaded)
+        if pretrained_model:
+            model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
 
-    training = threading.Thread(target=train, args=(model, X_train, X_val))
-    training.start()
+        training = threading.Thread(target=train, args=(model, X_train, X_val))
+        training.start()
 
     # loop looking for update events
     while True:
@@ -91,10 +95,11 @@ def train_worker(widget, pretrained_model=None):
 
     # save input/output for bioimage.io
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
-    widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
-    widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
-    np.save(widget.inputs, example)
-    np.save(widget.outputs, model.predict(example, new_axes, tta=False))
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
+        widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
+        np.save(widget.inputs, example)
+        np.save(widget.outputs, model.predict(example, new_axes, tta=False))
 
 
 def load_data_from_disk(source, axes):
@@ -227,7 +232,8 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64)):
 
 
 def train(model, X_patches, X_val_patches):
-    model.train(X_patches, X_val_patches)
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        model.train(X_patches, X_val_patches)
 
 
 
