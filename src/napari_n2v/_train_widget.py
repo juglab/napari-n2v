@@ -492,7 +492,7 @@ class TrainWidget(QWidget):
 
         path = self.train_images_folder.get_folder()
 
-        if path is not None or path != '':
+        if path is not None and path != '':
             # load one image
             load_worker = loading_worker(path)
             load_worker.yielded.connect(lambda x: add_image(self, x))

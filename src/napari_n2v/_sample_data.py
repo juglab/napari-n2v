@@ -17,7 +17,7 @@ def _load_3D():
     zipPath = 'data/flywing-data.zip'
     if not os.path.exists(zipPath):
         # download and unzip data
-        data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
+        urllib.request.urlretrieve('https://download.fht.org/jug/n2v/flywing-data.zip', zipPath)
         with zipfile.ZipFile(zipPath, 'r') as zip_ref:
             zip_ref.extractall('data')
 
@@ -31,7 +31,7 @@ def _load_2D():
     zipPath = "data/BSD68_reproducibility.zip"
     if not os.path.exists(zipPath):
         # download and unzip data
-        data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
+        urllib.request.urlretrieve('https://download.fht.org/jug/n2v/BSD68_reproducibility.zip', zipPath)
         with zipfile.ZipFile(zipPath, 'r') as zip_ref:
             zip_ref.extractall("data")
 
@@ -50,7 +50,7 @@ def _load_rgb():
     zipPath = Path(data_dir / 'RGB.zip')
     if not zipPath.exists():
         # download and unzip data
-        data = urllib.request.urlretrieve('https://download.fht.org/jug/n2v/RGB.zip', zipPath)
+        urllib.request.urlretrieve('https://download.fht.org/jug/n2v/RGB.zip', zipPath)
         with zipfile.ZipFile(zipPath, 'r') as zip_ref:
             zip_ref.extractall(data_dir)
 
