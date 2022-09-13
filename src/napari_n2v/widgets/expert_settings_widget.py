@@ -57,10 +57,10 @@ class TrainingSettingsWidget(QDialog):
         # defaults values
         unet_n_depth = 2
         unet_kern_size = 5 if not is_3D else 3
-        unet_n_first = 96
+        unet_n_first = 32
         train_learning_rate = 0.0004
         n2v_perc_pix = 0.198
-        n2v_neighborhood_radius = 2
+        n2v_neighborhood_radius = 5
         n2v_pm = get_pms()[0]
         loss = get_losses()[0]
         unet_residuals = False
@@ -86,7 +86,7 @@ class TrainingSettingsWidget(QDialog):
 
         label_unet_kernelsize = QLabel('U-Net kernel size')
         desc_unet_kernelsize = 'Size of the convolution filters in all image dimensions'
-        self.unet_kernelsize = create_int_spinbox(value=unet_kern_size, min_value=3, max_value=7, step=2)
+        self.unet_kernelsize = create_int_spinbox(value=unet_kern_size, min_value=3, max_value=9, step=2)
         label_unet_kernelsize.setToolTip(desc_unet_kernelsize)
         self.unet_kernelsize.setToolTip(desc_unet_kernelsize)
 
