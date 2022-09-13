@@ -141,6 +141,8 @@ def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
     tags_dim = '3d' if len(axes) == 5 else '2d'
     doc = DOC_BIOIMAGE
     with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        head, _ = os.path.split(weights)
+        head = os.path.join(os.path.normcase(head), "config.json")
         build_model(weight_uri=weights,
                     test_inputs=[inputs],
                     test_outputs=[outputs],
@@ -162,10 +164,9 @@ def build_modelzoo(path, weights, inputs, outputs, tf_version, axes='byxc'):
                             "mode": "per_dataset"
                         }
                     }]],
-                    tensorflow_version=tf_version
+                    tensorflow_version=tf_version,
+                    attachments={"files": head}
                     )
-        head, _ = os.path.split(path)
-        head = os.path.join(os.path.normcase(head), "config.json")
         os.remove(os.path.abspath(head))
 
 def load_from_disk(path, axes: str):
