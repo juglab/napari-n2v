@@ -99,6 +99,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
                              updater,
                              expert_settings=expert_settings)
     except InternalError as e:
+        print(e.message)
         ntf.show_error(e.message)
         warnings.warn('InternalError could be caused by the GPU already being used by another process.')
 
@@ -107,12 +108,21 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         return
 
     # if we use a pretrained model (just trained or loaded)
-    if pretrained_model:
-        model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
-    elif expert_settings is not None and expert_settings.has_model():
-        # TODO check if models are compatible
-        new_model = load_model(expert_settings.get_model_path())
-        model.keras_model.set_weights(new_model.keras_model.get_weights())
+    try:
+        if pretrained_model:
+            model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
+        elif expert_settings is not None and expert_settings.has_model():
+            # TODO check if models are compatible
+            new_model = load_model(expert_settings.get_model_path())
+            model.keras_model.set_weights(new_model.keras_model.get_weights())
+    except ValueError as e:
+        print(str(e))
+        ntf.show_error(str(e))
+        warnings.warn('ValueError could be caused by incompatible weights and model.')
+
+        # stop the training process gracefully
+        yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
+        return
 
     ntf.show_info('Start training')
     training = threading.Thread(target=train, args=(model, X_train, X_val, updater))
