@@ -1,4 +1,8 @@
+import os
+import pathlib
+
 import warnings
+from contextlib import contextmanager
 from enum import Enum
 from itertools import permutations
 from pathlib import Path
@@ -13,7 +17,7 @@ from n2v.models import N2V, N2VConfig
 from napari_n2v.resources import DOC_BIOIMAGE
 
 REF_AXES = 'TSZYXC'
-NAPARI_AXES = 'CTSZYX'  # TODO actually wrong, napari can display SYXC if dim(C) = 3 or 4
+NAPARI_AXES = 'TSZYXC'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
@@ -35,7 +39,6 @@ class UpdateType(Enum):
     DONE = 'done'
     CRASHED = 'crashed'
     FAILED = 'failed'
-
 
 
 class ModelSaveMode(Enum):
@@ -77,34 +80,34 @@ def create_model(X_patches,
                  expert_settings=None,
                  train=True) -> N2V:
     from n2v.models import N2V
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        # create config
+        if expert_settings is None:
+            config = create_config(X_patches,
+                                   n_epochs,
+                                   n_steps,
+                                   batch_size)
+        else:
+            config = create_config(X_patches,
+                                   n_epochs,
+                                   n_steps,
+                                   batch_size,
+                                   **expert_settings.get_settings())
 
-    # create config
-    if expert_settings is None:
-        config = create_config(X_patches,
-                               n_epochs,
-                               n_steps,
-                               batch_size)
-    else:
-        config = create_config(X_patches,
-                               n_epochs,
-                               n_steps,
-                               batch_size,
-                               **expert_settings.get_settings())
+        if not config.is_valid():
+            ntf.show_error('Invalid configuration.')
 
-    if not config.is_valid():
-        ntf.show_error('Invalid configuration.')
+        # create network
+        model = N2V(config, model_name, basedir=basedir)
 
-    # create network
-    model = N2V(config, model_name, basedir=basedir)
+        if train:
+            model.prepare_for_training(metrics={})
 
-    if train:
-        model.prepare_for_training(metrics={})
+        # add updater
+        if updater:
+            model.callbacks.append(updater)
 
-    # add updater
-    if updater:
-        model.callbacks.append(updater)
-
-    return model
+        return model
 
 
 def filter_dimensions(shape_length: int, is_3D: bool) -> List[str]:
@@ -162,29 +165,34 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
     doc = DOC_BIOIMAGE
-    build_model(weight_uri=weights,
-                test_inputs=[inputs],
-                test_outputs=[outputs],
-                input_axes=[axes],
-                output_axes=[axes],
-                output_path=path,
-                name='Noise2Void',
-                description='Self-supervised denoising.',
-                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                license="BSD-3-Clause",
-                documentation=os.path.abspath(doc),
-                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                       'doi': "10.48550/arXiv.1811.10980"}],
-                preprocessing=[[{
-                    "name": "zero_mean_unit_variance",
-                    "kwargs": {
-                        "axes": "yx",
-                        "mode": "per_dataset"
-                    }
-                }]],
-                tensorflow_version=tf_version
-                )
+
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        head, _ = os.path.split(weights)
+        head = os.path.join(os.path.normcase(head), "config.json")
+        build_model(weight_uri=weights,
+                    test_inputs=[inputs],
+                    test_outputs=[outputs],
+                    input_axes=[axes],
+                    output_axes=[axes],
+                    output_path=path,
+                    name='Noise2Void',
+                    description='Self-supervised denoising.',
+                    authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                    license="BSD-3-Clause",
+                    documentation=os.path.abspath(doc),
+                    tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
+                    cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                           'doi': "10.48550/arXiv.1811.10980"}],
+                    preprocessing=[[{
+                        "name": "zero_mean_unit_variance",
+                        "kwargs": {
+                            "axes": "yx",
+                            "mode": "per_dataset"
+                        }
+                    }]],
+                    tensorflow_version=tf_version,
+                    attachments={"files": head}
+                    )
 
 
 def list_diff(l1, l2):
@@ -334,3 +342,15 @@ def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     shape_out, _, _ = get_shape_order(shape_n2v, NAPARI_AXES, axes_n2v)
 
     return shape_out
+
+
+@contextmanager
+def cwd(path):
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
+    oldpwd = os.getcwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(oldpwd)

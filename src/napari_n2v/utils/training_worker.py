@@ -1,5 +1,6 @@
 import os
 import warnings
+import pathlib
 
 import numpy as np
 from queue import Queue
@@ -8,10 +9,12 @@ import tensorflow as tf
 from tensorflow.keras.callbacks import Callback
 
 from napari.qt.threading import thread_worker
+
 import napari.utils.notifications as ntf
 from tensorflow.python.framework.errors_impl import ResourceExhaustedError, NotFoundError, UnknownError, InternalError
 
 from napari_n2v.utils import (
+    cwd,
     UpdateType,
     State,
     create_model,
@@ -87,46 +90,48 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     ntf.show_info('Creating model')
     model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
     base_dir = 'models'
-    widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
 
-    try:
-        model = create_model(X_train,
-                             n_epochs,
-                             n_steps,
-                             batch_size,
-                             model_name,
-                             base_dir,
-                             updater,
-                             expert_settings=expert_settings)
-    except InternalError as e:
-        print(e.message)
-        ntf.show_error(e.message)
-        warnings.warn('InternalError could be caused by the GPU already being used by another process.')
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
 
-        # stop the training process gracefully
-        yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
-        return
+        try:
+            model = create_model(X_train,
+                                 n_epochs,
+                                 n_steps,
+                                 batch_size,
+                                 model_name,
+                                 base_dir,
+                                 updater,
+                                 expert_settings=expert_settings)
+        except InternalError as e:
+            print(e.message)
+            ntf.show_error(e.message)
+            warnings.warn('InternalError could be caused by the GPU already being used by another process.')
 
-    # if we use a pretrained model (just trained or loaded)
-    try:
-        if pretrained_model:
-            model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
-        elif expert_settings is not None and expert_settings.has_model():
-            # TODO check if models are compatible
-            new_model = load_model(expert_settings.get_model_path())
-            model.keras_model.set_weights(new_model.keras_model.get_weights())
-    except ValueError as e:
-        print(str(e))
-        ntf.show_error(str(e))
-        warnings.warn('ValueError could be caused by incompatible weights and model.')
+            # stop the training process gracefully
+            yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
+            return
 
-        # stop the training process gracefully
-        yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
-        return
+        # if we use a pretrained model (just trained or loaded)
+        try:
+            if pretrained_model:
+                model.keras_model.set_weights(pretrained_model.keras_model.get_weights())
+            elif expert_settings is not None and expert_settings.has_model():
+                # TODO check if models are compatible
+                new_model = load_model(expert_settings.get_model_path())
+                model.keras_model.set_weights(new_model.keras_model.get_weights())
+        except ValueError as e:
+            print(str(e))
+            ntf.show_error(str(e))
+            warnings.warn('ValueError could be caused by incompatible weights and model.')
 
-    ntf.show_info('Start training')
-    training = threading.Thread(target=train, args=(model, X_train, X_val, updater))
-    training.start()
+            # stop the training process gracefully
+            yield {UpdateType.FAILED: ''}  # todo silly to return a dict just for a key
+            return
+
+        ntf.show_info('Start training')
+        training = threading.Thread(target=train, args=(model, X_train, X_val, updater))
+        training.start()
 
     # loop looking for update events
     while True:
@@ -146,10 +151,11 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     # save input/output for bioimage.io
     # TODO here TF will throw an error if the GPU is busy (UnknownError). Is there a way to gracefully escape it?
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
-    widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
-    widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
-    np.save(widget.inputs, example)
-    np.save(widget.outputs, model.predict(example, new_axes, tta=False))
+    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+        widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
+        widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
+        np.save(widget.inputs, example)
+        np.save(widget.outputs, model.predict(example, new_axes, tta=False))
 
     ntf.show_info('Done')
 

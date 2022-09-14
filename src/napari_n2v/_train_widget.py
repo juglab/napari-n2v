@@ -1,5 +1,7 @@
 """
 """
+import os
+import pathlib
 from pathlib import Path
 
 import napari
@@ -20,6 +22,8 @@ from qtpy.QtWidgets import (
     QTabWidget,
     QCheckBox
 )
+from napari_n2v.utils.n2v_utils import cwd
+
 from napari_n2v.widgets import (
     TBPlotWidget,
     FolderWidget,
@@ -546,34 +550,35 @@ class TrainWidget(QWidget):
         if self.state == State.IDLE:
             if self.model:
                 where = QFileDialog.getSaveFileName(caption='Save model')[0]
-
                 export_type = self.save_choice.currentText()
-                if ModelSaveMode.MODELZOO.value == export_type:
-                    from napari_n2v.utils import build_modelzoo
 
-                    axes = self.new_axes
-                    axes = axes.replace('S', 'b').lower()
+                with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+                    if ModelSaveMode.MODELZOO.value == export_type:
+                        from napari_n2v.utils import build_modelzoo
 
-                    if 'b' not in axes:
-                        axes = 'b' + axes
+                        axes = self.new_axes
+                        axes = axes.replace('S', 'b').lower()
 
-                    # if 'c' not in axes:
-                    #     axes = axes + 'c'
+                        if 'b' not in axes:
+                            axes = 'b' + axes
 
-                    path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
-                    build_modelzoo(path,
-                                   self.model.logdir / "weights_best.h5",
-                                   self.inputs,
-                                   self.outputs,
-                                   self.tf_version,
-                                   axes)
+                        # if 'c' not in axes:
+                        #     axes = axes + 'c'
 
-                else:
-                    path = where if where.endswith('.h5') else where + '.h5'
-                    self.model.keras_model.save_weights(path)
+                        path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
+                        build_modelzoo(path,
+                                       self.model.logdir / "weights_best.h5",
+                                       self.inputs,
+                                       self.outputs,
+                                       self.tf_version,
+                                       axes)
 
-                # save configuration as well
-                save_configuration(self.model.config, Path(where).parent)
+                    else:
+                        path = where if where.endswith('.h5') else where + '.h5'
+                        self.model.keras_model.save_weights(path)
+
+                    # save configuration as well
+                    save_configuration(self.model.config, Path(where).parent)
 
     def is_tiling_checked(self):
         return self.tiling_cbox.isChecked()
