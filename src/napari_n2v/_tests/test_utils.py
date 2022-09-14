@@ -103,6 +103,10 @@ def create_model_zoo_parameters(folder, shape):
     np.save(path_to_output, np.zeros(shape))
     assert Path(path_to_output).exists()
 
+    import shutil
+    folder_path, _ = os.path.split(path_to_h5)
+    shutil.copyfile(os.path.join(path_to_h5[:-len('.h5')], "config.json"), os.path.join(folder_path, "config.json"))
+
     # tf version
     tf_version = 42
 

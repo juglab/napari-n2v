@@ -166,33 +166,33 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
     tags_dim = '3d' if len(axes) == 5 else '2d'
     doc = DOC_BIOIMAGE
 
-    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
-        head, _ = os.path.split(weights)
-        head = os.path.join(os.path.normcase(head), "config.json")
-        build_model(weight_uri=weights,
-                    test_inputs=[inputs],
-                    test_outputs=[outputs],
-                    input_axes=[axes],
-                    output_axes=[axes],
-                    output_path=path,
-                    name='Noise2Void',
-                    description='Self-supervised denoising.',
-                    authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                    license="BSD-3-Clause",
-                    documentation=os.path.abspath(doc),
-                    tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                    cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                           'doi': "10.48550/arXiv.1811.10980"}],
-                    preprocessing=[[{
-                        "name": "zero_mean_unit_variance",
-                        "kwargs": {
-                            "axes": "yx",
-                            "mode": "per_dataset"
-                        }
-                    }]],
-                    tensorflow_version=tf_version,
-                    attachments={"files": head}
-                    )
+    #with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+    head, _ = os.path.split(weights)
+    head = os.path.join(os.path.normcase(head), "config.json")
+    build_model(weight_uri=weights,
+                test_inputs=[inputs],
+                test_outputs=[outputs],
+                input_axes=[axes],
+                output_axes=[axes],
+                output_path=path,
+                name='Noise2Void',
+                description='Self-supervised denoising.',
+                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                license="BSD-3-Clause",
+                documentation=os.path.abspath(doc),
+                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
+                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                       'doi': "10.48550/arXiv.1811.10980"}],
+                preprocessing=[[{
+                    "name": "zero_mean_unit_variance",
+                    "kwargs": {
+                        "axes": "yx",
+                        "mode": "per_dataset"
+                    }
+                }]],
+                tensorflow_version=tf_version,
+                attachments={"files": head}
+                )
 
 
 def list_diff(l1, l2):

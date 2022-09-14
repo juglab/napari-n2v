@@ -342,8 +342,8 @@ def test_reshape_data_napari_values_SZYXC():
                           ((16, 8, 5), 'XYZ', (5, 8, 16), 'ZYX'),
                           ((5, 16, 8), 'ZXY', (5, 8, 16), 'ZYX'),
                           ((12, 16, 8, 10), 'TXYS', (12, 10, 8, 16), 'TSYX'),
-                          ((10, 5, 16, 8, 3), 'SZXYC', (3, 10, 5, 8, 16), 'CSZYX'),
-                          ((16, 10, 3, 8), 'YSCX', (3, 10, 16, 8), 'CSYX')
+                          ((10, 5, 16, 8, 3), 'SZXYC', (10, 5, 8, 16, 3), 'SZYXC'),
+                          ((16, 10, 3, 8), 'YSCX', (10, 16, 8, 3), 'SYXC')
                           ])
 def test_reshape_data_napari(shape, axes, final_shape, final_axes):
     x = np.zeros(shape)
