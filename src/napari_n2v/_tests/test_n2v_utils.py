@@ -302,7 +302,7 @@ def test_reshape_data_napari_values_SYXC():
     for c in range(shape[-1]):
         for s in range(shape[0]):
             for i in range(shape[1]):
-                assert (_x[c, s, i, :] == x[s, i, :, c]).all()
+                assert (_x[s, i, :, c] == x[s, i, :, c]).all()
 
 
 def test_reshape_data_napari_values_SZYXC():
@@ -333,7 +333,7 @@ def test_reshape_data_napari_values_SZYXC():
             for s in range(shape[1]):
                 for z in range(shape[4]):
                     for i in range(shape[0]):
-                        assert (_x[c, t, s, z, i, :] == x[i, s, :, t, z, c]).all()
+                        assert (_x[t, s, z, i, :, c] == x[i, s, :, t, z, c]).all()
 
 
 @pytest.mark.parametrize('shape, axes, final_shape, final_axes',
