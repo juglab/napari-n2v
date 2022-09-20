@@ -57,7 +57,6 @@ class PredictWidget(QWidget):
         self.setMaximumHeight(720)
 
         ###############################
-
         # add banner
         self.layout().addWidget(BannerWidget('N2V - Prediction',
                                              ICON_JUGLAB,

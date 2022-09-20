@@ -33,15 +33,8 @@ Then, in your command line tool:
     pip install "napari[all]"
     ```
    
-   Note that `pip` might complain about `typing-extensions` versions. We will apply a duck-tape patch in the
-   next point. This should not impact the functioning of the plugin.
-    
-5. Fix the typing-extensions version
-    
-    ```bash
-    pip uninstall typing-extensions  # remove 3.7.4
-    pip install typing-extensions    # install 4.3.0
-    ```
+   Note that `pip` might complain about `typing-extensions` versions, just ignore it.
+
     
 ## Install napari-n2v
 
@@ -60,10 +53,20 @@ pip install napari-n2v
 
 ### Install napari-n2v from source
 
+Clone the repository:
+```bash
+git clone https://github.com/juglab/napari-n2v.git
+```
+
+Navigate to the newly created folder:
+```bash
+cd napari-n2v
+```
+
 Within the previously installed conda environment, type:
 
 ```bash
-pip install git+https://github.com/juglab/napari-n2v.git
+pip install -e .
 ```
 
 # Start napari-N2V
