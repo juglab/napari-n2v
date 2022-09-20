@@ -1,6 +1,6 @@
 import os
 import warnings
-import pathlib
+from pathlib import Path
 
 import numpy as np
 from queue import Queue
@@ -15,6 +15,7 @@ from tensorflow.python.framework.errors_impl import ResourceExhaustedError, NotF
 
 from napari_n2v.utils import (
     cwd,
+    get_temp_path,
     UpdateType,
     State,
     create_model,
@@ -88,11 +89,11 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
 
     # create model
     ntf.show_info('Creating model')
-    model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
-    base_dir = 'models'
+    with cwd(get_temp_path()):
+        model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
+        base_dir = Path('models')
 
-    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
-        widget.weights_path = os.path.join(base_dir, model_name, 'weights_best.h5')
+        widget.weights_path = Path(base_dir, model_name, 'weights_best.h5').absolute()
 
         try:
             model = create_model(X_train,
@@ -100,7 +101,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
                                  n_steps,
                                  batch_size,
                                  model_name,
-                                 base_dir,
+                                 base_dir.absolute(),
                                  updater,
                                  expert_settings=expert_settings)
         except InternalError as e:
@@ -151,7 +152,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     # save input/output for bioimage.io
     # TODO here TF will throw an error if the GPU is busy (UnknownError). Is there a way to gracefully escape it?
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
-    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+    with cwd(get_temp_path()):
         widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
         widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
         np.save(widget.inputs, example)

@@ -123,6 +123,8 @@ Reset the model, the next training session will be from scratch. After resetting
 Continue training using the current parameters but the trained network weights.
 **Note that the training and validation patches will change if `Train` and `Val` are the same**.
 
+During training, the log and the weights are saved to a hidden folder in your `/home/`, under `.napari/N2V/models`. 
+
 ### 6 -  Training progress
 
 ![training_progress.png](images/training_progress.png)

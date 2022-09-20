@@ -1,5 +1,4 @@
 import os
-import pathlib
 
 import warnings
 from contextlib import contextmanager
@@ -80,7 +79,7 @@ def create_model(X_patches,
                  expert_settings=None,
                  train=True) -> N2V:
     from n2v.models import N2V
-    with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
+    with cwd(get_temp_path()):
         # create config
         if expert_settings is None:
             config = create_config(X_patches,
@@ -166,7 +165,6 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
     tags_dim = '3d' if len(axes) == 5 else '2d'
     doc = DOC_BIOIMAGE
 
-    #with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
     head, _ = os.path.split(weights)
     head = os.path.join(os.path.normcase(head), "config.json")
     build_model(weight_uri=weights,
@@ -342,6 +340,10 @@ def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     shape_out, _, _ = get_shape_order(shape_n2v, NAPARI_AXES, axes_n2v)
 
     return shape_out
+
+
+def get_temp_path():
+    return Path(Path.home(), ".napari", "N2V").absolute()
 
 
 @contextmanager
