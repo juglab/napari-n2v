@@ -191,6 +191,8 @@ If the images can be stacked (same X, Y and, if applicable, Z dimensions), then 
 If they can’t be stacked, then the images are all loaded as a list and the predictions are saved to the disk in the same folder, under `/results/`. 
 In addition, a `lazy loading` checkbox allows predicting the images one at a time. Note that if `lazy loading` is selected, the images are saved to the disk directly even if their dimensions match.
 
+Note that if you select a training folder, the plugin will try to load the first image it finds in order to assert the axes.
+
 ### 2 - Parameters
 
 The parameters `Axes` and `Enable 3D` are similar to the corresponding ones in `N2V - Train`. In addition, model weights should be loaded from the disk and should correspond to a `config.json` file in the same folder. The plugin throws an error if no configuration is found.
