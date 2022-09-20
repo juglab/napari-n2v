@@ -9,14 +9,14 @@
 
 ### Anatomy
 
-1. GPU availability
-2. Data loading
-3. Training parameters
-4. Expert training parameters
-5. Training
-6. Training progress
-7. Prediction
-8. Model saving
+1. [GPU availability](1---gpu-availability)
+2. [Data loading](#2---data-loading)
+3. [Training parameters](#3---training-parameters)
+4. [Expert training parameters](#4---expert-training-parameters)
+5. [Training](#5---training)
+6. [Training progress](#6----training-progress)
+7. [Prediction](#7---prediction)
+8. [Model saving](#8---model-saving)
 
 ### 1 - GPU availability
 
@@ -173,10 +173,10 @@ The model is saved as a `.h5` file.
 
 Multiple aspects of the `N2V - predict` plugin are similar to the `N2V - train` plugin, refer to the latter one for missing information.
 
-1. Data loading
-2. Parameters
-3. Tiling
-4. Prediction
+1. [Data loading](#1---data-loading)
+2. [Parameters](#2---parameters)
+3. [Tiling](#3---tiling)
+4. [Prediction](#4---predict)
 
 ### 1 - Data loading
 

@@ -5,9 +5,9 @@ description: "A self-supervised denoising algorithm.<br>
   <li><a href=\"installation.html\">Installation</a></li>
   <li><a href=\"documentation.html\">Documentation</a></li>
   <li><a href=\"examples.html\">Examples</a></li>
-  <li><a href=\"troubleshooting.html\">Troubleshooting</a></li>  
+  <li><a href=\"faq.html\">Troubleshooting</a></li>  
 </ul>"
-logo: ../src/napari_n2v/resources/juglab_logo_128.png
+logo: https://raw.githubusercontent.com/juglab/napari-n2v/main/src/napari_n2v/resources/juglab_logo_128.png?token=GHSAT0AAAAAABXWAOYUBZZTSJXCRWS3IRJ4YZJ26GQ
 remote_theme: pages-themes/minimal@v0.2.0
 plugins:
 - jekyll-remote-theme

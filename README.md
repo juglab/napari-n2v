@@ -34,6 +34,11 @@ To install latest development version :
     pip install git+https://github.com/juglab/napari-n2v.git
 
 
+## Documentation
+
+Documentation is available on the [project website](https://juglab.github.io/napari-n2v/).
+
+
 ## Contributing
 
 Contributions are very welcome. Tests can be run with [tox], please ensure
