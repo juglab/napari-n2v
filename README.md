@@ -31,7 +31,7 @@ You can install `napari-n2v` via [pip]:
 
 To install latest development version :
 
-    pip install git+https://github.com/githubuser/napari-n2v.git
+    pip install git+https://github.com/juglab/napari-n2v.git
 
 
 ## Contributing
@@ -42,11 +42,11 @@ the coverage at least stays the same before you submit a pull request.
 ## License
 
 Distributed under the terms of the [BSD-3] license,
-"napari-n2v" is free and open source software
+"napari-n2v" is free and open source software.
 
 ## Issues
 
-If you encounter any problems, please [file an issue] along with a detailed description.
+Help us improve by [filing an issue] along with a detailed description.
 
 [napari]: https://github.com/napari/napari
 [Cookiecutter]: https://github.com/audreyr/cookiecutter
@@ -59,7 +59,7 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 
-[file an issue]: https://github.com/githubuser/napari-n2v/issues
+[filing an issue]: https://github.com/githubuser/napari-n2v/issues
 
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/

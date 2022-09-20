@@ -32,6 +32,9 @@ Then, in your command line tool:
     ```bash
     pip install "napari[all]"
     ```
+   
+   Note that `pip` might complain about `typing-extensions` versions. We will apply a duck-tape patch in the
+   next point. This should not impact the functioning of the plugin.
     
 5. Fix the typing-extensions version
     
@@ -46,7 +49,7 @@ Then, in your command line tool:
 ## Install napari-n2v from source
 
 ```bash
-pip install git+https://github.com/juglab/napari-denoiseg.git
+pip install git+https://github.com/juglab/napari-n2v.git
 ```
 
 # Start napari-N2V

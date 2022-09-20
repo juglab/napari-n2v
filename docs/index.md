@@ -17,14 +17,23 @@ the models for later use and is compatible with [Bioimage.io](https://bioimage.i
 
 # Report issues and errors
 
-Help us improve the plugin by submitting [issues to the Github repository](https://github.com/juglab/napari-n2v/issues) or tagging @jdeschamps on [image.sc](https://forum.image.sc/). 
+Help us improve the plugin by submitting [issues to the Github repository](https://github.com/juglab/napari-n2v/issues) 
+or tagging @jdeschamps on [image.sc](https://forum.image.sc/). 
 
 # Cite us
 
 ## N2V
 
-Krull, Alexander, Tim-Oliver Buchholz, and Florian Jug. "Noise2void-learning denoising from single noisy images." *Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*. 2019.
+Krull, Alexander, Tim-Oliver Buchholz, and Florian Jug. "Noise2void-learning denoising from single noisy images." 
+*Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*. 2019.
 
 ## structN2V
 
-Broaddus, Coleman, et al. "Removing structured noise with self-supervised blind-spot networks." *2020 IEEE 17th International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
+Broaddus, Coleman, et al. "Removing structured noise with self-supervised blind-spot networks." *2020 IEEE 17th 
+International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
+
+
+# Support 
+
+This plugin was developed thanks to the support of the Silicon Valley Community Foundation (SCVF) and the 
+Chan-Zuckerberg Initiative (CZI) with the napari Plugin Accelerator grant _2021-240383_.
