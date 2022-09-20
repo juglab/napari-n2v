@@ -230,9 +230,12 @@ def load_images(widget):
 
     else:  # from layers
         x_train = widget.img_train.value.data
-        x_val = widget.img_val.value.data
 
-        if widget.img_train.value == widget.img_val.value:
+        # if the val combobox is not empty and train != val
+        if widget.img_val.value is not None and\
+                widget.img_train.value.name != widget.img_val.value.name:
+            x_val = widget.img_val.value.data
+        else:
             x_val = None
 
         _x_train, _x_val, new_axes = load_data_layers(x_train, x_val, axes)

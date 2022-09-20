@@ -35,9 +35,9 @@ The data loading panel has two tabs: `From layers` and `From disk` :
 1. From layers:
 Choose among the available napari layers data for the `Train` and `Val`. Note that if `Val` is empty or equal to `Train`, a portion of the training data will be extracted as validation data.
 2. From disk:
-Use the `choose` button to point to folders containing images. The images can be of different dimensions but should have the same axes (eg. TXY). 
+Use the `choose` button to point to folders containing images. The images can be of different dimensions but should have the same axes (e.g. TXY). 
 Note that if `Val` is empty or equal to `Train`, a portion of the training data will be extracted as validation data.
-When selecting a folder for the `Train` set, the first image will be loaded as sample into napari so as to estimate the axes (see Axes in the next section).
+When selecting a folder for the `Train` set, the first image will be loaded as sample into napari to estimate the axes (see Axes in the next section).
 
   
 
