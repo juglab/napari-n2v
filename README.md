@@ -7,19 +7,9 @@
 [![codecov](https://codecov.io/gh/githubuser/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/githubuser/napari-n2v)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-n2v)](https://napari-hub.org/plugins/napari-n2v)
 
-A simple plugin to use with napari
+A self-supervised denoising algorithm now usable by all in napari.
 
 ----------------------------------
-
-This [napari] plugin was generated with [Cookiecutter] using [@napari]'s [cookiecutter-napari-plugin] template.
-
-<!--
-Don't miss the full getting started guide to set up your new package:
-https://github.com/napari/cookiecutter-napari-plugin#getting-started
-
-and review the napari docs for plugin developers:
-https://napari.org/plugins/index.html
--->
 
 ## Installation
 
@@ -27,12 +17,7 @@ You can install `napari-n2v` via [pip]:
 
     pip install napari-n2v
 
-
-
-To install latest development version :
-
-    pip install git+https://github.com/juglab/napari-n2v.git
-
+Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
 
 ## Documentation
 

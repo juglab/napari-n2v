@@ -43,10 +43,24 @@ Then, in your command line tool:
     pip install typing-extensions    # install 4.3.0
     ```
     
+## Install napari-n2v
 
-## Install napari-n2v through the napari-hub
+### Install napari-n2v through the napari-hub
 
-## Install napari-n2v from source
+Check-out the instructions on [installing plugins via the napari hub](https://napari.org/stable/plugins/find_and_install_plugin.html). 
+This step is performed after [starting napari](#start-napari-n2v).
+
+### Install napari-n2v via pip
+
+Within the previously installed conda environment, type:
+
+```bash
+pip install napari-n2v
+```
+
+### Install napari-n2v from source
+
+Within the previously installed conda environment, type:
 
 ```bash
 pip install git+https://github.com/juglab/napari-n2v.git
