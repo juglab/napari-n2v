@@ -275,7 +275,7 @@ class PredictWidget(QWidget):
         self.predict_button.setText('Predict again')
 
         if self.denoi_prediction is not None:
-            viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+            self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
     def get_model_path(self):
         return self.load_model_button.Model.value

@@ -67,8 +67,11 @@ def load_from_disk(path: Union[str, Path], axes: str):
     dims_agree = True
     for f in image_files:
         images.append(imread(str(f)))
+
+        # TODO here we take the first one as reference, is it the best way?
         dims_agree = dims_agree and (images[0].shape == images[-1].shape)
 
+    # TODO we should check whether dimensions and axes agree
     if len(images) > 0 and dims_agree:
         if 'S' in axes:
             ind_S = axes.find('S')
