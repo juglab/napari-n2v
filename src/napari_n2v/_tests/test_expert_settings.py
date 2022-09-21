@@ -36,3 +36,19 @@ def test_default_values(qtbot, is_3D, shape):
 
     # same for pixel perc which 1.5 instead of 0.198
     assert config.n2v_perc_pix != settings['n2v_perc_pix']
+
+
+@pytest.mark.parametrize('shape', [(2, 16, 16, 1), (2, 16, 16, 16, 1)])
+def test_configuration_compatibility(qtbot, shape):
+    # parent widget
+    widget = QWidget()
+
+    # expert settings
+    widget_settings = TrainingSettingsWidget(widget)
+    settings = widget_settings.get_settings()
+
+    # create configuration using the expert settings
+    x = np.ones(shape)
+    x[0, ...] = np.zeros(shape[1:])  # hack to get non 0 stds
+    config = create_config(x, **settings)
+    assert config.is_valid()

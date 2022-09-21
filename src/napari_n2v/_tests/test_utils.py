@@ -85,7 +85,6 @@ def test_saved_weights_h5(tmp_path, shape):
     assert path_to_weights.exists()
 
 
-# TODO: why is it saving in the current directory and not in folder?
 def create_model_zoo_parameters(folder, shape):
     # create model and save it to disk
     model = create_simple_model(folder, shape)

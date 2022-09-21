@@ -20,7 +20,7 @@ NAPARI_AXES = 'TSZYXC'
 
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
-SAMPLE = 'Sample data'
+SAMPLE = 'Example data'
 
 
 class State(Enum):
