@@ -6,6 +6,8 @@ import numpy as np
 from n2v.models import N2V, N2VConfig
 from typing import Union
 
+from .n2v_utils import ModelSaveMode, get_temp_path, cwd
+
 
 def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
     from csbdeep.utils import save_json
@@ -77,3 +79,82 @@ def load_weights(model: N2V, weights_path: Union[str, Path]):
         raise FileNotFoundError('Invalid path to weights.')
 
     model.keras_model.load_weights(weights_name)
+
+
+def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, output_path: str, tf_version: str):
+    from napari_n2v.utils import build_modelzoo
+
+    with cwd(get_temp_path()):
+        # path to weights
+        weights = Path(model.logdir, 'weights_best.h5')
+        if not weights.exists():
+            raise FileNotFoundError('Invalid path to weights.')
+
+        # format axes for bioimage.io
+        new_axes = axes.replace('S', 'b').lower()
+
+        if 'b' not in new_axes:
+            new_axes = 'b' + new_axes
+
+        # check path ending
+        where = str(where)
+        path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
+
+        # save model
+        build_modelzoo(path,
+                       weights,
+                       input_path,
+                       output_path,
+                       tf_version,
+                       new_axes)
+
+        # save configuration
+        save_configuration(model.config, Path(where).parent)
+
+
+def save_tf(where: Union[str, Path], model):
+    where = str(where)
+    path = where if where.endswith('.h5') else where + '.h5'
+
+    # save model
+    model.keras_model.save_weights(path)
+
+    # save configuration
+    save_configuration(model.config, Path(where).parent)
+
+
+def format_path_for_saving(where: Union[str, Path]):
+    """
+    We want to create a folder containing the weights and the config file, users must point to a name (file or folder),
+    and this function will create a folder with corresponding name in which to save the files.
+    """
+    where = Path(where)
+
+    if where.suffix == '.h5' or str(where).endswith('.bioimage.io.zip'):
+        # file, we want to create a directory with same name but without the suffix(es)
+        if where.suffix == '.h5':
+            new_parent = Path(where.parent, where.stem)
+            new_parent.mkdir(parents=True, exist_ok=True)
+        else:
+            name = where.name[:-len('.bioimage.io.zip')]  # remove .bioimage.io.zip
+            new_parent = Path(where.parent, name)
+            new_parent.mkdir(parents=True, exist_ok=True)
+
+        where = Path(new_parent, where.name)
+    else:
+        # consider it is a folder, create a new parent folder with same name
+        where.mkdir(parents=True, exist_ok=True)
+        where = Path(where, where.name)
+
+    return where
+
+
+def save_model(where: Union[str, Path], export_type, model, **kwargs):
+    # create target directory
+    where = format_path_for_saving(where)
+
+    # save model
+    if ModelSaveMode.MODELZOO.value == export_type:
+        save_modelzoo(where.absolute(), model, **kwargs)
+    else:
+        save_tf(where.absolute(), model)

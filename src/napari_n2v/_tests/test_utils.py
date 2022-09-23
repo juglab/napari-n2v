@@ -65,7 +65,7 @@ def test_create_model(tmp_path, shape):
 
 def save_weights_h5(model, basedir):
     name_weights = 'myModel.h5'
-    path_to_weights = basedir / name_weights
+    path_to_weights = Path(basedir, name_weights)
 
     # save model
     model.keras_model.save_weights(path_to_weights)

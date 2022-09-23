@@ -22,7 +22,8 @@ from .io_utils import (
     load_weights,
     load_configuration,
     save_configuration,
-    load_model
+    load_model,
+    save_model
 )
 from .n2v_utils import cwd, State, UpdateType, ModelSaveMode
 from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE, NAPARI_AXES

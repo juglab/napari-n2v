@@ -1,7 +1,5 @@
 """
 """
-import os
-import pathlib
 from pathlib import Path
 
 import napari
@@ -22,8 +20,6 @@ from qtpy.QtWidgets import (
     QTabWidget,
     QCheckBox
 )
-from napari_n2v.utils.n2v_utils import cwd
-
 from napari_n2v.widgets import (
     TBPlotWidget,
     FolderWidget,
@@ -44,7 +40,7 @@ from napari_n2v.utils import (
     train_worker,
     prediction_after_training_worker,
     loading_worker,
-    save_configuration,
+    save_model,
     PREDICT,
     SAMPLE
 )
@@ -545,40 +541,22 @@ class TrainWidget(QWidget):
             if UpdateType.LOSS in updates:
                 self.plot.update_plot(*updates[UpdateType.LOSS])
 
-    # TODO refactor this into own method in io_utils
     def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
-                where = QFileDialog.getSaveFileName(caption='Save model')[0]
+                where = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
                 export_type = self.save_choice.currentText()
 
-                with cwd(os.path.join(pathlib.Path.home(), ".napari", "N2V")):
-                    if ModelSaveMode.MODELZOO.value == export_type:
-                        from napari_n2v.utils import build_modelzoo
-
-                        axes = self.new_axes
-                        axes = axes.replace('S', 'b').lower()
-
-                        if 'b' not in axes:
-                            axes = 'b' + axes
-
-                        # if 'c' not in axes:
-                        #     axes = axes + 'c'
-
-                        path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
-                        build_modelzoo(path,
-                                       self.model.logdir / "weights_best.h5",
-                                       self.inputs,
-                                       self.outputs,
-                                       self.tf_version,
-                                       axes)
-
-                    else:
-                        path = where if where.endswith('.h5') else where + '.h5'
-                        self.model.keras_model.save_weights(path)
-
-                    # save configuration as well
-                    save_configuration(self.model.config, Path(where).parent)
+                # save
+                parameters = {
+                    'export_type': export_type,
+                    'model': self.model,
+                    'axes': self.new_axes,
+                    'input_path': self.inputs,
+                    'output_path': self.outputs,
+                    'tf_version': self.tf_version
+                }
+                save_model(where, **parameters)
 
     def is_tiling_checked(self):
         return self.tiling_cbox.isChecked()
