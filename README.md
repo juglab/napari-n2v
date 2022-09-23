@@ -12,12 +12,15 @@ A self-supervised denoising algorithm now usable by all in napari.
 ----------------------------------
 
 ## Installation
-
+<!---
 You can install `napari-n2v` via [pip]:
 
     pip install napari-n2v
 
 Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
+-->
+Check out the documentation for installation instructions. (soon on PyPi and napari hub)
+
 
 ## Documentation
 

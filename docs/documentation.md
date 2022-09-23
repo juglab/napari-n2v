@@ -158,6 +158,7 @@ Stop the prediction.
 
 **Note**: Prediction can take a while to start so be patient and check console outputs to make sure it is running correctly.
 
+
 ### 8 - Model saving
 
 ![save.png](images/save.png)

@@ -1,7 +1,7 @@
 
 # Installation
 
-## Create a conda environment
+## Create a conda environment (Linux)
 
 If you do not have conda, we recommend installing [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/).
 
@@ -35,21 +35,31 @@ Then, in your command line tool:
    
    Note that `pip` might complain about `typing-extensions` versions, just ignore it.
 
-    
+
+## Windows and macOS instructions
+
+(soon)
+
 ## Install napari-n2v
 
 ### Install napari-n2v through the napari-hub
+<!---
 
 Check-out the instructions on [installing plugins via the napari hub](https://napari.org/stable/plugins/find_and_install_plugin.html). 
 This step is performed after [starting napari](#start-napari-n2v).
+-->
+(soon)
 
 ### Install napari-n2v via pip
+<!---
 
 Within the previously installed conda environment, type:
 
 ```bash
 pip install napari-n2v
 ```
+--->
+(soon)
 
 ### Install napari-n2v from source
 
@@ -77,4 +87,4 @@ pip install -e .
     napari
     ```
     
-2. Load one of the napari-N2V plugin
+2. Load one of the napari-N2V plugin.
