@@ -15,8 +15,8 @@ from napari_n2v.utils import (
     save_configuration,
     load_configuration
 )
-from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo, save_model
-from napari_n2v.utils import ModelSaveMode
+from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo
+
 
 ###################################################################
 # test load_weights
