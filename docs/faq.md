@@ -29,3 +29,7 @@ Few parameters allow reducing the load on the GPU memory:
 - `Bacth size`: reduce the batch size to improve the chances to fit in the GPU memory.
 - `Patch XY` and `Patch Z`: reduce the patch size. Note that patch size might be important to allow the network to see enough features of the image. Do no go smaller than the features of your images.
 - Tiling: during `prediction` tiling helps breaking down the images into tiles in order to fit in the GPU memory.
+
+## The training hangs at the end of each epoch
+
+This happens when the validation set is huge. Make sure to select either small images for validation, or to choose the same images for training and validation (which is perfectly fine to do with self-supervised algorithms like N2V).
