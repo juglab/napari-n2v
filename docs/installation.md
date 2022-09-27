@@ -1,7 +1,7 @@
 
 # Installation
 
-## Create a conda environment (Linux)
+## Create a conda environment (Linux and Windows)
 
 If you do not have conda, we recommend installing [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/).
 
@@ -36,7 +36,7 @@ Then, in your command line tool:
    Note that `pip` might complain about `typing-extensions` versions, just ignore it.
 
 
-## Windows and macOS instructions
+## macOS instructions
 
 (soon)
 
