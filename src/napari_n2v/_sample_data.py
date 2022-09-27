@@ -9,6 +9,7 @@ import numpy as np
 from skimage import io
 
 from napari.types import LayerDataTuple
+from napari.utils import notifications as ntf
 
 
 def _load_3D():
@@ -74,12 +75,15 @@ def _n2v_data(dim):
 
 
 def n2v_3D_data() -> LayerDataTuple:
+    ntf.show_info('Downloading data might take a few minutes.')
     return _n2v_data(3)
 
 
 def n2v_2D_data() -> LayerDataTuple:
+    ntf.show_info('Downloading data might take a few minutes.')
     return _n2v_data(2)
 
 
 def n2v_rgb_data() -> LayerDataTuple:
+    ntf.show_info('Downloading data might take a few minutes.')
     return _load_rgb()
