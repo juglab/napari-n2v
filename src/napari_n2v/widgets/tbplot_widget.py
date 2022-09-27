@@ -95,6 +95,7 @@ class TBPlotWidget(Container):
     def update_plot(self, epoch, train_loss, val_loss):
         """
         Add a new point to the graph.
+
         :param epoch: Epoch number, x-axis
         :param train_loss: Training loss at the end of `epoch`
         :param val_loss: Validation loss at the end of `epoch`
