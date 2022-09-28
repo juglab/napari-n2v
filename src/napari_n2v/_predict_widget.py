@@ -1,5 +1,6 @@
 """
 """
+from pathlib import Path
 import napari
 from napari.utils import notifications as ntf
 
@@ -42,7 +43,9 @@ SAMPLE = 'Sample data'
 
 class PredictWidgetWrapper(ScrollWidgetWrapper):
     def __init__(self, napari_viewer):
-        super().__init__(PredictWidget(napari_viewer))
+        self.widget = PredictWidget(napari_viewer)
+
+        super().__init__(self.widget)
 
 
 class PredictWidget(QWidget):
@@ -94,7 +97,7 @@ class PredictWidget(QWidget):
 
         # add to main layout
         self.layout().addWidget(self.tabs)
-        self.images.choices = [x for x in napari_viewer.layers if type(x) is napari.layers.Image]
+        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
 
         ###############################
         self._build_params_widgets()
@@ -263,7 +266,7 @@ class PredictWidget(QWidget):
                     self.worker.returned.connect(self._done)
                     self.worker.start()
                 else:
-                    ntf.show_error('Select a model')
+                    ntf.show_error('Select a valid model path')
             else:
                 ntf.show_error('Invalid axes')
 
@@ -280,6 +283,14 @@ class PredictWidget(QWidget):
     def get_model_path(self):
         return self.load_model_button.Model.value
 
+    def set_model_path(self, path: Path):
+        self.load_model_button.Model.value = path
+
+    def set_layer(self, layer):
+        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
+        if layer in self.images.choices:
+            self.images.native.value = layer
+
     # TODO call these methods throughout the workers
     def get_axes(self):
         return self.axes_widget.get_axes()
@@ -289,6 +300,26 @@ class PredictWidget(QWidget):
 
     def get_n_tiles(self):
         return self.tiling_spin.value()
+
+
+class DemoPrediction(PredictWidgetWrapper):
+    def __init__(self, napari_viewer):
+        super().__init__(napari_viewer)
+
+        # dowload demo files
+        from napari_n2v._sample_data import demo_files
+        ntf.show_info('Downloading data can take a few minutes.')
+
+        # get files
+        img, model = demo_files()
+
+        # add image to viewer
+        name = 'Demo image'
+        napari_viewer.add_image(img[0:471, 200:671], name=name)
+
+        # modify path
+        self.widget.set_model_path(model)
+        self.widget.set_layer(name)
 
 
 if __name__ == "__main__":
@@ -308,6 +339,6 @@ if __name__ == "__main__":
     else:
         data = n2v_3D_data()
         viewer.add_image(data[0][0][4:20, 150:378, 150:378], name=data[0][1]['name'])
-        #viewer.add_image(data[0][0], name=data[0][1]['name'])
+        # viewer.add_image(data[0][0], name=data[0][1]['name'])
 
     napari.run()

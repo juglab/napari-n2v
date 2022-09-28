@@ -13,14 +13,16 @@ from napari.utils import notifications as ntf
 
 from napari_n2v.utils import cwd, get_temp_path
 
+# todo the logic is the same for all functions, possibility to refactor
+
 
 def _load_3D():
     from skimage import io
 
     with cwd(get_temp_path()):
-        data_path = Path('data')
+        data_path = Path('data', 'flywing')
         if not data_path.exists():
-            data_path.mkdir()
+            data_path.mkdir(parents=True)
 
         # check if data has been downloaded already
         zip_path = Path(data_path, 'flywing-data.zip')
@@ -61,22 +63,57 @@ def _load_2D():
 
 def _load_rgb():
     with cwd(get_temp_path()):
-        data_dir = Path('./data')
-        if not data_dir.exists():
-            os.mkdir(data_dir)
+        data_path = Path('data', 'RGB')
+        if not data_path.exists():
+            data_path.mkdir(parents=True)
 
         # check if data has been downloaded already
-        zipPath = Path(data_dir, 'RGB.zip')
+        zipPath = Path(data_path, 'RGB.zip')
         if not zipPath.exists():
             # download and unzip data
             urllib.request.urlretrieve('https://download.fht.org/jug/n2v/RGB.zip', zipPath)
             with zipfile.ZipFile(zipPath, 'r') as zip_ref:
-                zip_ref.extractall(data_dir)
+                zip_ref.extractall(data_path)
 
-        img_path = Path(data_dir, 'longBeach.png')
+        img_path = Path(data_path, 'longBeach.png')
         img = io.imread(img_path)[..., :3]  # remove alpha channel
 
         return [(img, {'name': 'RGB'})]
+
+
+def demo_files():
+    with cwd(get_temp_path()):
+        # create data folder if it doesn't already exist
+        data_path = Path('data', 'sem')
+        if not data_path.exists():
+            data_path.mkdir()
+
+        # download sem data
+        img_zip_path = Path(data_path, 'SEM.zip')
+        if not img_zip_path.exists():
+            # download and unzip data
+            urllib.request.urlretrieve('https://download.fht.org/jug/n2v/SEM.zip', img_zip_path)
+            with zipfile.ZipFile(img_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(data_path)
+
+        # load data
+        img_path = Path(data_path, 'validation.tif')
+        img = io.imread(img_path)
+
+        # create models folder if it doesn't already exist
+        model_path = Path('models', 'trained_sem')
+        if not model_path.exists():
+            model_path.mkdir(parents=True)
+
+        # download sem model
+        model_zip_path = Path(model_path, 'trained_sem.zip')
+        if not model_zip_path.exists():
+            # download and unzip data
+            urllib.request.urlretrieve('https://download.fht.org/jug/napari/trained_sem.zip', model_zip_path)
+            with zipfile.ZipFile(model_zip_path, 'r') as zip_ref:
+                zip_ref.extractall(model_path)
+
+        return img, Path(model_path.absolute(), 'sem.h5')
 
 
 def _n2v_data(dim):

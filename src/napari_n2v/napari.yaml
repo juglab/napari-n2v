@@ -8,6 +8,9 @@ contributions:
     - id: napari-n2v.make_n2v_predictwidget
       python_name: napari_n2v._predict_widget:PredictWidgetWrapper
       title: Make N2V predict widget
+    - id: napari-n2v.make_n2v_demo_prediction
+      python_name: napari_n2v._predict_widget:DemoPrediction
+      title: Make N2V demo prediction
     - id: napari-n2v.data_2D
       python_name: napari_n2v._sample_data:n2v_2D_data
       title: N2V 2D data
@@ -22,6 +25,8 @@ contributions:
       display_name: N2V Train
     - command: napari-n2v.make_n2v_predictwidget
       display_name: N2V Predict
+    - command: napari-n2v.make_n2v_demo_prediction
+      display_name: N2V Demo
   sample_data:
     - command: napari-n2v.data_2D
       display_name: Download data (2D)
