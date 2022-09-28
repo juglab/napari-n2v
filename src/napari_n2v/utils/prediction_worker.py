@@ -1,7 +1,9 @@
 import os
+import warnings
 from pathlib import Path
 
 import numpy as np
+from tensorflow.python.framework.errors_impl import UnknownError
 
 from tifffile import imwrite
 from napari.qt.threading import thread_worker
@@ -235,13 +237,20 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
         yield {UpdateType.IMAGE: i_slice + 1}
 
         # predict
-        if is_tiled:
-            # TODO: why is this different than in the other functions, why is sample S's (1,) allowed?
-            tiles = (1,) + (len(new_axes) - 2) * (n_tiles,) + (1,)
+        try:
+            if is_tiled:
+                # TODO: why is this different than in the other functions, why is sample S's (1,) allowed?
+                tiles = (1,) + (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes, n_tiles=tiles)
-        else:
-            predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
+                predict_all[i_slice, ...] = model.predict(_x, axes=new_axes, n_tiles=tiles)
+            else:
+                predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
+        except UnknownError as e:
+            msg = 'UnknownError can be a failure to load cudnn, try restarting.'
+            ntf.show_error(msg)
+            warnings.warn(msg)
+            print(e.message)
+            break
 
     # if there are channels, we normalize to the range 0-1
     if predict_all.shape[-1] > 1:

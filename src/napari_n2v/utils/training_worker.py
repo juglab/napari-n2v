@@ -156,7 +156,12 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
         widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
         np.save(widget.inputs, example)
-        np.save(widget.outputs, model.predict(example, new_axes, tta=False))
+
+        try:
+            np.save(widget.outputs, model.predict(example, new_axes, tta=False))
+        except (NotFoundError, UnknownError) as e:
+            msg = 'NotFoundError or UnknownError can be caused by an improper loading of cudnn, try restarting.'
+            train_error(updater, e.message, msg)
 
     ntf.show_info('Done')
 
@@ -295,6 +300,6 @@ def train(model, X_patches, X_val_patches, updater):
         train_error(updater, e.message, msg)
     except (NotFoundError, UnknownError) as e:
         msg = 'NotFoundError or UnknownError can be caused by an improper loading of cudnn, try restarting.'
-        train_error(updater, e.args, msg)
+        train_error(updater, e.message, msg)
 
     # TODO add other possible errors and general error catching
