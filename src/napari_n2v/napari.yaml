@@ -26,7 +26,7 @@ contributions:
     - command: napari-n2v.make_n2v_predictwidget
       display_name: N2V Predict
     - command: napari-n2v.make_n2v_demo_prediction
-      display_name: N2V Demo
+      display_name: N2V Demo prediction
   sample_data:
     - command: napari-n2v.data_2D
       display_name: Download data (2D)

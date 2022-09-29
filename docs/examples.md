@@ -4,6 +4,10 @@ The plugins come with sample data that can be loaded into napari using `File/Ope
 
 In this section, we describe how to reproduce the results from the N2V Github repository using the napari plugins.
 
+> **Important note**: if you are using a GPU with little memory (e.g. 4 GB), then most of the shown 
+> settings will not work because the batches will probably not fit in memory. Try reducing the batch
+> size while increasing the number of steps. This will obviously increase the running time.
+
 ## 2D BSD68
 
 The [example notebook](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_BSD68/BSD68_reproducibility.ipynb) generates a configuration containing all the parameters used for training and reproducing the results in the N2VConfig call:
