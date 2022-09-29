@@ -9,7 +9,7 @@
 
 A self-supervised denoising algorithm now usable by all in napari.
 
-![Training](docs/images/training.gif)
+![Results](docs/images/noisy_denoised.png)
 
 ----------------------------------
 
@@ -30,6 +30,10 @@ Check out the documentation for installation instructions. (soon on PyPi and nap
 
 You can try the quick demo by loading the "N2V Demo prediction" in plugins, and starting the prediction directly.
 ## Documentation
+
+
+![Training](docs/images/training.gif)
+
 
 Documentation is available on the [project website](https://juglab.github.io/napari-n2v/).
 
