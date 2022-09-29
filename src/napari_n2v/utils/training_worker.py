@@ -84,7 +84,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     if expert_settings is None:
         X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
     else:
-        # todo if structN2V we should augment only by flip along the right directions, currently no augmentation
+        # if structN2V we should augment only by flip along the right directions, currently no augmentation
         X_train, X_val = prepare_data(_x_train, _x_val, patch_shape, augment=expert_settings.has_mask())
 
     # create model
@@ -93,6 +93,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
         base_dir = Path('models')
 
+        # save model weights path for later prediction
         widget.weights_path = Path(base_dir, model_name, 'weights_best.h5').absolute()
 
         try:

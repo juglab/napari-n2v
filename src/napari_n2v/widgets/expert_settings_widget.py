@@ -1,4 +1,3 @@
-from enum import Enum
 from qtpy.QtWidgets import (
     QDialog,
     QFormLayout,
@@ -9,44 +8,12 @@ from qtpy.QtWidgets import (
     QComboBox,
     QCheckBox
 )
+from napari_n2v.utils import get_pms, get_losses, get_default_settings
 from .qt_widgets import create_int_spinbox, create_double_spinbox
 from .magicgui_widgets import load_button
 from .axes_widget import LettersValidator
 
 
-class PixelManipulator(Enum):
-    UNIFORM_WITH_CP = 'uniform_withCP'
-    UNIFORM_WITHOUT_CP = 'uniform_withoutCP'
-    NORMAL_WITHOUT_CP = 'normal_withoutCP'
-    NORMAL_ADDITIVE = 'normal_additive'
-    NORMAL_FITTED = 'normal_fitted'
-    IDENTITY = 'identity'
-    MEAN = 'mean'
-    MEDIAN = 'median'
-
-
-def get_pms():
-    return [PixelManipulator.UNIFORM_WITH_CP.value,
-            PixelManipulator.UNIFORM_WITHOUT_CP.value,
-            PixelManipulator.NORMAL_WITHOUT_CP.value,
-            PixelManipulator.NORMAL_ADDITIVE.value,
-            PixelManipulator.NORMAL_ADDITIVE.value,
-            PixelManipulator.NORMAL_FITTED.value,
-            PixelManipulator.IDENTITY.value,
-            PixelManipulator.MEAN.value,
-            PixelManipulator.MEDIAN.value]
-
-
-class Loss(Enum):
-    MSE = 'mse'
-    MAE = 'mae'
-
-
-def get_losses():
-    return [Loss.MSE.value, Loss.MAE.value]
-
-
-# TODO Although this a widget, the presence in the widgets module of some important N2V-related settings is confusing
 class TrainingSettingsWidget(QDialog):
 
     def __init__(self, parent, is_3D=False):
@@ -55,16 +22,17 @@ class TrainingSettingsWidget(QDialog):
         self.setLayout(QVBoxLayout())
 
         # defaults values
-        unet_n_depth = 2
-        unet_kern_size = 5 if not is_3D else 3
-        unet_n_first = 32
-        train_learning_rate = 0.0004
-        n2v_perc_pix = 0.198
-        n2v_neighborhood_radius = 5
-        n2v_pm = get_pms()[0]
-        loss = get_losses()[0]
-        unet_residuals = False
-        single_net_per_channel = True
+        default_settings = get_default_settings(is_3D)
+        unet_n_depth = default_settings['unet_n_depth']
+        unet_kern_size = default_settings['unet_kern_size']
+        unet_n_first = default_settings['unet_n_first']
+        train_learning_rate = default_settings['train_learning_rate']
+        n2v_perc_pix = default_settings['n2v_perc_pix']
+        n2v_neighborhood_radius = default_settings['n2v_neighborhood_radius']
+        n2v_manipulator = default_settings['n2v_manipulator']
+        train_loss = default_settings['train_loss']
+        unet_residual = default_settings['unet_residual']
+        single_net_per_channel = default_settings['single_net_per_channel']
 
         # groups
         self.retraining = QGroupBox()
@@ -102,7 +70,7 @@ class TrainingSettingsWidget(QDialog):
                               'the input (typically better), this requires the number of input\n' \
                               'and output image channels to be equal'
         self.unet_residuals = QCheckBox()
-        self.unet_residuals.setChecked(unet_residuals)
+        self.unet_residuals.setChecked(unet_residual)
         label_unet_residuals.setToolTip(desc_unet_residuals)
         self.unet_residuals.setToolTip(desc_unet_residuals)
 
@@ -113,12 +81,12 @@ class TrainingSettingsWidget(QDialog):
         label_train_learning_rate.setToolTip(desc_train_learning_rate)
         self.train_learning_rate.setToolTip(desc_train_learning_rate)
 
-        label_loss = QLabel('Train loss')
+        label_loss = QLabel('Train train_loss')
         desc_loss = 'Loss used to train the network.'
         self.loss_combobox = QComboBox()
         for s in get_losses():
             self.loss_combobox.addItem(s)
-        self.loss = loss
+        self.loss = train_loss
         self.loss_combobox.activated[str].connect(self._onLossChange)
 
         self.loss_combobox.setToolTip(desc_loss)
@@ -135,7 +103,7 @@ class TrainingSettingsWidget(QDialog):
         self.n2v_pmanipulator = QComboBox()
         for s in get_pms():
             self.n2v_pmanipulator.addItem(s)
-        self.n2v_pm = n2v_pm
+        self.n2v_pm = n2v_manipulator
         self.n2v_pmanipulator.activated[str].connect(self._onPMChange)
 
         self.n2v_pmanipulator.setToolTip(desc_n2v_manipulator)
@@ -237,11 +205,13 @@ class TrainingSettingsWidget(QDialog):
     def has_mask(self):
         return self.structN2V_text.text() == ''
 
+    # todo could refactor this into a single function easy to test
     def _get_structN2V(self, is_3D=False):
         if self.structN2V_text.text() != '':
             mask = self.structN2V_text.text()
 
-            # make sure there's no multiple ','
+            # make sure there's no multiple ',' and no space
+            mask = mask.replace(' ', '')
             mask = mask.split(',')
             mask = [s for s in mask if len(s) == 1]  # removes '' / '10' etc.
 
@@ -259,7 +229,7 @@ class TrainingSettingsWidget(QDialog):
         else:
             return None
 
-    def get_settings(self, is_3D=False):
+    def get_settings(self, is_3D):
         return {'unet_kern_size': self.unet_kernelsize.value(),
                 'unet_n_first': self.unet_n_first.value(),
                 'unet_n_depth': self.unet_depth.value(),

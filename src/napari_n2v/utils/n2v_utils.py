@@ -7,13 +7,15 @@ from itertools import permutations
 from pathlib import Path
 from typing import Union, Tuple, List
 
+import numpy as np
+
 import napari.layers
 from napari.utils import notifications as ntf
-import numpy as np
 
 from n2v.models import N2V, N2VConfig
 
 from napari_n2v.resources import DOC_BIOIMAGE
+from .expert_settings import get_default_settings
 
 REF_AXES = 'TSZYXC'
 NAPARI_AXES = 'TSZYXC'
@@ -81,17 +83,19 @@ def create_model(X_patches,
     from n2v.models import N2V
     with cwd(get_temp_path()):
         # create config
+        is_3D = len(X_patches.shape) == 5
         if expert_settings is None:
             config = create_config(X_patches,
                                    n_epochs,
                                    n_steps,
-                                   batch_size)
+                                   batch_size,
+                                   **get_default_settings(is_3D))
         else:
             config = create_config(X_patches,
                                    n_epochs,
                                    n_steps,
                                    batch_size,
-                                   **expert_settings.get_settings())
+                                   **expert_settings.get_settings(is_3D))
 
         if not config.is_valid():
             ntf.show_error('Invalid configuration.')

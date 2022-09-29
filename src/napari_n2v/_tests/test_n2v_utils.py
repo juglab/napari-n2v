@@ -4,12 +4,19 @@ import numpy as np
 import pytest
 from marshmallow import ValidationError
 
+from qtpy.QtWidgets import QWidget
+
+from napari_n2v.widgets import TrainingSettingsWidget
 from napari_n2v.utils import (
     filter_dimensions,
     are_axes_valid,
     build_modelzoo,
     reshape_data,
-    reshape_napari
+    reshape_napari,
+    create_model,
+    get_default_settings,
+    get_pms,
+    get_losses
 )
 from napari_n2v._tests.test_utils import (
     create_model_zoo_parameters
@@ -317,10 +324,10 @@ def test_reshape_data_napari_values_SZYXC():
         for s in range(shape[0]):
             for z in range(shape[1]):
                 for i in range(shape[2]):
-                    assert (_x[c, s, z, i, :] == x[s, z, i, :, c]).all()
+                    assert (_x[s, z, i, :, c] == x[s, z, i, :, c]).all()
 
 
-def test_reshape_data_napari_values_SZYXC():
+def test_reshape_data_napari_values_STZYXC():
     # test if X and Y are flipped
     axes = 'YSXTZC'
     shape = (16, 10, 8, 15, 3, 2)
@@ -352,3 +359,86 @@ def test_reshape_data_napari(shape, axes, final_shape, final_axes):
 
     assert _x.shape == final_shape
     assert new_axes == final_axes
+
+
+#############################################
+# create model
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 16, 16, 1)])
+def test_create_model_default_settings(shape):
+    x = np.concatenate([np.ones(shape), np.zeros(shape)])
+    model = create_model(x)
+
+    # test config
+    assert model.config.is_valid()
+
+    # assert that all default settings are correctly set
+    is_3D = len(x.shape) == 5
+    default_settings = get_default_settings(is_3D)
+
+    assert model.config.unet_n_depth == default_settings['unet_n_depth']
+    assert model.config.unet_kern_size == default_settings['unet_kern_size']
+    assert model.config.unet_n_first == default_settings['unet_n_first']
+    assert model.config.train_learning_rate == default_settings['train_learning_rate']
+    assert model.config.n2v_perc_pix == default_settings['n2v_perc_pix']
+    assert model.config.n2v_neighborhood_radius == default_settings['n2v_neighborhood_radius']
+    assert model.config.n2v_manipulator == default_settings['n2v_manipulator']
+    assert model.config.train_loss == default_settings['train_loss']
+    assert model.config.unet_residual == default_settings['unet_residual']
+    assert model.config.single_net_per_channel == default_settings['single_net_per_channel']
+    assert model.config.structN2Vmask == default_settings['structN2Vmask']
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 16, 16, 1)])
+def test_create_model_expert_settings(qtbot, shape):
+    x = np.concatenate([np.ones(shape), np.zeros(shape)])
+    is_3D = len(x.shape) == 5
+
+    # create expert settings
+    widget = QWidget()
+    widget_settings = TrainingSettingsWidget(widget, is_3D)
+
+    # modify the settings
+    widget_settings.unet_n_first.setValue(64)
+    widget_settings.unet_depth.setValue(3)
+    widget_settings.unet_kernelsize.setValue(3)
+    widget_settings.train_learning_rate.setValue(0.0002)
+    widget_settings.n2v_perc_pix.setValue(0.1)
+    widget_settings.n2v_neighborhood_radius.setValue(7)
+    widget_settings.n2v_pm = get_pms()[3]
+    widget_settings.loss = get_losses()[1]
+    widget_settings.unet_residuals.setChecked(True)
+    widget_settings.single_net.setChecked(False)
+    widget_settings.structN2V_text.setText('0, 1, 1, 1, 0')
+
+    # check settings
+    settings = widget_settings.get_settings(is_3D=is_3D)
+    assert settings['unet_n_depth'] == 3
+    assert settings['unet_kern_size'] == 3
+    assert settings['unet_n_first'] == 64
+    assert settings['train_learning_rate'] == 0.0002
+    assert settings['n2v_perc_pix'] == 0.1
+    assert settings['n2v_neighborhood_radius'] == 7
+    assert settings['n2v_manipulator'] == get_pms()[3]
+    assert settings['train_loss'] == get_losses()[1]
+    assert settings['unet_residual']
+    assert not settings['single_net_per_channel']
+    assert settings['structN2Vmask'] == [[[0, 1, 1, 1, 0]]] if is_3D else [[0, 1, 1, 1, 0]]
+
+    # create model
+    model = create_model(x, expert_settings=widget_settings)
+
+    # test config
+    assert model.config.is_valid()
+
+    # assert that all default settings are correctly set
+    assert model.config.unet_n_depth == settings['unet_n_depth']
+    assert model.config.unet_kern_size == settings['unet_kern_size']
+    assert model.config.unet_n_first == settings['unet_n_first']
+    assert model.config.train_learning_rate == settings['train_learning_rate']
+    assert model.config.n2v_perc_pix == settings['n2v_perc_pix']
+    assert model.config.n2v_neighborhood_radius == settings['n2v_neighborhood_radius']
+    assert model.config.n2v_manipulator == settings['n2v_manipulator']
+    assert model.config.train_loss == settings['train_loss']
+    assert model.config.unet_residual == settings['unet_residual']
+    assert model.config.single_net_per_channel == settings['single_net_per_channel']
+    assert model.config.structN2Vmask == settings['structN2Vmask']

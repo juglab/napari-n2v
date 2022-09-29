@@ -30,3 +30,4 @@ from .n2v_utils import PREDICT, DENOISING, REF_AXES, SAMPLE, NAPARI_AXES
 from .prediction_worker import prediction_after_training_worker, prediction_worker
 from .training_worker import train_worker
 from .loading_worker import loading_worker
+from .expert_settings import Loss, PixelManipulator, get_default_settings, get_pms, get_losses
