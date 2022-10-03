@@ -33,6 +33,9 @@ class TrainingSettingsWidget(QDialog):
         train_loss = default_settings['train_loss']
         unet_residual = default_settings['unet_residual']
         single_net_per_channel = default_settings['single_net_per_channel']
+        use_n2v2 = default_settings['blurpool'] == True and \
+                   default_settings['skip_skipone'] == True and \
+                   default_settings['n2v_manipulator'] == 'median'
 
         # groups
         self.retraining = QGroupBox()
@@ -46,6 +49,15 @@ class TrainingSettingsWidget(QDialog):
 
         ####################################################
         # create widgets for expert settings
+        label_n2v2 = QLabel('Use N2V2')
+        desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that prevents' \
+                    'check-board artefacts. This only works with 2D data.'
+        self.n2v2 = QCheckBox()
+        self.n2v2.setChecked(use_n2v2)
+        label_n2v2.setToolTip(desc_n2v2)
+        self.n2v2.setToolTip(desc_n2v2)
+        self.n2v2.stateChanged.connect(self._update_N2V2)
+
         label_unet_depth = QLabel('U-Net depth')
         desc_unet_depth = 'Number of resolution levels of the U-Net architecture'
         self.unet_depth = create_int_spinbox(value=unet_n_depth, min_value=2, max_value=5)
@@ -128,6 +140,7 @@ class TrainingSettingsWidget(QDialog):
 
         # arrange form layout
         form = QFormLayout()
+        form.addRow(label_n2v2, self.n2v2)
         form.addRow(label_unet_depth, self.unet_depth)
         form.addRow(label_unet_kernelsize, self.unet_kernelsize)
         form.addRow(label_unet_n_first, self.unet_n_first)
@@ -196,6 +209,14 @@ class TrainingSettingsWidget(QDialog):
     def _onOrientationChanged(self, val):
         self.is_horizontal = val == 'horizontal'
 
+    def _update_N2V2(self):
+        if self.n2v2.isChecked():
+            self.n2v_pmanipulator.setCurrentText('median')
+            self.n2v_pm = 'median'
+            self.n2v_pmanipulator.setEnabled(False)
+        else:
+            self.n2v_pmanipulator.setEnabled(True)
+
     def get_model_path(self):
         return self.load_model_button.Model.value
 
@@ -229,15 +250,47 @@ class TrainingSettingsWidget(QDialog):
         else:
             return None
 
+    def _get_pixel_manipulator(self, is_3D):
+        if self.n2v2.isChecked() and not is_3D:
+            return 'median'
+        else:
+            return self.n2v_pm
+
+    def _is_N2V2(self, is_3D):
+        return self.n2v2.isChecked() and not is_3D
+
+    def update_3D(self, is_3D):
+        if is_3D:
+            # change the pixel manipulator to default
+            if self.n2v2.isChecked() and self.n2v_pm == 'median':
+                # since checking N2V2 selects the median pixel manipulator
+                # we consider that if it was checked, we need to change the pm
+                self.n2v_pmanipulator.setCurrentText(get_pms()[0])
+                self.n2v_pm = get_pms()[0]
+
+            # uncheck and disable N2V2
+            self.n2v2.setChecked(False)
+            self.n2v2.setEnabled(False)
+
+            # enable the pixel manipulator
+            self.n2v_pmanipulator.setEnabled(True)
+        else:
+            # enable N2V2
+            self.n2v2.setEnabled(True)
+
     def get_settings(self, is_3D):
-        return {'unet_kern_size': self.unet_kernelsize.value(),
-                'unet_n_first': self.unet_n_first.value(),
-                'unet_n_depth': self.unet_depth.value(),
-                'unet_residual': self.unet_residuals.isChecked(),
-                'train_learning_rate': self.train_learning_rate.value(),
-                'train_loss': self.loss,
-                'n2v_perc_pix': self.n2v_perc_pix.value(),
-                'n2v_manipulator': self.n2v_pm,
-                'n2v_neighborhood_radius': self.n2v_neighborhood_radius.value(),
-                'single_net_per_channel': self.single_net.isChecked(),
-                'structN2Vmask': self._get_structN2V(is_3D)}
+        return {
+            'unet_kern_size': self.unet_kernelsize.value(),
+            'unet_n_first': self.unet_n_first.value(),
+            'unet_n_depth': self.unet_depth.value(),
+            'unet_residual': self.unet_residuals.isChecked(),
+            'train_learning_rate': self.train_learning_rate.value(),
+            'train_loss': self.loss,
+            'n2v_perc_pix': self.n2v_perc_pix.value(),
+            'n2v_manipulator': self._get_pixel_manipulator(is_3D),
+            'n2v_neighborhood_radius': self.n2v_neighborhood_radius.value(),
+            'single_net_per_channel': self.single_net.isChecked(),
+            'structN2Vmask': self._get_structN2V(is_3D),
+            'blurpool': self._is_N2V2(is_3D),
+            'skip_skipone': self._is_N2V2(is_3D)
+        }

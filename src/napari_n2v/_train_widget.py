@@ -458,6 +458,10 @@ class TrainWidget(QWidget):
         self.axes_widget.update_is_3D(self.is_3D)
         self.axes_widget.set_text_field(self.axes_widget.get_default_text())
 
+        # update expert settings
+        if self.expert_settings:
+            self.expert_settings.update_3D(state)
+
     def _update_tiling(self, state):
         self.tiling_spin.setEnabled(state)
 

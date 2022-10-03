@@ -365,6 +365,10 @@ def test_reshape_data_napari(shape, axes, final_shape, final_axes):
 # create model
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 16, 16, 1)])
 def test_create_model_default_settings(shape):
+    """
+    Test that the default settings are the same that in the default configuration
+    created in the napari plugin.
+    """
     x = np.concatenate([np.ones(shape), np.zeros(shape)])
     model = create_model(x)
 
@@ -390,6 +394,9 @@ def test_create_model_default_settings(shape):
 
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 16, 16, 1)])
 def test_create_model_expert_settings(qtbot, shape):
+    """
+    Tests that expert settings are correctly assigned to the configuration.
+    """
     x = np.concatenate([np.ones(shape), np.zeros(shape)])
     is_3D = len(x.shape) == 5
 
@@ -398,30 +405,41 @@ def test_create_model_expert_settings(qtbot, shape):
     widget_settings = TrainingSettingsWidget(widget, is_3D)
 
     # modify the settings
-    widget_settings.unet_n_first.setValue(64)
-    widget_settings.unet_depth.setValue(3)
-    widget_settings.unet_kernelsize.setValue(3)
-    widget_settings.train_learning_rate.setValue(0.0002)
-    widget_settings.n2v_perc_pix.setValue(0.1)
-    widget_settings.n2v_neighborhood_radius.setValue(7)
-    widget_settings.n2v_pm = get_pms()[3]
-    widget_settings.loss = get_losses()[1]
-    widget_settings.unet_residuals.setChecked(True)
-    widget_settings.single_net.setChecked(False)
+    unet_n_first = 64
+    unet_depth = 3
+    unet_kernelsize = 3
+    train_learning_rate = 0.0002
+    n2v_perc_pix = 0.1
+    n2v_neighborhood_radius = 7
+    n2v_pm = get_pms()[3]
+    loss = get_losses()[1]
+    unet_residuals = True
+    single_net = False
+
+    widget_settings.unet_n_first.setValue(unet_n_first)
+    widget_settings.unet_depth.setValue(unet_depth)
+    widget_settings.unet_kernelsize.setValue(unet_kernelsize)
+    widget_settings.train_learning_rate.setValue(train_learning_rate)
+    widget_settings.n2v_perc_pix.setValue(n2v_perc_pix)
+    widget_settings.n2v_neighborhood_radius.setValue(n2v_neighborhood_radius)
+    widget_settings.n2v_pm = n2v_pm
+    widget_settings.loss = loss
+    widget_settings.unet_residuals.setChecked(unet_residuals)
+    widget_settings.single_net.setChecked(single_net)
     widget_settings.structN2V_text.setText('0, 1, 1, 1, 0')
 
     # check settings
     settings = widget_settings.get_settings(is_3D=is_3D)
-    assert settings['unet_n_depth'] == 3
-    assert settings['unet_kern_size'] == 3
-    assert settings['unet_n_first'] == 64
-    assert settings['train_learning_rate'] == 0.0002
-    assert settings['n2v_perc_pix'] == 0.1
-    assert settings['n2v_neighborhood_radius'] == 7
-    assert settings['n2v_manipulator'] == get_pms()[3]
-    assert settings['train_loss'] == get_losses()[1]
-    assert settings['unet_residual']
-    assert not settings['single_net_per_channel']
+    assert settings['unet_n_depth'] == unet_depth
+    assert settings['unet_kern_size'] == unet_kernelsize
+    assert settings['unet_n_first'] == unet_n_first
+    assert settings['train_learning_rate'] == train_learning_rate
+    assert settings['n2v_perc_pix'] == n2v_perc_pix
+    assert settings['n2v_neighborhood_radius'] == n2v_neighborhood_radius
+    assert settings['n2v_manipulator'] == n2v_pm
+    assert settings['train_loss'] == loss
+    assert settings['unet_residual'] == unet_residuals
+    assert settings['single_net_per_channel'] == single_net
     assert settings['structN2Vmask'] == [[[0, 1, 1, 1, 0]]] if is_3D else [[0, 1, 1, 1, 0]]
 
     # create model
@@ -430,7 +448,7 @@ def test_create_model_expert_settings(qtbot, shape):
     # test config
     assert model.config.is_valid()
 
-    # assert that all default settings are correctly set
+    # assert that all settings are correctly set
     assert model.config.unet_n_depth == settings['unet_n_depth']
     assert model.config.unet_kern_size == settings['unet_kern_size']
     assert model.config.unet_n_first == settings['unet_n_first']
@@ -442,3 +460,37 @@ def test_create_model_expert_settings(qtbot, shape):
     assert model.config.unet_residual == settings['unet_residual']
     assert model.config.single_net_per_channel == settings['single_net_per_channel']
     assert model.config.structN2Vmask == settings['structN2Vmask']
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1)])
+def test_create_model_expert_settings_n2v2(qtbot, shape):
+    """
+    Tests that expert settings for N2V2 are correctly assigned.
+    """
+    x = np.concatenate([np.ones(shape), np.zeros(shape)])
+    is_3D = False
+
+    # create expert settings
+    widget = QWidget()
+    widget_settings = TrainingSettingsWidget(widget, is_3D)
+
+    # modify the settings
+    widget_settings.n2v2.setChecked(True)
+    widget_settings._update_N2V2()
+
+    # check settings
+    settings = widget_settings.get_settings(is_3D=is_3D)
+    assert settings['n2v_manipulator'] == 'median'
+    assert settings['blurpool']
+    assert settings['skip_skipone']
+
+    # create model
+    model = create_model(x, expert_settings=widget_settings)
+
+    # test config
+    assert model.config.is_valid()
+
+    # assert that all settings are correctly set
+    assert model.config.n2v_manipulator == settings['n2v_manipulator']
+    assert model.config.blurpool == settings['blurpool']
+    assert model.config.skip_skipone == settings['skip_skipone']
