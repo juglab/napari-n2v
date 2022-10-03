@@ -35,7 +35,7 @@ def apply_n2v(image: "napari.types.ImageData",
         raise Exception('Model not found')
 
     # load the model
-    model = load_model
+    model = load_model(model_path)
 
     # check image shape
     if len(image.shape) == 2:
