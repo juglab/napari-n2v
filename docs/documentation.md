@@ -81,6 +81,9 @@ The expert training parameters can be set by clicking on the gear button, modify
 - `Model`:
 Select a `.h5` or `.biomage.io.zip` file to retrain a model. 
 The models should be compatible. The plugin will automatically search for a `config.json` file in the same folder and throw an error if not found.
+- `Use N2V2`:
+Use a variant of N2V2 that mitigates check-board artefacts. This variant uses a slightly different architecture and a `median` pixel 
+manipulator. This is currently only possible in 2D. 
 - `U-Net depth`:
 Depth of the underlying U-Net architecture. Larger architectures are capable of generalizing better but are more complex to train.
 - `U-Net kernel size`:

@@ -18,7 +18,7 @@ Then, in your command line tool:
     
     ```bash
     conda install cudatoolkit=11.2 cudnn git -c conda-forge
-    pip install tensorflow==2.5
+    pip install tensorflow==2.7
     ```
     
 3. Install the latest version of N2V

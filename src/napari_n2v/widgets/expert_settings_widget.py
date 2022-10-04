@@ -50,8 +50,9 @@ class TrainingSettingsWidget(QDialog):
         ####################################################
         # create widgets for expert settings
         label_n2v2 = QLabel('Use N2V2')
-        desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that prevents' \
-                    'check-board artefacts. This only works with 2D data.'
+        desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that mitigates\n' \
+                    'check-board artefacts. This only works with 2D data and uses a median\n' \
+                    'pixel manipulator.'
         self.n2v2 = QCheckBox()
         self.n2v2.setChecked(use_n2v2)
         label_n2v2.setToolTip(desc_n2v2)
