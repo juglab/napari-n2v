@@ -16,24 +16,12 @@ from napari_n2v.utils import (
     create_model,
     get_default_settings,
     get_pms,
-    get_losses
+    get_losses,
+    cwd
 )
 from napari_n2v._tests.test_utils import (
     create_model_zoo_parameters
 )
-
-
-def delete_modelzoo_files(inputs, outputs, weights):
-    # delete files: https://github.com/bioimage-io/core-bioimage-io-python/issues/279
-    files = ['bioimage_doc.md',
-             'config.json',
-             'cover.png',
-             Path(inputs).name,
-             Path(outputs).name,
-             Path(weights).name]
-    for f in files:
-        if Path(f).exists():
-            Path(f).unlink()
 
 
 @pytest.mark.parametrize('shape', [3, 4, 5])
@@ -93,33 +81,14 @@ def test_are_axes_valid(axes, valid):
                                    (1, 16, 16, 8, 3),
                                    (1, 8, 16, 32, 1)])
 def test_build_modelzoo_allowed_shapes(tmp_path, shape):
-    # create model and save it to disk
-    parameters = create_model_zoo_parameters(tmp_path, shape)
-    build_modelzoo(*parameters)
+    # make sure files are created in tmp_path:
+    with cwd(tmp_path):
+        # create model and save it to disk
+        parameters = create_model_zoo_parameters(tmp_path, shape)
+        build_modelzoo(*parameters)
 
-    # check if modelzoo exists
-    assert Path(parameters[0]).exists()
-
-    # delete files
-    delete_modelzoo_files(parameters[2], parameters[3], parameters[1])
-
-
-# @pytest.mark.parametrize('shape', [(8,), (8, 16), (3, 16, 16), (32, 16, 8, 16, 32, 1)])
-# def test_build_modelzoo_disallowed_shapes(tmp_path, shape):
-#     """
-#     Test ModelZoo creation based on disallowed shapes.
-#
-#     :param tmp_path:
-#     :param shape:
-#     :return:
-#     """
-#     # create model and save it to disk
-#     parameters = create_model_zoo_parameters(tmp_path, shape)
-#     with pytest.raises(AssertionError):
-#         build_modelzoo(*parameters)
-#
-#     # delete files
-#     delete_modelzoo_files(parameters[2], parameters[3], parameters[1])
+        # check if modelzoo exists
+        assert Path(parameters[0]).exists()
 
 
 @pytest.mark.parametrize('shape', [(8, 16, 16, 1),
@@ -133,12 +102,10 @@ def test_build_modelzoo_disallowed_batch(tmp_path, shape):
     :return:
     """
     # create model and save it to disk
-    parameters = create_model_zoo_parameters(tmp_path, shape)
-    with pytest.raises(ValidationError):
-        build_modelzoo(*parameters)
-
-    # delete files
-    delete_modelzoo_files(parameters[2], parameters[3], parameters[1])
+    with cwd(tmp_path):
+        parameters = create_model_zoo_parameters(tmp_path, shape)
+        with pytest.raises(ValidationError):
+            build_modelzoo(*parameters)
 
 
 @pytest.mark.parametrize('shape, axes, final_shape, final_axes',
