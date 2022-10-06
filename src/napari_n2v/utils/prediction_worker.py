@@ -8,6 +8,7 @@ from tensorflow.python.framework.errors_impl import UnknownError
 from tifffile import imwrite
 from napari.qt.threading import thread_worker
 from napari.utils import notifications as ntf
+from magicgui.types import PathLike
 
 from napari_n2v.utils import (
     UpdateType,
@@ -25,7 +26,7 @@ from napari_time_slicer import time_slicer
 @register_function(menu="Filtering / noise removal > Apply N2V denoiser")
 @time_slicer
 def apply_n2v(image: "napari.types.ImageData",
-              model_filename: str = "my_n2v_model",
+              model_filename: PathLike = "my_n2v_model",
               number_of_tiles: int = 4,
               ) -> "napari.types.ImageData":
     """
@@ -35,7 +36,7 @@ def apply_n2v(image: "napari.types.ImageData",
         raise Exception('Model not found')
 
     # load the model
-    model = load_model
+    model = load_model(model_path)
 
     # check image shape
     if len(image.shape) == 2:
