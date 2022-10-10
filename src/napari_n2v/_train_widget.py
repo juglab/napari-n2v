@@ -332,7 +332,9 @@ class TrainWidget(QWidget):
 
                 if not self.load_from_disk:
                     if self.img_train.value is None:
-                        ntf.show_error('No layer selected for training.')
+                        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                        # ntf.show_error('No layer selected for training.')
+                        ntf.show_info('No layer selected for training.')
                         return
 
                 self.state = State.RUNNING
@@ -356,7 +358,9 @@ class TrainWidget(QWidget):
                 self.train_worker.returned.connect(self._training_done)
                 self.train_worker.start()
             else:
-                ntf.show_error('Invalid axes')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('Invalid axes')
+                ntf.show_info('Invalid axes')
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
@@ -398,7 +402,9 @@ class TrainWidget(QWidget):
                 self.predict_worker.yielded.connect(lambda x: self._update_prediction(x))
                 self.predict_worker.start()
             else:
-                ntf.show_error('No model available.')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('No model available.')
+                ntf.show_info('No model available.')
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
