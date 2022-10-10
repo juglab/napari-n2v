@@ -107,7 +107,9 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
                                  expert_settings=expert_settings)
         except InternalError as e:
             print(e.message)
-            ntf.show_error(e.message)
+            # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+            # ntf.show_error(e.message)
+            ntf.show_info(e.message)
             warnings.warn('InternalError could be caused by the GPU already being used by another process.')
 
             # stop the training process gracefully
@@ -124,7 +126,9 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
                 model.keras_model.set_weights(new_model.keras_model.get_weights())
         except ValueError as e:
             print(str(e))
-            ntf.show_error(str(e))
+            # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+            # ntf.show_error(str(e))
+            ntf.show_info(str(e))
             warnings.warn('ValueError could be caused by incompatible weights and model.')
 
             # stop the training process gracefully
@@ -279,7 +283,9 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64), augment=True):
 
 def train_error(updater, args, msg: str):
     # TODO all necessary?
-    ntf.show_error(msg)
+    # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+    # ntf.show_error(msg)
+    ntf.show_info(msg)
     warnings.warn(msg)
     print(args)
     updater.on_train_crashed()

@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-import os
 import urllib
 import zipfile
 from pathlib import Path

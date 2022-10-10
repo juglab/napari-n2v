@@ -98,7 +98,9 @@ def create_model(X_patches,
                                    **expert_settings.get_settings(is_3D))
 
         if not config.is_valid():
-            ntf.show_error('Invalid configuration.')
+            # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+            # ntf.show_error('Invalid configuration.')
+            ntf.show_info('Invalid configuration.')
 
         # create network
         model = N2V(config, model_name, basedir=basedir)

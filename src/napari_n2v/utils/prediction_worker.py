@@ -198,7 +198,9 @@ def prediction_worker(widget):
     try:
         model = load_model(weight_path)
     except ValueError as e:
-        ntf.show_error('Error loading model weights.')
+        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+        # ntf.show_error('Error loading model weights.')
+        ntf.show_info('Error loading model weights.')
         print(e)
 
         yield {UpdateType.DONE}
@@ -210,7 +212,9 @@ def prediction_worker(widget):
             images, n_img = lazy_load_generator(widget.images_folder.get_folder())
 
             if n_img == 0:
-                ntf.show_error('No image found.')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('No image found.')
+                ntf.show_info('No image found.')
                 yield {UpdateType.DONE}
                 return
 
@@ -220,7 +224,9 @@ def prediction_worker(widget):
             images, new_axes = load_from_disk(widget.images_folder.get_folder(), axes)
 
             if type(images) == tuple and len(images[0]) == 0:
-                ntf.show_error('No image found.')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('No image found.')
+                ntf.show_info('No image found.')
                 yield {UpdateType.DONE}
                 return
     else:
@@ -282,7 +288,9 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
                 predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
         except UnknownError as e:
             msg = 'UnknownError can be a failure to load cudnn, try restarting.'
-            ntf.show_error(msg)
+            # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+            # ntf.show_error(msg)
+            ntf.show_info(msg)
             warnings.warn(msg)
             print(e.message)
             break
@@ -318,7 +326,9 @@ def _run_prediction_to_disk(widget, model, axes, images, is_tiled=False, n_tiles
                 yield _data, f, _axes, counter
 
             except ValueError:
-                ntf.show_error(f'Wrong image shapes {f.stem} {im.shape}')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error(f'Wrong image shapes {f.stem} {im.shape}')
+                ntf.show_info(f'Wrong image shapes {f.stem} {im.shape}')
 
     gen = generator(images, axes)
 
@@ -404,7 +414,9 @@ def _run_lazy_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4)
 
             except ValueError as e:
                 print(e.args)
-                ntf.show_error(f'Wrong image shapes  {file.stem} {image.shape}')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error(f'Wrong image shapes  {file.stem} {image.shape}')
+                ntf.show_info(f'Wrong image shapes  {file.stem} {image.shape}')
         else:
             break
 
