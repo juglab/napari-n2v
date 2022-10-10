@@ -76,11 +76,14 @@ Similar to `Patch XY`, albeit for the Z axis.
 
 The expert training parameters can be set by clicking on the gear button, modifying the relevant settings and closing the window.
 
-![expert_settings.png](images/expert_settings.png)
+<img src="images/expert_settings.png" alt="expert settings" width="350"/>
 
 - `Model`:
 Select a `.h5` or `.biomage.io.zip` file to retrain a model. 
 The models should be compatible. The plugin will automatically search for a `config.json` file in the same folder and throw an error if not found.
+- `N validation`:
+Number of patches extracted from the training set to use as validation. This setting is
+only used when the training and validation layers or folders are the same.
 - `Use N2V2`:
 Use a variant of N2V2 that mitigates check-board artefacts. This variant uses a slightly different architecture and a `median` pixel 
 manipulator. This is currently only possible in 2D. 

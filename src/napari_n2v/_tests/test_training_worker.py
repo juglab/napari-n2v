@@ -8,10 +8,6 @@ from napari_n2v.utils.training_worker import load_images, prepare_data, train_wo
 from napari_n2v._tests.test_utils import save_img
 
 
-# TODO
-# TODO test what happens when there is not img in val or train??
-
-
 class MonkeyPatchAxesWidget:
     def __init__(self, axes='SYX'):
         self.axes = axes

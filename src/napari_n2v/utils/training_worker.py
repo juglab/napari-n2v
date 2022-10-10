@@ -71,10 +71,8 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     # patch shape
     if widget.is_3D:
         patch_shape = (patch_Z, patch_XY, patch_XY)
-        print(patch_shape)
     else:
         patch_shape = (patch_XY, patch_XY)
-        print(patch_shape)
 
     # get data
     ntf.show_info('Loading data')
@@ -87,7 +85,11 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
     else:
         # if structN2V we should augment only by flip along the right directions, currently no augmentation
-        X_train, X_val = prepare_data(_x_train, _x_val, patch_shape, augment=expert_settings.has_mask())
+        X_train, X_val = prepare_data(_x_train,
+                                      _x_val,
+                                      patch_shape,
+                                      augment=expert_settings.has_mask(),
+                                      n_val=expert_settings.get_val_size())
 
     # create model
     ntf.show_info('Creating model')
@@ -278,7 +280,7 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64), augment=True, n_val=5):
 
     X_train_patches = data_gen.generate_patches_from_list(_x_train, shape=patch_shape, shuffle=True, augment=augment)
 
-    if x_val is None:  # TODO: how to choose number of validation patches?
+    if x_val is None:
         X_val_patches = X_train_patches[-n_val:]
         X_train_patches = X_train_patches[:-n_val]
     else:

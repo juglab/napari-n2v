@@ -37,6 +37,8 @@ class TrainingSettingsWidget(QDialog):
                    default_settings['skip_skipone'] == True and \
                    default_settings['n2v_manipulator'] == 'median'
 
+        n_val = 5
+
         # groups
         self.retraining = QGroupBox()
         self.retraining.setTitle("Retrain model")
@@ -49,6 +51,14 @@ class TrainingSettingsWidget(QDialog):
 
         ####################################################
         # create widgets for expert settings
+        label_n_validation = QLabel('N validation')
+        desc_n_validation = 'Number of patches used for validation. This is only used when no\n' \
+                            'validation data is defined (i.e. validation is taken from the\n' \
+                            'training patches.).'
+        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=20) # todo: arbitrary max...
+        label_n_validation.setToolTip(desc_n_validation)
+        self.n_val.setToolTip(desc_n_validation)
+
         label_n2v2 = QLabel('Use N2V2')
         desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that mitigates\n' \
                     'check-board artefacts. This only works with 2D data and uses a median\n' \
@@ -141,6 +151,7 @@ class TrainingSettingsWidget(QDialog):
 
         # arrange form layout
         form = QFormLayout()
+        form.addRow(label_n_validation, self.n_val)
         form.addRow(label_n2v2, self.n2v2)
         form.addRow(label_unet_depth, self.unet_depth)
         form.addRow(label_unet_kernelsize, self.unet_kernelsize)
@@ -226,6 +237,9 @@ class TrainingSettingsWidget(QDialog):
 
     def has_mask(self):
         return self.structN2V_text.text() == ''
+
+    def get_val_size(self):
+        return self.n_val.value()
 
     # todo could refactor this into a single function easy to test
     def _get_structN2V(self, is_3D=False):
