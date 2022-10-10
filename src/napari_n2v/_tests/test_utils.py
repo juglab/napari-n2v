@@ -13,6 +13,10 @@ from napari_n2v.utils import (
 ###################################################################
 # convenience functions: save images
 def save_img(folder_path, n, shape, prefix='', axes=None):
+    """
+    Create `n` images in `folder_path` with shape `shape. The name of the files can be preceded by `prefix` in order
+    to create files with different shapes in the same folder (by calling the method twice with different prefixes).
+    """
     for i in range(n):
         im = np.random.randint(0, 65535, shape, dtype=np.uint16)
 

@@ -574,6 +574,15 @@ class TrainWidget(QWidget):
     def get_n_tiles(self):
         return self.tiling_spin.value()
 
+    def get_batch_size(self):
+        return self.batch_size_spin.value()
+
+    def get_patch_XY(self):
+        return self.patch_XY_spin.value()
+
+    def get_patch_Z(self):
+        return self.patch_Z_spin.value()
+
 
 if __name__ == "__main__":
     from napari_n2v._sample_data import n2v_2D_data, n2v_3D_data
