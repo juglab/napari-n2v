@@ -223,11 +223,17 @@ class TrainingSettingsWidget(QDialog):
 
     def _update_N2V2(self):
         if self.n2v2.isChecked():
+            # we need median pixel manipulator
             self.n2v_pmanipulator.setCurrentText('median')
             self.n2v_pm = 'median'
             self.n2v_pmanipulator.setEnabled(False)
+
+            # no residuals
+            self.unet_residuals.setChecked(False)
+            self.unet_residuals.setEnabled(False)
         else:
             self.n2v_pmanipulator.setEnabled(True)
+            self.unet_residuals.setEnabled(True)
 
     def get_model_path(self):
         return self.load_model_button.Model.value
