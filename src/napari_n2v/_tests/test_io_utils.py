@@ -13,7 +13,8 @@ from napari_n2v.utils import (
     build_modelzoo,
     create_config,
     save_configuration,
-    load_configuration
+    load_configuration,
+    cwd
 )
 from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo
 
@@ -54,22 +55,13 @@ def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
         load_weights(model2, str(path_to_h5))
 
 
-@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (8, 16, 32, 1), (1, 8, 16, 16, 1), (1, 8, 16, 16, 1)])
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 8, 16, 32, 1), (1, 8, 16, 16, 1)])
 def test_load_weights_modelzoo(tmp_path, shape):
     # save model_zoo
     parameters = create_model_zoo_parameters(tmp_path, shape)
-    build_modelzoo(*parameters)
 
-    # create a new model and load from previous weights
-    model = create_simple_model(tmp_path, shape)
-    load_weights(model, str(parameters[0]))
-
-
-@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 32, 1), (1, 8, 16, 16, 1), (1, 8, 16, 16, 1)])
-def test_load_weights_modelzoo(tmp_path, shape):
-    # save model_zoo
-    parameters = create_model_zoo_parameters(tmp_path, shape)
-    build_modelzoo(*parameters)
+    with cwd(tmp_path):
+        build_modelzoo(*parameters)
 
     # create a new model and load from previous weights
     model = create_simple_model(tmp_path, shape)
