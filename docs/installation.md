@@ -1,7 +1,7 @@
 
 # Installation
 
-## Create a conda environment (Linux and Windows)
+## Create a conda environment
 
 If you do not have conda, we recommend installing [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/).
 
@@ -14,12 +14,8 @@ Then, in your command line tool:
     conda activate napari-n2v
     ```
     
-2. Install the packages necessary to use GPU-acceleration
-    
-    ```bash
-    conda install cudatoolkit=11.2 cudnn git -c conda-forge
-    pip install tensorflow==2.7
-    ```
+2. Follow the [TensorFlow installation step-by-step](https://www.tensorflow.org/install/pip#linux_1) for your 
+operating system.
     
 3. Install the latest version of N2V
     
@@ -32,13 +28,7 @@ Then, in your command line tool:
     ```bash
     pip install "napari[all]"
     ```
-   
-   Note that `pip` might complain about `typing-extensions` versions, just ignore it.
 
-
-## macOS instructions
-
-(soon)
 
 ## Install napari-n2v
 
@@ -51,15 +41,12 @@ This step is performed after [starting napari](#start-napari-n2v).
 (soon)
 
 ### Install napari-n2v via pip
-<!---
 
 Within the previously installed conda environment, type:
 
 ```bash
-pip install napari-n2v
+pip install git+https://github.com/juglab/napari-n2v.git
 ```
---->
-(soon)
 
 ### Install napari-n2v from source
 

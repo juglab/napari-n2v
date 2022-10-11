@@ -21,7 +21,7 @@ You can install `napari-n2v` via [pip]:
 
 Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
 -->
-Check out the documentation for installation instructions. (soon on PyPi and napari hub)
+Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for installation instructions. (soon on PyPi and napari hub)
 
 
 ## Quick demo
@@ -29,11 +29,8 @@ Check out the documentation for installation instructions. (soon on PyPi and nap
 ![Demo prediction](docs/images/demo.gif)
 
 You can try the quick demo by loading the "N2V Demo prediction" in plugins, and starting the prediction directly.
+
 ## Documentation
-
-
-![Training](docs/images/training.gif)
-
 
 Documentation is available on the [project website](https://juglab.github.io/napari-n2v/).
 
