@@ -78,7 +78,7 @@ def _load_rgb():
         return [(img, {'name': 'RGB'})]
 
 
-def demo_files():
+def _load_sem():
     with cwd(get_temp_path()):
         # create data folder if it doesn't already exist
         data_path = Path('data', 'sem')
@@ -94,8 +94,20 @@ def demo_files():
                 zip_ref.extractall(data_path)
 
         # load data
-        img_path = Path(data_path, 'validation.tif')
-        img = io.imread(img_path)
+
+        # load data
+        train_path = Path(data_path, 'train.tif')
+        val_path = Path(data_path, 'validation.tif')
+        img_train = io.imread(train_path)
+        img_val = io.imread(val_path)
+
+        return [(img_train, {'name': 'train'}), (img_val, {'name': 'val'})]
+
+
+def demo_files():
+    with cwd(get_temp_path()):
+        # load sem validation
+        img = _load_sem()[1][1]
 
         # create models folder if it doesn't already exist
         model_path = Path('models', 'trained_sem')
@@ -135,3 +147,8 @@ def n2v_2D_data() -> LayerDataTuple:
 def n2v_rgb_data() -> LayerDataTuple:
     ntf.show_info('Downloading data might take a few minutes.')
     return _load_rgb()
+
+
+def n2v_sem_data() -> LayerDataTuple:
+    ntf.show_info('Downloading data might take a few minutes.')
+    return _load_sem()

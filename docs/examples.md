@@ -212,9 +212,9 @@ config = N2VConfig(X,
 
 In order to reproduce the result using the plugin, we then follow these steps:
 
-1. Download the [data](https://download.fht.org/jug/n2v/SEM.zip) and unzip it. Place the train and validation images in two different folders.
-2. Start the plugin and point towards the train and validation folders in the `From disk`.
-3. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples. 
+3. Set validation to the validation layer.
 4. Make sure to enter `YX` in `Axes`.
 5. In `Training parameters`, set: <br>
 `N epochs` = 20 <br>
@@ -287,9 +287,10 @@ config = N2VConfig(X,
 
 In order to reproduce the result using the plugin, we then follow these steps:
 
-1. Download the [data](https://download.fht.org/jug/n2v/SEM.zip) and unzip it. Place the train and validation images in two different folders.
-2. Start the plugin and point towards the train and validation folders in the `From disk`.
-3. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples. 
+3. Set validation to the validation layer.
 4. Make sure to enter `YX` in `Axes`.
 5. In `Training parameters`, set: <br>
 `N epochs` = 20 <br>
