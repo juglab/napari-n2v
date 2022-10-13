@@ -55,14 +55,14 @@ class TrainingSettingsWidget(QDialog):
         desc_n_validation = 'Number of patches used for validation. This is only used when no\n' \
                             'validation data is defined (i.e. validation is taken from the\n' \
                             'training patches.).'
-        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=20) # todo: arbitrary max...
+        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=20)  # todo: arbitrary max...
         label_n_validation.setToolTip(desc_n_validation)
         self.n_val.setToolTip(desc_n_validation)
 
         label_n2v2 = QLabel('Use N2V2')
         desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that mitigates\n' \
                     'check-board artefacts. This only works with 2D data and uses a median\n' \
-                    'pixel manipulator.'
+                    'pixel manipulator. N2V2 is currently not compatible with structN2V.'
         self.n2v2 = QCheckBox()
         self.n2v2.setChecked(use_n2v2)
         label_n2v2.setToolTip(desc_n2v2)
@@ -231,9 +231,21 @@ class TrainingSettingsWidget(QDialog):
             # no residuals
             self.unet_residuals.setChecked(False)
             self.unet_residuals.setEnabled(False)
+
+            # no structN2V
+            self.structN2V_text.setEnabled(False)
+            self.structN2V_text.setText('')
         else:
             self.n2v_pmanipulator.setEnabled(True)
             self.unet_residuals.setEnabled(True)
+            self.structN2V_text.setEnabled(True)
+
+            # change the pixel manipulator to default
+            if self.n2v_pm == 'median':
+                # since checking N2V2 selects the median pixel manipulator
+                # we consider that if it was checked, we need to change the pm
+                self.n2v_pmanipulator.setCurrentText(get_pms()[0])
+                self.n2v_pm = get_pms()[0]
 
     def get_model_path(self):
         return self.load_model_button.Model.value
@@ -293,8 +305,9 @@ class TrainingSettingsWidget(QDialog):
             self.n2v2.setChecked(False)
             self.n2v2.setEnabled(False)
 
-            # enable the pixel manipulator
+            # enable the pixel manipulator and structN2V
             self.n2v_pmanipulator.setEnabled(True)
+            self.structN2V_text.setEnabled(True)
         else:
             # enable N2V2
             self.n2v2.setEnabled(True)
