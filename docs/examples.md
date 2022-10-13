@@ -212,20 +212,20 @@ config = N2VConfig(X,
 
 In order to reproduce the result using the plugin, we then follow these steps:
 
+
 1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-2. Choose the SEM data in the sample examples. 
-3. Set validation to the validation layer.
-4. Make sure to enter `YX` in `Axes`.
-5. In `Training parameters`, set: <br>
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
 `N epochs` = 20 <br>
 `N steps` = 27 <br>
 `Batch size` = 128 <br>
 `Patch XY` = 64 <br>
-6. Click on the gear button to open the `Expert settings` and set: <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
 `U-Net kernel size` = 3 <br>
-7. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
-8. Train!
-9. Note that for the prediction, you will probably need to use tiling.
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
 
 
 ## 2D SEM with N2V2
@@ -289,20 +289,19 @@ In order to reproduce the result using the plugin, we then follow these steps:
 
 
 1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-2. Choose the SEM data in the sample examples. 
-3. Set validation to the validation layer.
-4. Make sure to enter `YX` in `Axes`.
-5. In `Training parameters`, set: <br>
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
 `N epochs` = 20 <br>
 `N steps` = 27 <br>
 `Batch size` = 128 <br>
 `Patch XY` = 64 <br>
-6. Click on the gear button to open the `Expert settings` and set: <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
 `U-Net kernel size` = 3 <br>
 `N2V2` = checked <br>
-7. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
-8. Train!
-9. Note that for the prediction, you will probably need to use tiling.
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
 
 ## 2D structN2V Convollaria
 
