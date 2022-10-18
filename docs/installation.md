@@ -16,16 +16,16 @@ Then, in your command line tool:
     
 2. Follow the [TensorFlow installation step-by-step](https://www.tensorflow.org/install/pip#linux_1) for your 
 operating system.
+3. Install `napari`:
+    ```bash
+    pip install "napari[all]==0.4.15"
+    ```
 
 
 ## Install napari-n2v
 
 ### Install napari-n2v through the napari-hub
 
-1. Install napari
-    ```bash
-    pip install "napari[all]==0.4.15"
-    ```
 <!---
 
 Check-out the instructions on [installing plugins via the napari hub](https://napari.org/stable/plugins/find_and_install_plugin.html). 
