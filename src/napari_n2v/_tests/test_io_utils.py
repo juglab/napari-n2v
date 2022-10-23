@@ -174,6 +174,7 @@ def test_save_tf(tmp_path, path):
         assert where.exists()
 
 
+@pytest.mark.bioimage_io
 @pytest.mark.parametrize('path', ['mydir',
                                   'myfile.bioimage.io.zip',
                                   Path('mydir', 'myotherdir'),
