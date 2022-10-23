@@ -323,6 +323,7 @@ def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, 
     assert len(hist) == n * shape_n2v[0] + 2
 
 
+@pytest.mark.qt
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),

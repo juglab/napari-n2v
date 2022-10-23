@@ -8,7 +8,7 @@ from napari_n2v.widgets import TrainingSettingsWidget
 from napari_n2v.utils import create_config, get_default_settings
 
 
-@pytest.mark.skip('Ignore to avoid error during Github actions')
+@pytest.mark.qt
 @pytest.mark.parametrize('is_3D, shape', [(False, (1, 16, 16, 1)), (True, (1, 16, 16, 16, 1))])
 def test_default_expert_values(qtbot, is_3D, shape):
     """
@@ -25,7 +25,7 @@ def test_default_expert_values(qtbot, is_3D, shape):
     assert settings == get_default_settings(is_3D)
 
 
-@pytest.mark.skip('Ignore to avoid error during Github actions')
+@pytest.mark.qt
 @pytest.mark.parametrize('shape', [(2, 16, 16, 1), (2, 16, 16, 16, 1)])
 def test_configuration_compatibility(qtbot, shape):
     """
@@ -47,7 +47,7 @@ def test_configuration_compatibility(qtbot, shape):
     assert config.is_valid()
 
 
-@pytest.mark.skip('Ignore to avoid error during Github actions')
+@pytest.mark.qt
 @pytest.mark.parametrize('is_3D', [True, False])
 @pytest.mark.parametrize('horizontal', [True, False])
 @pytest.mark.parametrize('text, array', [('0', [0]),

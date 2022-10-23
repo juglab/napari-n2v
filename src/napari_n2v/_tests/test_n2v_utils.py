@@ -381,7 +381,7 @@ def test_create_model_default_settings(shape):
     assert model.config.structN2Vmask == default_settings['structN2Vmask']
 
 
-@pytest.mark.skip('Ignore to avoid error during Github actions')
+@pytest.mark.qt
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 16, 16, 16, 1)])
 def test_create_model_expert_settings(qtbot, shape):
     """
@@ -452,7 +452,7 @@ def test_create_model_expert_settings(qtbot, shape):
     assert model.config.structN2Vmask == settings['structN2Vmask']
 
 
-@pytest.mark.skip('Ignore to avoid error during Github actions')
+@pytest.mark.qt
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1)])
 def test_create_model_expert_settings_n2v2(qtbot, shape):
     """
