@@ -55,6 +55,7 @@ def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
         load_weights(model2, str(path_to_h5))
 
 
+@pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 8, 16, 32, 1), (1, 8, 16, 16, 1)])
 def test_load_weights_modelzoo(tmp_path, shape):
     # save model_zoo
