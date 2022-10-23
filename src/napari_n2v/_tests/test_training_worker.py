@@ -79,6 +79,7 @@ class MonkeyPatchWidget:
         return self.patch_Z
 
 
+@pytest.mark.qt
 @pytest.mark.parametrize('shape, axes, is_3D', [((1, 64, 64), 'SYX', False),
                                                 ((1, 64, 64, 3), 'SYXC', False),
                                                 ((1, 3, 64, 64), 'STYX', False),
@@ -104,6 +105,7 @@ def test_train_layers(qtbot, shape, axes, is_3D):
     assert widget.model is not None
 
 
+@pytest.mark.qt
 @pytest.mark.parametrize('n', [1, 2])
 @pytest.mark.parametrize('shape, axes, is_3D', [((64, 64), 'YX', False),
                                                 ((64, 64, 3), 'YXC', False),
@@ -134,6 +136,7 @@ def test_train_from_disk(qtbot, tmp_path, n, shape, axes, is_3D):
     assert widget.model is not None
 
 
+@pytest.mark.qt
 @pytest.mark.parametrize('shape1, shape2, axes, is_3D', [((64, 64), (48, 48), 'YX', False),
                                                          ((64, 64, 3), (48, 48, 3), 'YXC', False),
                                                          ((3, 64, 64), (3, 48, 48), 'TYX', False),
