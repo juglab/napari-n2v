@@ -23,6 +23,7 @@ from napari_tools_menu import register_function
 from napari_time_slicer import time_slicer
 
 
+# TODO: setup.cfg defines the wrong entry point probably
 @register_function(menu="Filtering / noise removal > Apply N2V denoiser")
 @time_slicer
 def apply_n2v(image: "napari.types.ImageData",
