@@ -1,6 +1,6 @@
 # napari-n2v
 
-`napari-n2v` brings Noise2Void to the fantastic world of napari. N2V is a sef-supervised denoising algorithm allowing 
+`napari-n2v` brings [Noise2Void](https://github.com/juglab/n2v) to the fantastic world of napari. N2V is a sef-supervised denoising algorithm allowing 
 removing pixel-independent noise. It also includes an extension, structN2V, aimed at removing structured noise.
 
 This set of plugins can train, retrain and predict on images from napari or from the disk. It conveniently allows saving 
