@@ -169,7 +169,7 @@ def test_train_from_disk_list(qtbot, tmp_path, shape1, shape2, axes, is_3D):
 
 
 #############################################################################################
-@pytest.mark.parametrize('n', [1, 3])
+@pytest.mark.parametrize('n', [1, 2])
 @pytest.mark.parametrize('shape, axes, new_axes', [((8, 8), 'YX', 'SYXC'),
                                                    ((8, 8, 8), 'ZYX', 'SZYXC'),
                                                    ((2, 8, 8), 'SYX', 'SYXC'),
@@ -201,7 +201,7 @@ def test_load_images_from_disk_same_val(tmp_path, n, shape, axes, new_axes):
     assert _x_val is None
 
 
-@pytest.mark.parametrize('n', [1, 3])
+@pytest.mark.parametrize('n', [1, 2])
 @pytest.mark.parametrize('shape1, shape2, axes, new_axes', [((8, 8), (16, 16), 'YX', 'SYXC'),
                                                             ((8, 8, 8), (3, 8, 8), 'ZYX', 'SZYXC'),
                                                             ((2, 8, 8), (1, 8, 8), 'SYX', 'SYXC'),

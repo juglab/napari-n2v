@@ -24,14 +24,12 @@ class MonkeyPatchWidget:
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, axes',
                          [((16, 16), 'YX'),
-                          ((5, 16, 16), 'SYX'),
                           ((16, 16, 3), 'YXC'),
-                          ((5, 16, 16), 'TYX'),
-                          ((16, 32, 32), 'ZYX'),
-                          ((5, 16, 16, 5), 'SYXT'),
-                          ((5, 16, 16, 3), 'SYXC'),
-                          ((5, 16, 32, 32), 'SZYX'),
-                          ((5, 16, 3, 32, 32), 'SZCYX')])
+                          ((2, 16, 16), 'TYX'),
+                          ((16, 16, 16), 'ZYX'),
+                          ((2, 16, 16, 3), 'SYXC'),
+                          ((2, 16, 16, 16), 'SZYX'),
+                          ((2, 16, 3, 16, 16), 'SZCYX')])
 def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
     # create data
     x = np.ones(shape)
@@ -67,13 +65,11 @@ def test_predict_after_training_same_size(tmp_path, n_tiles, shape, axes):
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape1, shape2, axes',
                          [((16, 16), (32, 32), 'YX'),
-                          ((5, 16, 16), (3, 16, 16), 'SYX'),
-                          ((5, 16, 16), (5, 32, 32), 'TYX'),
-                          ((5, 16, 16), (5, 32, 32), 'CYX'),
-                          ((16, 32, 32), (32, 32, 32), 'ZYX'),
-                          ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXT'),
-                          ((5, 16, 16, 3), (5, 32, 32, 3), 'SYXC'),
-                          ((5, 16, 32, 32), (5, 16, 16, 16), 'SZYX')])
+                          ((2, 16, 16), (2, 32, 32), 'TYX'),
+                          ((3, 16, 16), (3, 32, 32), 'CYX'),
+                          ((16, 16, 16), (16, 32, 32), 'ZYX'),
+                          ((2, 16, 16, 3), (2, 32, 32, 3), 'SYXC'),
+                          ((3, 16, 32, 32, 3), (2, 16, 16, 16, 3), 'SZYXC')])
 def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
     # create data
     x1 = np.ones(shape1)
@@ -110,7 +106,7 @@ def test_predict_after_training_list(tmp_path, n_tiles, shape1, shape2, axes):
 
 @pytest.mark.parametrize('shape1, shape2, axes',
                          [((5, 16, 16), (3, 16, 16), 'CYX'),
-                          ((5, 16, 16, 5), (5, 32, 32, 3), 'SYXC')])
+                          ((2, 16, 16, 5), (2, 16, 16, 3), 'SYXC')])
 def test_predict_after_training_list_incompatible_C(tmp_path, shape1, shape2, axes):
     # create data
     x1 = np.ones(shape1)
@@ -134,19 +130,16 @@ def test_predict_after_training_list_incompatible_C(tmp_path, shape1, shape2, ax
             t = next(predictor, None)
 
 
-@pytest.mark.parametrize('n', [1, 3])
+@pytest.mark.parametrize('n', [2])
 @pytest.mark.parametrize('n_tiles', [1, 2])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
-                          ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
-                          ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
-                          ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
+                          ((2, 16, 16), (2, 16, 16, 1), 'TYX'),
                           ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
-                          ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
-                          ((5, 16, 16, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 16, 3), (5, 16, 16, 3), 'SYXC'),
-                          ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX'),
-                          ((5, 16, 3, 32, 32), (5, 16, 32, 32, 3), 'SZCYX')])
+                          ((16, 16, 16), (1, 16, 16, 16, 1), 'ZYX'),
+                          ((2, 16, 16, 3), (2, 16, 16, 3), 'SYXC'),
+                          ((2, 16, 32, 32), (2, 16, 32, 32, 1), 'SZYX'),
+                          ((2, 16, 3, 32, 32), (2, 16, 32, 32, 3), 'SZCYX')])
 def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
@@ -173,21 +166,19 @@ def test_run_lazy_prediction_same_size(tmp_path, n, n_tiles, shape, shape_n2v, a
     assert len(image_files) == n
 
 
-@pytest.mark.parametrize('n_tiles', [1, 2])
+@pytest.mark.parametrize('n_tiles', [1])
 @pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
                          [((16, 16), (32, 32), (1, 16, 16, 1), 'YX'),
-                          ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'SYX'),
+                          ((2, 16, 16), (1, 32, 32), (2, 16, 16, 1), 'TYX'),
                           ((16, 16, 3), (32, 32, 3), (1, 16, 16, 3), 'YXC'),
-                          ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (16, 16, 16), (1, 16, 32, 32, 1), 'ZYX'),
                           ((16, 32, 3, 32), (16, 16, 3, 16), (1, 16, 32, 32, 3), 'ZYCX'),
-                          ((5, 16, 16, 5), (3, 32, 32, 5), (25, 16, 16, 1), 'SYXT'),
-                          ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX'),
-                          ((5, 3, 16, 32, 32), (3, 3, 16, 16, 16), (5, 16, 32, 32, 3), 'SCZYX')])
+                          ((2, 16, 32, 32), (1, 16, 16, 16), (2, 16, 32, 32, 1), 'SZYX'),
+                          ((2, 3, 16, 32, 32), (1, 3, 16, 16, 16), (2, 16, 32, 32, 3), 'SCZYX')])
 def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
-    path_to_h5 = save_weights_h5(model, tmp_path)
+    save_weights_h5(model, tmp_path)
 
     # create files
     n = 1
@@ -216,7 +207,7 @@ def test_run_lazy_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, 
 @pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
                          [((16, 16, 3), (32, 32, 4), (1, 16, 16, 3), 'YXC'),
                           ((16, 32, 3, 32), (16, 16, 1, 16), (1, 16, 32, 32, 3), 'ZYCX'),
-                          ((5, 3, 16, 32, 32), (3, 5, 16, 16, 16), (5, 16, 32, 32, 3), 'SCZYX')])
+                          ((2, 3, 16, 32, 32), (2, 5, 16, 16, 16), (2, 16, 32, 32, 3), 'SCZYX')])
 def test_run_lazy_prediction_different_C(tmp_path, shape1, shape2, shape_n2v, axes):
     # create model and save it to disk
     model = create_simple_model(tmp_path, shape_n2v)
@@ -244,17 +235,14 @@ def test_run_lazy_prediction_different_C(tmp_path, shape1, shape2, shape_n2v, ax
     assert len(image_files) == n
 
 
-@pytest.mark.parametrize('n_tiles', [1, 2])
+@pytest.mark.parametrize('n_tiles', [1])
 @pytest.mark.parametrize('shape1, shape2, shape_n2v, axes',
                          [((16, 16), (32, 32), (1, 16, 16, 1), 'YX'),
                           ((16, 16, 3), (32, 32, 3), (1, 16, 16, 3), 'YXC'),
-                          ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'SYX'),
                           ((3, 16, 16), (3, 32, 32), (1, 16, 16, 3), 'CYX'),
                           ((5, 16, 16), (3, 32, 32), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (16, 16, 16), (1, 16, 32, 32, 1), 'ZYX'),
-                          ((16, 32, 32, 3), (16, 16, 16, 3), (1, 16, 32, 32, 3), 'ZYXC'),
                           ((16, 3, 32, 32), (16, 3, 16, 16), (1, 16, 32, 32, 3), 'ZCYX'),
-                          ((5, 16, 16, 5), (3, 32, 32, 5), (25, 16, 16, 1), 'SYXT'),
                           ((5, 16, 32, 32), (3, 16, 16, 16), (5, 16, 32, 32, 1), 'SZYX'),
                           ((5, 16, 32, 32, 3), (3, 16, 16, 16, 3), (5, 16, 32, 32, 3), 'SZYXC')])
 def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, shape2, shape_n2v, axes):
@@ -288,18 +276,14 @@ def test_run_from_disk_prediction_different_sizes(tmp_path, n_tiles, shape1, sha
     assert len(image_files) == 2 * n
 
 
-@pytest.mark.parametrize('n', [1, 3])
-@pytest.mark.parametrize('n_tiles', [1, 2])
+@pytest.mark.parametrize('n', [2])
+@pytest.mark.parametrize('n_tiles', [1])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
                           ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
-                          ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
-                          ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
-                          ((16, 32, 32, 3), (1, 16, 32, 32, 3), 'ZYXC'),
                           ((16, 3, 32, 32), (1, 16, 32, 32, 3), 'ZCYX'),
-                          ((5, 16, 16, 5), (25, 16, 16, 1), 'SYXT'),
                           ((5, 16, 32, 32), (5, 16, 32, 32, 1), 'SZYX'),
                           ((5, 16, 32, 32, 3), (5, 16, 32, 32, 3), 'SZYXC')])
 def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, axes):
@@ -324,15 +308,12 @@ def test_run_prediction_from_disk_numpy(tmp_path, n, n_tiles, shape, shape_n2v, 
 
 
 @pytest.mark.qt
-@pytest.mark.parametrize('n_tiles', [1, 2])
+@pytest.mark.parametrize('n_tiles', [1])
 @pytest.mark.parametrize('shape, shape_n2v, axes',
                          [((16, 16), (1, 16, 16, 1), 'YX'),
                           ((16, 16, 3), (1, 16, 16, 3), 'YXC'),
-                          ((3, 16, 16), (1, 16, 16, 3), 'CYX'),
-                          ((5, 16, 16), (5, 16, 16, 1), 'SYX'),
                           ((5, 16, 16), (5, 16, 16, 1), 'TYX'),
                           ((16, 32, 32), (1, 16, 32, 32, 1), 'ZYX'),
-                          ((16, 32, 32, 3), (1, 16, 32, 32, 3), 'ZYXC'),
                           ((16, 3, 32, 32), (1, 16, 32, 32, 3), 'ZCYX'),
                           ((5, 3, 16, 16), (15, 16, 16, 1), 'TSYX'),
                           ((5, 16, 32, 32, 3), (5, 16, 32, 32, 3), 'SZYXC')])
