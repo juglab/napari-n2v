@@ -6,7 +6,8 @@ removing pixel-independent noise. It also includes an extension, structN2V, aime
 This set of plugins can train, retrain and predict on images from napari or from the disk. It conveniently allows saving 
 the models for later use and is compatible with [Bioimage.io](https://bioimage.io/#/). 
 
-![napari-n2v](images/training.gif)
+
+<img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/training.gif" width="800" />
 
 # Documentation
 
@@ -20,17 +21,21 @@ the models for later use and is compatible with [Bioimage.io](https://bioimage.i
 Help us improve the plugin by submitting [issues to the Github repository](https://github.com/juglab/napari-n2v/issues) 
 or tagging @jdeschamps on [image.sc](https://forum.image.sc/). 
 
-# Cite us
+# Citation
 
-## N2V
+### N2V
 
-Krull, Alexander, Tim-Oliver Buchholz, and Florian Jug. "Noise2void-learning denoising from single noisy images." 
+Alexander Krull, Tim-Oliver Buchholz, and Florian Jug. "[Noise2void-learning denoising from single noisy images.](https://ieeexplore.ieee.org/document/8954066)" 
 *Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*. 2019.
 
-## structN2V
+### structN2V
 
-Broaddus, Coleman, et al. "Removing structured noise with self-supervised blind-spot networks." *2020 IEEE 17th 
+Coleman Broaddus, et al. "[Removing structured noise with self-supervised blind-spot networks.](https://ieeexplore.ieee.org/document/9098336)" *2020 IEEE 17th 
 International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
+
+### N2V2
+
+Eva Höck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022).
 
 
 # Support 

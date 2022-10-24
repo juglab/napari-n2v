@@ -9,26 +9,28 @@
 
 A self-supervised denoising algorithm now usable by all in napari.
 
-![Results](docs/images/noisy_denoised.png)
-
+<img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/noisy_denoised.png" width="800" />
 ----------------------------------
 
 ## Installation
-<!---
+
 You can install `napari-n2v` via [pip]:
-
+```bash
     pip install napari-n2v
-
+```
 Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
--->
-Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for installation instructions. (soon on PyPi and napari hub)
+
+
+Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for more detailed installation 
+instructions. 
 
 
 ## Quick demo
 
-![Demo prediction](docs/images/demo.gif)
+You can try the quick demo by loading the `N2V Demo prediction` in plugins, and starting the prediction directly.
 
-You can try the quick demo by loading the "N2V Demo prediction" in plugins, and starting the prediction directly.
+<img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/demo.gif" width="800" />
+
 
 ## Documentation
 
@@ -43,18 +45,21 @@ help us improve by [filing an issue] along with a detailed description or contac
 through the [image.sc](https://forum.image.sc/) forum (tag @jdeschamps).
 
 
-## Cite us
+## Citations
 
 ### N2V
 
-Krull, Alexander, Tim-Oliver Buchholz, and Florian Jug. "Noise2void-learning denoising from single noisy images." 
+Alexander Krull, Tim-Oliver Buchholz, and Florian Jug. "[Noise2void-learning denoising from single noisy images.](https://ieeexplore.ieee.org/document/8954066)" 
 *Proceedings of the IEEE/CVF conference on computer vision and pattern recognition*. 2019.
 
 ### structN2V
 
-Broaddus, Coleman, et al. "Removing structured noise with self-supervised blind-spot networks." *2020 IEEE 17th 
+Coleman Broaddus, et al. "[Removing structured noise with self-supervised blind-spot networks.](https://ieeexplore.ieee.org/document/9098336)" *2020 IEEE 17th 
 International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
 
+### N2V2
+
+Eva Höck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
 
 ## Acknowledgements
 
