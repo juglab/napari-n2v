@@ -26,19 +26,15 @@ operating system.
 
 ### Install napari-n2v through the napari-hub
 
-<!---
-
 Check-out the instructions on [installing plugins via the napari hub](https://napari.org/stable/plugins/find_and_install_plugin.html). 
 This step is performed after [starting napari](#start-napari-n2v).
--->
-(soon)
 
 ### Install napari-n2v via pip
 
 Within the previously installed conda environment, type:
 
 ```bash
-pip install git+https://github.com/juglab/napari-n2v.git
+pip install mapari-n2v
 ```
 
 ### Install napari-n2v from source
