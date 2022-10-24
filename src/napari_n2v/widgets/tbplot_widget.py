@@ -14,7 +14,7 @@ import pyqtgraph as pg
 import webbrowser
 
 from napari_n2v.resources import ICON_TF
-from napari_n2v.utils import get_temp_path
+from napari_n2v.utils import get_default_path
 
 
 class TBPlotWidget(Container):
@@ -84,7 +84,7 @@ class TBPlotWidget(Container):
 
             self.tb = program.TensorBoard()
 
-            path = str(Path(get_temp_path(), 'models').absolute())
+            path = str(Path(get_default_path(), 'models').absolute())
             self.tb.configure(argv=[None, '--logdir', path])
             self.url = self.tb.launch()
 

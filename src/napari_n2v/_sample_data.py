@@ -8,7 +8,7 @@ from skimage import io
 from napari.types import LayerDataTuple
 from napari.utils import notifications as ntf
 
-from napari_n2v.utils import cwd, get_temp_path
+from napari_n2v.utils import cwd, get_default_path
 
 # todo the logic is the same for all functions, possibility to refactor
 
@@ -16,7 +16,7 @@ from napari_n2v.utils import cwd, get_temp_path
 def _load_3D():
     from skimage import io
 
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data', 'flywing')
         if not data_path.exists():
             data_path.mkdir(parents=True)
@@ -36,7 +36,7 @@ def _load_3D():
 
 
 def _load_2D():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data')
         if not data_path.exists():
             data_path.mkdir()
@@ -59,7 +59,7 @@ def _load_2D():
 
 
 def _load_rgb():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data', 'RGB')
         if not data_path.exists():
             data_path.mkdir(parents=True)
@@ -79,7 +79,7 @@ def _load_rgb():
 
 
 def _load_sem():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # create data folder if it doesn't already exist
         data_path = Path('data', 'sem')
         if not data_path.exists():
@@ -105,7 +105,7 @@ def _load_sem():
 
 
 def demo_files():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # load sem validation
         img = _load_sem()[1][1]
 

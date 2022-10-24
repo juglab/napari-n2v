@@ -6,7 +6,7 @@ import numpy as np
 from n2v.models import N2V, N2VConfig
 from typing import Union
 
-from .n2v_utils import ModelSaveMode, get_temp_path, cwd
+from .n2v_utils import ModelSaveMode, get_default_path, cwd
 
 
 def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
@@ -84,7 +84,7 @@ def load_weights(model: N2V, weights_path: Union[str, Path]):
 def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, output_path: str, tf_version: str):
     from napari_n2v.utils import build_modelzoo
 
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # path to weights
         weights = Path(model.logdir, 'weights_best.h5')
         if not weights.exists():
