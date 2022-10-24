@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/napari-n2v.svg?color=green)](https://pypi.org/project/napari-n2v)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-n2v.svg?color=green)](https://python.org)
 [![tests](https://github.com/juglab/napari-n2v/workflows/build/badge.svg)](https://github.com/juglab/napari-n2v/actions)
-[![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/githubuser/napari-n2v)
+[![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/juglab/napari-n2v)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-n2v)](https://napari-hub.org/plugins/napari-n2v)
 
 A self-supervised denoising algorithm now usable by all in napari.
