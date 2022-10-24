@@ -3,7 +3,7 @@
 [![License](https://img.shields.io/pypi/l/napari-n2v.svg?color=green)](https://github.com/githubuser/napari-n2v/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-n2v.svg?color=green)](https://pypi.org/project/napari-n2v)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-n2v.svg?color=green)](https://python.org)
-[![tests](https://github.com/juglab/napari-n2v/workflows/tests/badge.svg)](https://github.com/githubuser/napari-n2v/actions)
+[![tests](https://github.com/juglab/napari-n2v/workflows/test_and_deploy/badge.svg)](https://github.com/githubuser/napari-n2v/actions)
 [![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/githubuser/napari-n2v)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-n2v)](https://napari-hub.org/plugins/napari-n2v)
 
@@ -21,7 +21,7 @@ You can install `napari-n2v` via [pip]:
 
 Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
 -->
-Check out the documentation for installation instructions. (soon on PyPi and napari hub)
+Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for installation instructions. (soon on PyPi and napari hub)
 
 
 ## Quick demo
@@ -29,11 +29,8 @@ Check out the documentation for installation instructions. (soon on PyPi and nap
 ![Demo prediction](docs/images/demo.gif)
 
 You can try the quick demo by loading the "N2V Demo prediction" in plugins, and starting the prediction directly.
+
 ## Documentation
-
-
-![Training](docs/images/training.gif)
-
 
 Documentation is available on the [project website](https://juglab.github.io/napari-n2v/).
 

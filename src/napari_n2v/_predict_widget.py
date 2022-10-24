@@ -266,9 +266,13 @@ class PredictWidget(QWidget):
                     self.worker.returned.connect(self._done)
                     self.worker.start()
                 else:
-                    ntf.show_error('Select a valid model path')
+                    # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                    # ntf.show_error('Select a valid model path')
+                    ntf.show_info('Select a valid model path')
             else:
-                ntf.show_error('Invalid axes')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('Invalid axes')
+                ntf.show_info('Invalid axes')
 
         elif self.state == State.RUNNING:
             self.state = State.IDLE

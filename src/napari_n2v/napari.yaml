@@ -20,6 +20,9 @@ contributions:
     - id: napari-n2v.data_RGB
       python_name: napari_n2v._sample_data:n2v_rgb_data
       title: N2V RGB data
+    - id: napari-n2v.data_SEM
+      python_name: napari_n2v._sample_data:n2v_sem_data
+      title: N2V SEM data
   widgets:
     - command: napari-n2v.make_n2v_trainwidget
       display_name: N2V Train
@@ -37,3 +40,6 @@ contributions:
     - command: napari-n2v.data_RGB
       display_name: Download data (RGB)
       key: napari_n2v_RGB_data
+    - command: napari-n2v.data_SEM
+      display_name: Download data (SEM)
+      key: napari_n2v_SEM_data

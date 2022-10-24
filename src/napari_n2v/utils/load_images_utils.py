@@ -29,7 +29,9 @@ def load_and_reshape(source, axes):
             try:
                 _x[0][i], final_axes = reshape_data(img, new_axes)
             except ValueError:
-                ntf.show_error(f'Skipped {_x[1][i].stem}, wrong dimensions')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error(f'Skipped {_x[1][i].stem}, wrong dimensions')
+                ntf.show_info(f'Skipped {_x[1][i].stem}, wrong dimensions')
                 skip.append(i)
             finally:
                 if final_axes is None:

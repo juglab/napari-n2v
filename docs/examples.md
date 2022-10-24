@@ -69,20 +69,20 @@ In order to reproduce the result using the plugin, we then follow these steps:
 1. In napari, go to `File / Open sample / napari-n2v / Download data (2D)`, after the time necessary to download the data, it will automatically add the BSD68 data set to napari.
 2. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
 3. Select the validation layer in `Val`.
-4. In `Training parameters`, set:
-`N epochs` = 200
-`N steps` = 400
-`Batch size` = 128
-`Patch XY` = 64
-5. Click on the gear button to open the `Expert settings` and set:
-`U-Net kernel size` = 3
-`U-Net residuals` = True (check)
-`Split channels` = False (uncheck)
-`N2V radius` = 2
+4. In `Training parameters`, set: <br>
+`N epochs` = 200 <br>
+`N steps` = 400 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+`U-Net residuals` = True (check) <br>
+`Split channels` = False (uncheck) <br>
+`N2V radius` = 2 <br>
 6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
 7. Train!
 
-If you GPU is too small for the training parameters (loading batches in the GPU memory creates out-of-memory errors), then you should decrease the `Batch size` parameter.
+If your GPU is too small for the training parameters (loading batches in the GPU memory creates out-of-memory errors), then you should decrease the `Batch size` parameter.
 
 ## 2D RGB example
 
@@ -144,15 +144,15 @@ In order to reproduce the result using the plugin, we then follow these steps:
 1. In napari, go to `File / Open sample / napari-n2v / Download data (RGB).`
 2. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
 3. Make sure to enter `YXC` in `Axes`.
-4. In `Training parameters`, set:
-`N epochs` = 25
-`N steps` = 39
-`Batch size` = 128
-`Patch XY` = 64
-5. Click on the gear button to open the `Expert settings` and set:
-`U-Net depth` = 3
-`U-Net kernel size` = 3
-`U-Net n filters` = 64
+4. In `Training parameters`, set: <br>
+`N epochs` = 25 <br>
+`N steps` = 39 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net depth` = 3 <br>
+`U-Net kernel size` = 3 <br>
+`U-Net n filters` = 64 <br>
 `Split channels` = False (uncheck)
 6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
 7. Train!
@@ -212,20 +212,96 @@ config = N2VConfig(X,
 
 In order to reproduce the result using the plugin, we then follow these steps:
 
-1. Download the [data](https://download.fht.org/jug/n2v/SEM.zip) and unzip it. Place the train and validation images in two different folders.
-2. Start the plugin and point towards the train and validation folders in the `From disk`.
-3. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-4. Make sure to enter `YX` in `Axes`.
-5. In `Training parameters`, set:
-`N epochs` = 20
-`N steps` = 27
-`Batch size` = 128
-`Patch XY` = 64
-6. Click on the gear button to open the `Expert settings` and set:
-`U-Net kernel size` = 3
-7. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
-8. Train!
-9. Note that for the prediction, you will probably need to use tiling.
+
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
+`N epochs` = 20 <br>
+`N steps` = 27 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
+
+
+## 2D SEM with N2V2
+
+The example notebook can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_SEM/01_training.ipynb).
+
+```bash
+config = N2VConfig(X, 
+                   unet_kern_size=3, 
+                   train_steps_per_epoch=27, 
+                   train_epochs=20, 
+                   train_loss='mse', 
+                   batch_norm=True, 
+                   train_batch_size=128, 
+                   n2v_perc_pix=0.198, 
+                   n2v_patch_shape=(64, 64), 
+                   n2v_manipulator='mean', 
+                   n2v_neighborhood_radius=5,
+                   blurpool=True,
+                   skip_skipone=True,
+                   unet_residual=False)
+```
+
+- Complete configuration
+    
+    ```bash
+    {'means': ['39137.844'],
+     'stds': ['18713.77'],
+     'n_dim': 2,
+     'axes': 'YXC',
+     'n_channel_in': 1,
+     'n_channel_out': 1,
+     'unet_residual': False,
+     'unet_n_depth': 2,
+     'unet_kern_size': 3,
+     'unet_n_first': 32,
+     'unet_last_activation': 'linear',
+     'unet_input_shape': (None, None, 1),
+     'train_loss': 'mse',
+     'train_epochs': 20,
+     'train_steps_per_epoch': 27,
+     'train_learning_rate': 0.0004,
+     'train_batch_size': 128,
+     'train_tensorboard': True,
+     'train_checkpoint': 'weights_best.h5',
+     'train_reduce_lr': {'factor': 0.5, 'patience': 10},
+     'batch_norm': True,
+     'n2v_perc_pix': 0.198,
+     'n2v_patch_shape': (64, 64),
+     'n2v_manipulator': 'mean',
+     'n2v_neighborhood_radius': 5,
+     'single_net_per_channel': True,
+     'blurpool':True,
+     'skip_skipone':True,
+     'structN2Vmask': None,
+     'probabilistic': False}
+    ```
+    
+
+In order to reproduce the result using the plugin, we then follow these steps:
+
+
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
+`N epochs` = 20 <br>
+`N steps` = 27 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+`N2V2` = checked <br>
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
 
 ## 2D structN2V Convollaria
 
@@ -282,14 +358,14 @@ config = N2VConfig(X,
 
 1. Download the [data](https://download.fht.org/jug/n2v/flower.tif) and load it into napari.
 2. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-3. In `Training parameters`, set:
-`N epochs` = 10
-`N steps` = 500
-`Batch size` = 128
-`Patch XY` = 64
-4. Click on the gear button to open the `Expert settings` and set:
-`U-Net kernel size` = 3
-`structN2Vmask` = 0,1,1,1,1,1,1,1,1,1,0
+3. In `Training parameters`, set: <br>
+`N epochs` = 10 <br>
+`N steps` = 500 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+4. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+`structN2Vmask` = 0,1,1,1,1,1,1,1,1,1,0 <br>
 5. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
 6. Train!
 
@@ -347,15 +423,15 @@ config = N2VConfig(X,
 1. In napari, go to `File / Open sample / napari-n2v / Download data (3D).`
 2. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
 3. Check `Enable 3D`. 
-4. In `Training parameters`, set:
-`N epochs` = 20
-`N steps` = 4
-`Batch size` = 4
-`Patch XY` = 64
-`Patch Z` = 32
-5. Click on the gear button to open the `Expert settings` and set:
-`U-Net depth` = 2
-`U-Net kernel size` = 3
+4. In `Training parameters`, set: <br>
+`N epochs` = 20 <br>
+`N steps` = 4 <br>
+`Batch size` = 4 <br>
+`Patch XY` = 64 <br>
+`Patch Z` = 32 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net depth` = 2 <br>
+`U-Net kernel size` = 3 <br>
 6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
 7. Train!
 8. Note that for the prediction, you will probably need to use tiling.

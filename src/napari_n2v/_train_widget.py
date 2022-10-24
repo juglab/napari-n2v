@@ -332,7 +332,9 @@ class TrainWidget(QWidget):
 
                 if not self.load_from_disk:
                     if self.img_train.value is None:
-                        ntf.show_error('No layer selected for training.')
+                        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                        # ntf.show_error('No layer selected for training.')
+                        ntf.show_info('No layer selected for training.')
                         return
 
                 self.state = State.RUNNING
@@ -356,7 +358,9 @@ class TrainWidget(QWidget):
                 self.train_worker.returned.connect(self._training_done)
                 self.train_worker.start()
             else:
-                ntf.show_error('Invalid axes')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('Invalid axes')
+                ntf.show_info('Invalid axes')
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
@@ -398,7 +402,9 @@ class TrainWidget(QWidget):
                 self.predict_worker.yielded.connect(lambda x: self._update_prediction(x))
                 self.predict_worker.start()
             else:
-                ntf.show_error('No model available.')
+                # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                # ntf.show_error('No model available.')
+                ntf.show_info('No model available.')
         elif self.state == State.RUNNING:
             self.state = State.IDLE
 
@@ -457,6 +463,10 @@ class TrainWidget(QWidget):
         # update axes widget
         self.axes_widget.update_is_3D(self.is_3D)
         self.axes_widget.set_text_field(self.axes_widget.get_default_text())
+
+        # update expert settings
+        if self.expert_settings:
+            self.expert_settings.update_3D(state)
 
     def _update_tiling(self, state):
         self.tiling_spin.setEnabled(state)
@@ -563,6 +573,15 @@ class TrainWidget(QWidget):
 
     def get_n_tiles(self):
         return self.tiling_spin.value()
+
+    def get_batch_size(self):
+        return self.batch_size_spin.value()
+
+    def get_patch_XY(self):
+        return self.patch_XY_spin.value()
+
+    def get_patch_Z(self):
+        return self.patch_Z_spin.value()
 
 
 if __name__ == "__main__":
