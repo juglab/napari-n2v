@@ -27,7 +27,8 @@ instructions.
 
 ## Quick demo
 
-You can try the quick demo by loading the `N2V Demo prediction` in plugins, and starting the prediction directly.
+You can try out a demo by loading the `N2V Demo prediction` plugin and directly clicking on `Predict`.
+
 
 <img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/demo.gif" width="800" />
 
@@ -59,7 +60,7 @@ International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
 
 ### N2V2
 
-Eva Höck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
+Eva Hoeck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
 
 ## Acknowledgements
 
