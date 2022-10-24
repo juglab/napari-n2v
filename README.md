@@ -1,6 +1,6 @@
 # napari-n2v
 
-[![License](https://img.shields.io/pypi/l/napari-n2v.svg?color=green)](https://github.com/githubuser/napari-n2v/raw/main/LICENSE)
+[![License](https://img.shields.io/pypi/l/napari-n2v.svg?color=green)](https://github.com/juglab/napari-n2v/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-n2v.svg?color=green)](https://pypi.org/project/napari-n2v)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-n2v.svg?color=green)](https://python.org)
 [![tests](https://github.com/juglab/napari-n2v/workflows/build/badge.svg)](https://github.com/juglab/napari-n2v/actions)
