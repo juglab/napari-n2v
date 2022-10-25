@@ -37,14 +37,7 @@ def apply_n2v(image: "napari.types.ImageData",
         raise Exception('Model not found')
 
     # load the model
-    try:
-        model = load_model(model_path)
-    except ValueError as e:
-        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
-        # ntf.show_error('Error loading model weights.')
-        ntf.show_info('Error loading model weights.')
-        print(e)
-        return None
+    model = load_model(model_path)
 
     # check image shape
     if len(image.shape) == 2:
