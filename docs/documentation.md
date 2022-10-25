@@ -12,7 +12,7 @@ that allows denoising images by removing pixel-independent noise. It also compri
 
 ### Anatomy
 
-1. [GPU availability](1---gpu-availability)
+1. [GPU availability](#1---gpu-availability)
 2. [Data loading](#2---data-loading)
 3. [Training parameters](#3---training-parameters)
 4. [Expert training parameters](#4---expert-training-parameters)
