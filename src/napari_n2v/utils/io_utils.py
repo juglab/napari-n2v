@@ -78,13 +78,7 @@ def load_weights(model: N2V, weights_path: Union[str, Path]):
     if not Path(weights_name).exists():
         raise FileNotFoundError('Invalid path to weights.')
 
-    try:
-        model.keras_model.load_weights(weights_name)
-    except ValueError as e:
-        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
-        # ntf.show_error('Error loading model weights.')
-        ntf.show_info('Did not load model.')
-        print(e)
+    model.keras_model.load_weights(weights_name)
 
 
 def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, output_path: str, tf_version: str):
