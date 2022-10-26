@@ -4,6 +4,14 @@ The plugins come with sample data that can be loaded into napari using `File/Ope
 
 In this section, we describe how to reproduce the results from the N2V Github repository using the napari plugins.
 
+1. [2D - SEM](#2d-sem)
+2. [N2V2](#2d-sem-with-n2v2)
+3. [2D - BSD68](#2d-bsd68)
+4. [2D - RGB](#2d-rgb-example)
+5. [StructN2V](#2d-structn2v-convollaria)
+6. [3D](#3d-example)
+
+
 > **Important note**: if you are using a GPU with little memory (e.g. 4 GB), then most of the shown 
 > settings will not work because the batches will probably not fit in memory. Try reducing the batch
 > size while increasing the number of steps. This will obviously increase the running time.
@@ -80,7 +88,8 @@ In order to reproduce the result using the plugin, we then follow these steps:
 
 ## 2D SEM with N2V2
 
-The example notebook can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_SEM/01_training.ipynb).
+> N2V2 requires specific parameters, but `napari-n2v` takes care of them if you select `N2V2` in the `expert settings`.
+
 
 ```bash
 config = N2VConfig(X, 
