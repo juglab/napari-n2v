@@ -27,7 +27,7 @@ instructions.
 
 ## Quick demo
 
-You can try out a demo by loading the `N2V Demo prediction` plugin and directly clicking on `Predict`.
+You can try out a demo by loading the `N2V Demo prediction` plugin and directly clicking on `Predict`. This model was trained using the [N2V2 example](https://juglab.github.io/napari-n2v/examples.html).
 
 
 <img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/demo.gif" width="800" />
