@@ -15,7 +15,7 @@ from tensorflow.python.framework.errors_impl import ResourceExhaustedError, NotF
 
 from napari_n2v.utils import (
     cwd,
-    get_temp_path,
+    get_default_path,
     UpdateType,
     State,
     create_model,
@@ -93,7 +93,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
 
     # create model
     ntf.show_info('Creating model')
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         model_name = 'n2v_3D' if widget.is_3D else 'n2v_2D'
         base_dir = Path('models')
 
@@ -161,7 +161,7 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
     # save input/output for bioimage.io
     # TODO here TF will throw an error if the GPU is busy (UnknownError). Is there a way to gracefully escape it?
     example = X_val[np.newaxis, 0, ...].astype(np.float32)
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         widget.inputs = os.path.join(widget.model.basedir, 'inputs.npy')
         widget.outputs = os.path.join(widget.model.basedir, 'outputs.npy')
         np.save(widget.inputs, example)

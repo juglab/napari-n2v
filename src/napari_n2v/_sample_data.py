@@ -8,7 +8,7 @@ from skimage import io
 from napari.types import LayerDataTuple
 from napari.utils import notifications as ntf
 
-from napari_n2v.utils import cwd, get_temp_path
+from napari_n2v.utils import cwd, get_default_path
 
 # todo the logic is the same for all functions, possibility to refactor
 
@@ -16,7 +16,7 @@ from napari_n2v.utils import cwd, get_temp_path
 def _load_3D():
     from skimage import io
 
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data', 'flywing')
         if not data_path.exists():
             data_path.mkdir(parents=True)
@@ -36,7 +36,7 @@ def _load_3D():
 
 
 def _load_2D():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data')
         if not data_path.exists():
             data_path.mkdir()
@@ -59,7 +59,7 @@ def _load_2D():
 
 
 def _load_rgb():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         data_path = Path('data', 'RGB')
         if not data_path.exists():
             data_path.mkdir(parents=True)
@@ -79,11 +79,11 @@ def _load_rgb():
 
 
 def _load_sem():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # create data folder if it doesn't already exist
         data_path = Path('data', 'sem')
         if not data_path.exists():
-            data_path.mkdir()
+            data_path.mkdir(parents=True)
 
         # download sem data
         img_zip_path = Path(data_path, 'SEM.zip')
@@ -105,24 +105,24 @@ def _load_sem():
 
 
 def demo_files():
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # load sem validation
-        img = _load_sem()[1][1]
+        img = _load_sem()[1][0]
 
         # create models folder if it doesn't already exist
-        model_path = Path('models', 'trained_sem')
+        model_path = Path('models', 'trained_sem_N2V2').absolute()
         if not model_path.exists():
             model_path.mkdir(parents=True)
 
         # download sem model
-        model_zip_path = Path(model_path, 'trained_sem.zip')
+        model_zip_path = Path(model_path, 'trained_sem_N2V2.zip')
         if not model_zip_path.exists():
             # download and unzip data
-            urllib.request.urlretrieve('https://download.fht.org/jug/napari/trained_sem.zip', model_zip_path)
+            urllib.request.urlretrieve('https://download.fht.org/jug/napari/trained_sem_N2V2.zip', model_zip_path)
             with zipfile.ZipFile(model_zip_path, 'r') as zip_ref:
                 zip_ref.extractall(model_path)
 
-        return img, Path(model_path.absolute(), 'sem.h5')
+        return img, Path(model_path, 'sem_N2V2.h5')
 
 
 def _n2v_data(dim):

@@ -1,7 +1,10 @@
 
 # Documentation
 
-`napari-n2v` is based on the original algorithm from the Jug lab: https://github.com/juglab/n2v, and uses [CSBDeep](http://csbdeep.bioimagecomputing.com/). [N2V](https://arxiv.org/abs/1811.10980) is a self-supervised algorithm that allows denoising images by removing pixel-independent noise. It also comprises an extension to deal with [structured noise](https://ieeexplore.ieee.org/document/9098336).
+`napari-n2v` is based on the original algorithm from the Jug lab [Noise2Void](https://github.com/juglab/n2v), and uses 
+[CSBDeep](http://csbdeep.bioimagecomputing.com/). [N2V](https://ieeexplore.ieee.org/document/8954066) is a self-supervised algorithm 
+that allows denoising images by removing pixel-independent noise. It also comprises an extension to deal with 
+[structured noise](https://ieeexplore.ieee.org/document/9098336), and checkboard artefacts with [N2V2](https://ieeexplore.ieee.org/document/9098336).
 
 `napari-n2v` contains two different napari plugins: `N2V train` and `N2V predict`. 
 
@@ -9,7 +12,7 @@
 
 ### Anatomy
 
-1. [GPU availability](1---gpu-availability)
+1. [GPU availability](#1---gpu-availability)
 2. [Data loading](#2---data-loading)
 3. [Training parameters](#3---training-parameters)
 4. [Expert training parameters](#4---expert-training-parameters)

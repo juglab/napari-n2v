@@ -4,11 +4,168 @@ The plugins come with sample data that can be loaded into napari using `File/Ope
 
 In this section, we describe how to reproduce the results from the N2V Github repository using the napari plugins.
 
+1. [2D - SEM](#2d-sem)
+2. [N2V2](#2d-sem-with-n2v2)
+3. [2D - BSD68](#2d-bsd68)
+4. [2D - RGB](#2d-rgb-example)
+5. [StructN2V](#2d-structn2v-convollaria)
+6. [3D](#3d-example)
+
+
 > **Important note**: if you are using a GPU with little memory (e.g. 4 GB), then most of the shown 
 > settings will not work because the batches will probably not fit in memory. Try reducing the batch
 > size while increasing the number of steps. This will obviously increase the running time.
 
+## 2D SEM
+
+The example notebook can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_SEM/01_training.ipynb).
+
+```bash
+config = N2VConfig(X, 
+                   unet_kern_size=3, 
+                   train_steps_per_epoch=27, 
+                   train_epochs=20, 
+                   train_loss='mse', 
+                   batch_norm=True, 
+                   train_batch_size=128, 
+                   n2v_perc_pix=0.198, 
+                   n2v_patch_shape=(64, 64), 
+                   n2v_manipulator='uniform_withCP', 
+                   n2v_neighborhood_radius=5)
+```
+
+- Complete configuration
+    
+    ```bash
+    {'means': ['39137.844'],
+     'stds': ['18713.77'],
+     'n_dim': 2,
+     'axes': 'YXC',
+     'n_channel_in': 1,
+     'n_channel_out': 1,
+     'unet_residual': False,
+     'unet_n_depth': 2,
+     'unet_kern_size': 3,
+     'unet_n_first': 32,
+     'unet_last_activation': 'linear',
+     'unet_input_shape': (None, None, 1),
+     'train_loss': 'mse',
+     'train_epochs': 20,
+     'train_steps_per_epoch': 27,
+     'train_learning_rate': 0.0004,
+     'train_batch_size': 128,
+     'train_tensorboard': True,
+     'train_checkpoint': 'weights_best.h5',
+     'train_reduce_lr': {'factor': 0.5, 'patience': 10},
+     'batch_norm': True,
+     'n2v_perc_pix': 0.198,
+     'n2v_patch_shape': (64, 64),
+     'n2v_manipulator': 'uniform_withCP',
+     'n2v_neighborhood_radius': 5,
+     'single_net_per_channel': True,
+     'structN2Vmask': None,
+     'probabilistic': False}
+    ```
+    
+
+In order to reproduce the result using the plugin, we then follow these steps:
+
+
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
+`N epochs` = 20 <br>
+`N steps` = 27 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
+
+
+## 2D SEM with N2V2
+
+> N2V2 requires specific parameters, but `napari-n2v` takes care of them if you select `N2V2` in the `expert settings`.
+
+
+```bash
+config = N2VConfig(X, 
+                   unet_kern_size=3, 
+                   train_steps_per_epoch=27, 
+                   train_epochs=20, 
+                   train_loss='mse', 
+                   batch_norm=True, 
+                   train_batch_size=128, 
+                   n2v_perc_pix=0.198, 
+                   n2v_patch_shape=(64, 64), 
+                   n2v_manipulator='mean', 
+                   n2v_neighborhood_radius=5,
+                   blurpool=True,
+                   skip_skipone=True,
+                   unet_residual=False)
+```
+
+- Complete configuration
+    
+    ```bash
+    {'means': ['39137.844'],
+     'stds': ['18713.77'],
+     'n_dim': 2,
+     'axes': 'YXC',
+     'n_channel_in': 1,
+     'n_channel_out': 1,
+     'unet_residual': False,
+     'unet_n_depth': 2,
+     'unet_kern_size': 3,
+     'unet_n_first': 32,
+     'unet_last_activation': 'linear',
+     'unet_input_shape': (None, None, 1),
+     'train_loss': 'mse',
+     'train_epochs': 20,
+     'train_steps_per_epoch': 27,
+     'train_learning_rate': 0.0004,
+     'train_batch_size': 128,
+     'train_tensorboard': True,
+     'train_checkpoint': 'weights_best.h5',
+     'train_reduce_lr': {'factor': 0.5, 'patience': 10},
+     'batch_norm': True,
+     'n2v_perc_pix': 0.198,
+     'n2v_patch_shape': (64, 64),
+     'n2v_manipulator': 'mean',
+     'n2v_neighborhood_radius': 5,
+     'single_net_per_channel': True,
+     'blurpool':True,
+     'skip_skipone':True,
+     'structN2Vmask': None,
+     'probabilistic': False}
+    ```
+    
+
+In order to reproduce the result using the plugin, we then follow these steps:
+
+
+1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
+2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
+3. Set the validation layer to `val`.
+4. In `Training parameters`, set: <br>
+`N epochs` = 20 <br>
+`N steps` = 27 <br>
+`Batch size` = 128 <br>
+`Patch XY` = 64 <br>
+5. Click on the gear button to open the `Expert settings` and set: <br>
+`U-Net kernel size` = 3 <br>
+`N2V2` = checked <br>
+6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
+7. Train!
+8. Note that for the prediction, you will probably need to use tiling.
+
+
 ## 2D BSD68
+
+> This example, with the settings proposed here, takes a long time to train.
 
 The [example notebook](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_BSD68/BSD68_reproducibility.ipynb) generates a configuration containing all the parameters used for training and reproducing the results in the N2VConfig call:
 
@@ -84,6 +241,8 @@ In order to reproduce the result using the plugin, we then follow these steps:
 
 If your GPU is too small for the training parameters (loading batches in the GPU memory creates out-of-memory errors), then you should decrease the `Batch size` parameter.
 
+
+
 ## 2D RGB example
 
 The RGB notebook example can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_RGB/01_training.ipynb). 
@@ -158,150 +317,7 @@ In order to reproduce the result using the plugin, we then follow these steps:
 7. Train!
 8. Note that for the prediction, you will probably need to use tiling.
 
-## 2D SEM
 
-The example notebook can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_SEM/01_training.ipynb).
-
-```bash
-config = N2VConfig(X, 
-                   unet_kern_size=3, 
-                   train_steps_per_epoch=27, 
-                   train_epochs=20, 
-                   train_loss='mse', 
-                   batch_norm=True, 
-                   train_batch_size=128, 
-                   n2v_perc_pix=0.198, 
-                   n2v_patch_shape=(64, 64), 
-                   n2v_manipulator='uniform_withCP', 
-                   n2v_neighborhood_radius=5)
-```
-
-- Complete configuration
-    
-    ```bash
-    {'means': ['39137.844'],
-     'stds': ['18713.77'],
-     'n_dim': 2,
-     'axes': 'YXC',
-     'n_channel_in': 1,
-     'n_channel_out': 1,
-     'unet_residual': False,
-     'unet_n_depth': 2,
-     'unet_kern_size': 3,
-     'unet_n_first': 32,
-     'unet_last_activation': 'linear',
-     'unet_input_shape': (None, None, 1),
-     'train_loss': 'mse',
-     'train_epochs': 20,
-     'train_steps_per_epoch': 27,
-     'train_learning_rate': 0.0004,
-     'train_batch_size': 128,
-     'train_tensorboard': True,
-     'train_checkpoint': 'weights_best.h5',
-     'train_reduce_lr': {'factor': 0.5, 'patience': 10},
-     'batch_norm': True,
-     'n2v_perc_pix': 0.198,
-     'n2v_patch_shape': (64, 64),
-     'n2v_manipulator': 'uniform_withCP',
-     'n2v_neighborhood_radius': 5,
-     'single_net_per_channel': True,
-     'structN2Vmask': None,
-     'probabilistic': False}
-    ```
-    
-
-In order to reproduce the result using the plugin, we then follow these steps:
-
-
-1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
-3. Set the validation layer to `val`.
-4. In `Training parameters`, set: <br>
-`N epochs` = 20 <br>
-`N steps` = 27 <br>
-`Batch size` = 128 <br>
-`Patch XY` = 64 <br>
-5. Click on the gear button to open the `Expert settings` and set: <br>
-`U-Net kernel size` = 3 <br>
-6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
-7. Train!
-8. Note that for the prediction, you will probably need to use tiling.
-
-
-## 2D SEM with N2V2
-
-The example notebook can be found [here](https://github.com/juglab/n2v/blob/master/examples/2D/denoising2D_SEM/01_training.ipynb).
-
-```bash
-config = N2VConfig(X, 
-                   unet_kern_size=3, 
-                   train_steps_per_epoch=27, 
-                   train_epochs=20, 
-                   train_loss='mse', 
-                   batch_norm=True, 
-                   train_batch_size=128, 
-                   n2v_perc_pix=0.198, 
-                   n2v_patch_shape=(64, 64), 
-                   n2v_manipulator='mean', 
-                   n2v_neighborhood_radius=5,
-                   blurpool=True,
-                   skip_skipone=True,
-                   unet_residual=False)
-```
-
-- Complete configuration
-    
-    ```bash
-    {'means': ['39137.844'],
-     'stds': ['18713.77'],
-     'n_dim': 2,
-     'axes': 'YXC',
-     'n_channel_in': 1,
-     'n_channel_out': 1,
-     'unet_residual': False,
-     'unet_n_depth': 2,
-     'unet_kern_size': 3,
-     'unet_n_first': 32,
-     'unet_last_activation': 'linear',
-     'unet_input_shape': (None, None, 1),
-     'train_loss': 'mse',
-     'train_epochs': 20,
-     'train_steps_per_epoch': 27,
-     'train_learning_rate': 0.0004,
-     'train_batch_size': 128,
-     'train_tensorboard': True,
-     'train_checkpoint': 'weights_best.h5',
-     'train_reduce_lr': {'factor': 0.5, 'patience': 10},
-     'batch_norm': True,
-     'n2v_perc_pix': 0.198,
-     'n2v_patch_shape': (64, 64),
-     'n2v_manipulator': 'mean',
-     'n2v_neighborhood_radius': 5,
-     'single_net_per_channel': True,
-     'blurpool':True,
-     'skip_skipone':True,
-     'structN2Vmask': None,
-     'probabilistic': False}
-    ```
-    
-
-In order to reproduce the result using the plugin, we then follow these steps:
-
-
-1. Confirm that your environment is properly set for GPU training by checking that the GPU indicator (top right) in the plugin displays a greenish GPU label.
-2. Choose the SEM data in the sample examples (`File / Open sample / napari-n2v / Download data (SEM)`). Don't be scared by the monster face.
-3. Set the validation layer to `val`.
-4. In `Training parameters`, set: <br>
-`N epochs` = 20 <br>
-`N steps` = 27 <br>
-`Batch size` = 128 <br>
-`Patch XY` = 64 <br>
-5. Click on the gear button to open the `Expert settings` and set: <br>
-`U-Net kernel size` = 3 <br>
-`N2V2` = checked <br>
-6. You can compare the configuration above to the rest of the `Expert settings` to confirm that the other default values are properly set.
-7. Train!
-8. Note that for the prediction, you will probably need to use tiling.
 
 ## 2D structN2V Convollaria
 

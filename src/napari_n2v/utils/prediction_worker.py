@@ -23,6 +23,7 @@ from napari_tools_menu import register_function
 from napari_time_slicer import time_slicer
 
 
+# TODO: setup.cfg defines the wrong entry point probably
 @register_function(menu="Filtering / noise removal > Apply N2V denoiser")
 @time_slicer
 def apply_n2v(image: "napari.types.ImageData",
@@ -287,7 +288,7 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
             else:
                 predict_all[i_slice, ...] = model.predict(_x, axes=new_axes)
         except UnknownError as e:
-            msg = 'UnknownError can be a failure to load cudnn, try restarting.'
+            msg = 'UnknownError can be a failure to load cudnn, try restarting the computer.'
             # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
             # ntf.show_error(msg)
             ntf.show_info(msg)
@@ -349,12 +350,22 @@ def _run_prediction_to_disk(widget, model, axes, images, is_tiled=False, n_tiles
             prediction = np.zeros(shape_out, dtype=np.float32)  # (S,(Z), Y, X, C)
 
             for i_s in range(_x.shape[0]):
-                if is_tiled:
-                    tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
+                try:
+                    if is_tiled:
+                        tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
-                else:
-                    prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
+                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
+                    else:
+                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
+
+                except UnknownError as e:
+                    msg = 'UnknownError can be a failure to load cudnn, try restarting the computer.'
+                    # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                    # ntf.show_error(msg)
+                    ntf.show_info(msg)
+                    warnings.warn(msg)
+                    print(e.message)
+                    break
 
             # save to the disk
             parent = Path(_f.parent, 'results')
@@ -392,13 +403,23 @@ def _run_lazy_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4)
                 prediction = np.zeros(shape_out, dtype=np.float32)  # (S,(Z), Y, X, C)
 
                 for i_s in range(_x.shape[0]):
-                    if is_tiled:
-                        tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
+                    try:
+                        if is_tiled:
+                            tiles = (len(new_axes) - 2) * (n_tiles,) + (1,)
 
-                        # model.predict returns ((Z), Y, Z, C)
-                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
-                    else:
-                        prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
+                            # model.predict returns ((Z), Y, Z, C)
+                            prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:], n_tiles=tiles)
+                        else:
+                            prediction[i_s, ...] = model.predict(_x[i_s, ...], axes=new_axes[1:])
+
+                    except UnknownError as e:
+                        msg = 'UnknownError can be a failure to load cudnn, try restarting the computer.'
+                        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+                        # ntf.show_error(msg)
+                        ntf.show_info(msg)
+                        warnings.warn(msg)
+                        print(e.message)
+                        break
 
                 # save predictions
                 parent = Path(file.parent, 'results')

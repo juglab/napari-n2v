@@ -4,7 +4,7 @@
 [![PyPI](https://img.shields.io/pypi/v/napari-n2v.svg?color=green)](https://pypi.org/project/napari-n2v)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-n2v.svg?color=green)](https://python.org)
 [![tests](https://github.com/juglab/napari-n2v/workflows/build/badge.svg)](https://github.com/juglab/napari-n2v/actions)
-[![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/githubuser/napari-n2v)
+[![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/juglab/napari-n2v)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-n2v)](https://napari-hub.org/plugins/napari-n2v)
 
 A self-supervised denoising algorithm now usable by all in napari.
@@ -27,7 +27,8 @@ instructions.
 
 ## Quick demo
 
-You can try the quick demo by loading the `N2V Demo prediction` in plugins, and starting the prediction directly.
+You can try out a demo by loading the `N2V Demo prediction` plugin and directly clicking on `Predict`. This model was trained using the [N2V2 example](https://juglab.github.io/napari-n2v/examples.html).
+
 
 <img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/demo.gif" width="800" />
 
@@ -59,7 +60,7 @@ International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
 
 ### N2V2
 
-Eva Höck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
+Eva Hoeck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
 
 ## Acknowledgements
 
@@ -81,7 +82,7 @@ Distributed under the terms of the [BSD-3] license,
 [Mozilla Public License 2.0]: https://www.mozilla.org/media/MPL/2.0/index.txt
 [cookiecutter-napari-plugin]: https://github.com/napari/cookiecutter-napari-plugin
 
-[filing an issue]: https://github.com/githubuser/napari-n2v/issues
+[filing an issue]: https://github.com/juglab/napari-n2v/issues
 
 [napari]: https://github.com/napari/napari
 [tox]: https://tox.readthedocs.io/en/latest/

@@ -81,7 +81,7 @@ def create_model(X_patches,
                  expert_settings=None,
                  train=True) -> N2V:
     from n2v.models import N2V
-    with cwd(get_temp_path()):
+    with cwd(get_default_path()):
         # create config
         is_3D = len(X_patches.shape) == 5
         if expert_settings is None:
@@ -348,7 +348,7 @@ def get_napari_shapes(shape_in, axes_in) -> Tuple[int]:
     return shape_out
 
 
-def get_temp_path():
+def get_default_path():
     return Path(Path.home(), ".napari", "N2V").absolute()
 
 
