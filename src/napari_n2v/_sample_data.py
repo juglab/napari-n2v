@@ -83,7 +83,7 @@ def _load_sem():
         # create data folder if it doesn't already exist
         data_path = Path('data', 'sem')
         if not data_path.exists():
-            data_path.mkdir()
+            data_path.mkdir(parents=True)
 
         # download sem data
         img_zip_path = Path(data_path, 'SEM.zip')
@@ -107,7 +107,7 @@ def _load_sem():
 def demo_files():
     with cwd(get_default_path()):
         # load sem validation
-        img = _load_sem()[1][1]
+        img = _load_sem()[1][0]
 
         # create models folder if it doesn't already exist
         model_path = Path('models', 'trained_sem')
