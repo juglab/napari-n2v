@@ -25,10 +25,6 @@ operating system. For macOS users, you might want to try [these instructions](ht
 
 There are several ways to install `napari-n2v`: through the napari-hub, via pip or from source. We recommend installing via pip.
 
-### Install napari-n2v through the napari-hub
-
-Check-out the instructions on [installing plugins via the napari hub](https://napari.org/stable/plugins/find_and_install_plugin.html). 
-This step is performed after [starting napari](#start-napari-n2v).
 
 ### Install napari-n2v via pip
 
