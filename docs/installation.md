@@ -1,7 +1,7 @@
 
 # Installation
 
-## Create a conda environment
+## Set up the conda environment
 
 If you do not have conda, we recommend installing [miniconda](https://docs.conda.io/en/latest/miniconda.html) or [Anaconda](https://www.anaconda.com/).
 
@@ -15,14 +15,15 @@ Then, in your command line tool:
     ```
     
 2. Follow the [TensorFlow installation step-by-step](https://www.tensorflow.org/install/pip#linux_1) for your 
-operating system.
+operating system. For macOS users, you might want to try [these instructions](https://developer.apple.com/metal/tensorflow-plugin/).
 3. Install `napari`:
     ```bash
     pip install "napari[all]==0.4.15"
     ```
 
-
 ## Install napari-n2v
+
+There are several ways to install `napari-n2v`: through the napari-hub, via pip or from source. We recommend installing via pip.
 
 ### Install napari-n2v through the napari-hub
 

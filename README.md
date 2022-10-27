@@ -14,13 +14,6 @@ A self-supervised denoising algorithm now usable by all in napari.
 
 ## Installation
 
-You can install `napari-n2v` via [pip]:
-```bash
-    pip install napari-n2v
-```
-Or through the [napari-hub](https://napari.org/stable/plugins/find_and_install_plugin.html).
-
-
 Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for more detailed installation 
 instructions. 
 
