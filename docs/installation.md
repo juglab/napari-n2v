@@ -10,7 +10,7 @@ Then, in your command line tool:
 1. Create a conda environment
     
     ```bash
-    conda create -n 'napari-n2v' python=3.9
+    conda create -n napari-n2v python=3.9
     conda activate napari-n2v
     ```
     
