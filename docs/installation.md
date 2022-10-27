@@ -35,7 +35,7 @@ This step is performed after [starting napari](#start-napari-n2v).
 Within the previously installed conda environment, type:
 
 ```bash
-pip install mapari-n2v
+pip install napari-n2v
 ```
 
 ### Install napari-n2v from source
