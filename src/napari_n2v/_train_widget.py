@@ -65,7 +65,7 @@ class TrainWidget(QWidget):
         self.layout().addWidget(BannerWidget('N2V - Training',
                                              ICON_JUGLAB,
                                              'A self-supervised denoising algorithm.',
-                                             'https://github.com/juglab/napari-n2v',
+                                             'https://juglab.github.io/napari-n2v/',
                                              'https://github.com/juglab/napari-n2v/issues'))
 
         # add GPU button
