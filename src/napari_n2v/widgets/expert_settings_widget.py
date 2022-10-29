@@ -98,7 +98,7 @@ class TrainingSettingsWidget(QDialog):
         self.unet_residuals.setToolTip(desc_unet_residuals)
 
         label_train_learning_rate = QLabel('Learning rate')
-        desc_train_learning_rate = 'Fixed learning rate'
+        desc_train_learning_rate = 'Starting learning rate'
         self.train_learning_rate = create_double_spinbox(step=0.0001, n_decimal=4)
         self.train_learning_rate.setValue(train_learning_rate)  # TODO: bug? cannot be set in create_double_spinbox.
         label_train_learning_rate.setToolTip(desc_train_learning_rate)
