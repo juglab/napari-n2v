@@ -28,7 +28,7 @@ operating system.
 
 1. Set up env with napari and pyqt5
    ```bash
-      conda create -n napari-n2v -c conda-forge python=3.9 napari pyqt5 imagecodecs
+      conda create -n napari-n2v -c conda-forge python=3.9 pyqt imagecodecs napari=0.4.15
    ```
 2. Install tensorflow following [Apple's instructions](https://developer.apple.com/metal/tensorflow-plugin/)
 3. Install napari-n2v
