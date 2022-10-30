@@ -8,6 +8,11 @@ that allows denoising images by removing pixel-independent noise. It also compri
 
 `napari-n2v` contains two different napari plugins: `N2V train` and `N2V predict`. 
 
+1. [N2V train](#n2v-train)
+2. [N2V predict](#n2v-predict)
+
+
+
 ## N2V train
 
 ### Anatomy
@@ -101,7 +106,8 @@ Predict deep residuals internally.
 - `Learning rate`:
 The learning rate influences the speed of convergence.
 - `Train loss`:
-Loss used during training: mean average error (mae) or mean squared error (mse).
+Loss used during training: mean average error (mae) o
+3. []()r mean squared error (mse).
 - `N2V pixel %`:
 Percentage of patch pixels to be masked.
 - `N2V manipulator`:
@@ -179,7 +185,7 @@ The [Bioimage.io](https://bioimage.io/#/?partner=deepimagej&type=all) format.
 - `TensorFow`:
 The model is saved as a `.h5` file.
 
-## N2V - predict
+## N2V predict
 
 ### Anatomy
 
