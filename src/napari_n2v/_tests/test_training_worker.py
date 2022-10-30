@@ -138,6 +138,7 @@ def test_train_from_disk(qtbot, tmp_path, n, shape, axes, is_3D):
 
 @pytest.mark.qt
 @pytest.mark.parametrize('shape1, shape2, axes, is_3D', [((64, 64), (48, 48), 'YX', False),
+                                                         ((64, 48), (64, 48), 'YX', False),
                                                          ((64, 64, 3), (48, 48, 3), 'YXC', False),
                                                          ((3, 64, 64), (3, 48, 48), 'TYX', False),
                                                          ((32, 64, 64), (30, 48, 48), 'ZYX', True),

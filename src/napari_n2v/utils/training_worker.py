@@ -267,7 +267,7 @@ def prepare_data(x_train, x_val, patch_shape=(64, 64), augment=True, n_val=5):
     # create data generator
     data_gen = N2V_DataGenerator()
 
-    # generate train patches
+    # train patches
     _x_train = [x_train] if type(x_train) != tuple else x_train[0]
 
     # sanity check

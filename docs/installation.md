@@ -23,19 +23,19 @@ operating system.
    
 ## macOS
 
-## arm64 (Apple Silicon M1)
+> Note: These instructions are for GPU support. Apple's tensorflow-metal is only officially supported for macOS 12 and 
+> higher. For CPU, you can try the Follow the [TensorFlow instructions](https://www.tensorflow.org/install/pip#macos_1) 
 
 1. Set up env with napari and pyqt5
    ```bash
       conda create -n napari-n2v -c conda-forge python=3.9 napari pyqt5 imagecodecs
    ```
-2. Install tensorflow following [your link](https://developer.apple.com/metal/tensorflow-plugin/)
+2. Install tensorflow following [Apple's instructions](https://developer.apple.com/metal/tensorflow-plugin/)
 3. Install napari-n2v
    ```bash
       pip install napari-n2v
    ```
 
-## x86 (Intel)
 
 # Start napari-N2V
 
