@@ -148,7 +148,7 @@ The training progress panel shows the following:
 
 - Progress in terms of epochs
 - Progress in terms of steps for the current epoch
-- Training and validation loss throughout the epochs. You can use the mouse wheel to zoom in or out of the graph, and you can click on the **INSERT_IMG** button to resize automatically the graph.
+- Training and validation loss throughout the epochs. You can use the mouse wheel to zoom in or out of the graph, and you can click on the `A` button to resize automatically the graph.
 - `Open in TensorBoard` opens TensorBoard in a new tab in your browser.
 
 ### 7 - Prediction
