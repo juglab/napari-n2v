@@ -11,7 +11,13 @@ from tensorflow.keras.callbacks import Callback
 from napari.qt.threading import thread_worker
 
 import napari.utils.notifications as ntf
-from tensorflow.python.framework.errors_impl import ResourceExhaustedError, NotFoundError, UnknownError, InternalError
+from tensorflow.python.framework.errors_impl import (
+    ResourceExhaustedError,
+    NotFoundError,
+    UnknownError,
+    InternalError,
+    InvalidArgumentError
+)
 
 from napari_n2v.utils import (
     cwd,
@@ -314,6 +320,9 @@ def train(model, X_patches, X_val_patches, updater):
     except MemoryError as e:
         msg = 'MemoryError can be an OOM error on the GPU (reduce batch and/or patch size, close other processes).'
         train_error(updater, str(e), msg)
+    except InvalidArgumentError as e:
+        msg = 'InvalidArgumentError can be the result of a mismatch between shapes in the model, check input dims.'
+        train_error(updater, e.message, msg)
     except ResourceExhaustedError as e:
         msg = 'ResourceExhaustedError can be an OOM error on the GPU (reduce batch and/or patch size)'
         train_error(updater, e.message, msg)
