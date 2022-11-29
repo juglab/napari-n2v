@@ -5,7 +5,7 @@ import numpy as np
 
 from n2v.models import N2V, N2VConfig
 from typing import Union
-from napari.utils import notifications as ntf
+from napari_n2v.resources import DOC_BIOIMAGE
 from .n2v_utils import ModelSaveMode, get_default_path, cwd
 
 
@@ -96,6 +96,9 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
         if 'b' not in new_axes:
             new_axes = 'b' + new_axes
 
+        # check algorithm
+        model.config
+
         # check path ending
         where = str(where)
         path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
@@ -110,6 +113,43 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
 
         # save configuration
         save_configuration(model.config, Path(where).parent)
+
+
+def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):
+    import os
+    from bioimageio.core.build_spec import build_model
+
+    assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
+
+    tags_dim = '3d' if len(axes) == 5 else '2d'
+    doc = DOC_BIOIMAGE
+
+    head, _ = os.path.split(weights)
+    head = os.path.join(os.path.normcase(head), "config.json")
+    build_model(weight_uri=weights,
+                test_inputs=[inputs],
+                test_outputs=[outputs],
+                input_axes=[axes],
+                output_axes=[axes],
+                output_path=path,
+                name='Noise2Void',
+                description='Self-supervised denoising.',
+                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                license="BSD-3-Clause",
+                documentation=os.path.abspath(doc),
+                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
+                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                       'doi': "10.48550/arXiv.1811.10980"}],
+                preprocessing=[[{
+                    "name": "zero_mean_unit_variance",
+                    "kwargs": {
+                        "axes": "yx",
+                        "mode": "per_dataset"
+                    }
+                }]],
+                tensorflow_version=tf_version,
+                attachments={"files": head}
+                )
 
 
 def save_tf(where: Union[str, Path], model):

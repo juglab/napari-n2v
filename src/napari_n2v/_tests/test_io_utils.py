@@ -3,6 +3,8 @@ import pytest
 
 import numpy as np
 
+from marshmallow import ValidationError
+
 from .test_utils import (
     create_simple_model,
     save_weights_h5,
@@ -10,13 +12,12 @@ from .test_utils import (
 )
 from napari_n2v.utils import (
     load_weights,
-    build_modelzoo,
     create_config,
     save_configuration,
     load_configuration,
     cwd
 )
-from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo
+from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo, build_modelzoo
 
 
 ###################################################################
@@ -213,3 +214,44 @@ def test_save_bioimageio(tmp_path, path):
         assert Path(where.parent, name).exists()
     else:
         assert where.exists()
+
+
+###################################################################
+# test build_modelzoo
+@pytest.mark.bioimage_io
+@pytest.mark.parametrize('shape', [(1, 16, 16, 1),
+                                   (1, 16, 16, 3),
+                                   (1, 16, 8, 1),
+                                   (1, 16, 8, 3),
+                                   (1, 16, 16, 8, 1),
+                                   (1, 16, 16, 8, 1),
+                                   (1, 16, 16, 8, 3),
+                                   (1, 16, 16, 8, 3),
+                                   (1, 8, 16, 32, 1)])
+def test_build_modelzoo_allowed_shapes(tmp_path, shape):
+    # make sure files are created in tmp_path:
+    with cwd(tmp_path):
+        # create model and save it to disk
+        parameters = create_model_zoo_parameters(tmp_path, shape)
+        build_modelzoo(*parameters)
+
+        # check if modelzoo exists
+        assert Path(parameters[0]).exists()
+
+
+@pytest.mark.bioimage_io
+@pytest.mark.parametrize('shape', [(8, 16, 16, 1),
+                                   (8, 16, 16, 8, 1)])
+def test_build_modelzoo_disallowed_batch(tmp_path, shape):
+    """
+    Test ModelZoo creation based on disallowed shapes.
+
+    :param tmp_path:
+    :param shape:
+    :return:
+    """
+    # create model and save it to disk
+    with cwd(tmp_path):
+        parameters = create_model_zoo_parameters(tmp_path, shape)
+        with pytest.raises(ValidationError):
+            build_modelzoo(*parameters)
