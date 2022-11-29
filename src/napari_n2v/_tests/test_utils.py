@@ -121,4 +121,4 @@ def create_model_zoo_parameters(folder, shape):
     else:
         axes = ''
 
-    return path_to_modelzoo, path_to_h5, path_to_input, path_to_output, tf_version, axes
+    return model.config, path_to_modelzoo, path_to_h5, path_to_input, path_to_output, tf_version, axes

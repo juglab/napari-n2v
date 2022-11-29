@@ -6,7 +6,7 @@ import numpy as np
 from n2v.models import N2V, N2VConfig
 from typing import Union
 from napari_n2v.resources import DOC_BIOIMAGE
-from .n2v_utils import ModelSaveMode, get_default_path, cwd
+from .n2v_utils import ModelSaveMode, get_default_path, cwd, which_algorithm, Algorithm
 
 
 def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
@@ -96,15 +96,13 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
         if 'b' not in new_axes:
             new_axes = 'b' + new_axes
 
-        # check algorithm
-        model.config
-
         # check path ending
         where = str(where)
         path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
 
         # save model
-        build_modelzoo(path,
+        build_modelzoo(model.config,
+                       path,
                        weights,
                        input_path,
                        output_path,
@@ -115,7 +113,13 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
         save_configuration(model.config, Path(where).parent)
 
 
-def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):
+def build_modelzoo(config: N2VConfig,
+                   path: Union[str, Path],
+                   weights: str,
+                   inputs,
+                   outputs,
+                   tf_version: str,
+                   axes='byxc'):
     import os
     from bioimageio.core.build_spec import build_model
 
@@ -123,6 +127,40 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
     doc = DOC_BIOIMAGE
+
+    # depending on algorithm, choose authors
+    algorithm = which_algorithm(config)
+    if algorithm == Algorithm.N2V2:
+        name = 'N2V2'
+        authors = [{'name': 'Eva Höck'},
+                   {'name': 'Tim-Oliver Buchholz'},
+                   {'name': 'Anselm Brachmann'},
+                   {'name': 'Florian Jug'},
+                   {'name': 'Alexander Freytag'}]
+        citation = [{'text': 'Höck, Eva, Tim-Oliver Buchholz, Anselm Brachmann, Florian Jug, and Alexander Freytag. '
+                             '\"N2V2--Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a '
+                             'Tweaked Network Architecture.\" arXiv preprint arXiv:2211.08512 (2022).',
+                     'doi': '10.48550/arXiv.2211.08512'}]
+    elif algorithm == Algorithm.StructN2V:
+        name = 'StructN2V'
+        authors = [{'name': 'Coleman Broaddus'},
+                   {'name': 'Alexander Krull'},
+                   {'name': 'Martin Weigert'},
+                   {'name': 'Uwe Schmidt'},
+                   {'name': 'Gene Myers'}]
+        citation = [{'text': 'C. Broaddus, A. Krull, M. Weigert, U. Schmidt and G. Myers, \"Removing Structured Noise '
+                             'with Self-Supervised Blind-Spot Networks,\" 2020 IEEE 17th International Symposium on '
+                             'Biomedical Imaging (ISBI), 2020, pp. 159-163',
+                     'doi': '10.1109/ISBI45749.2020.9098336'}]
+    else:
+        name = 'N2V'
+        authors = [{'name': 'Alexander Krull'},
+                   {'name': 'Tim-Oliver Buchholz'},
+                   {'name': 'Florian Jug'}]
+        citation = [{'text': 'A. Krull, T. -O. Buchholz and F. Jug, \"Noise2Void - Learning Denoising From Single '
+                             'Noisy Images,\" 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition '
+                             '(CVPR), 2019, pp. 2124-2132',
+                    'doi': '10.48550/arXiv.1811.10980'}]
 
     head, _ = os.path.split(weights)
     head = os.path.join(os.path.normcase(head), "config.json")
@@ -132,14 +170,13 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
                 input_axes=[axes],
                 output_axes=[axes],
                 output_path=path,
-                name='Noise2Void',
+                name=name,
                 description='Self-supervised denoising.',
-                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                authors=authors,
                 license="BSD-3-Clause",
                 documentation=os.path.abspath(doc),
                 tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                       'doi': "10.48550/arXiv.1811.10980"}],
+                cite=citation,
                 preprocessing=[[{
                     "name": "zero_mean_unit_variance",
                     "kwargs": {
