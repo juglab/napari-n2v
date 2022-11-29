@@ -56,17 +56,14 @@ class ModelSaveMode(Enum):
         return list(map(lambda c: c.value, cls))
 
 
-def which_algorithm(model: N2V):
+def which_algorithm(config: N2VConfig):
     """
     Checks which algorithm the model is configured for (N2V, N2V2, structN2V)
     """
-    # extract configuration
-    config = model.config
-
     if config.structN2Vmask is not None:
         return Algorithm.StructN2V
     elif config.n2v_manipulator == PixelManipulator.MEDIAN.value and \
-            config.unet_residuals and config.blurpool and config.skip_skipone:
+            not config.unet_residual and config.blurpool and config.skip_skipone:
         return Algorithm.N2V2
     else:
         return Algorithm.N2V
