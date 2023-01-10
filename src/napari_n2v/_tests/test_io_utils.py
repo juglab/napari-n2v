@@ -15,7 +15,8 @@ from napari_n2v.utils import (
     create_config,
     save_configuration,
     load_configuration,
-    cwd
+    cwd,
+    generate_bioimage_md
 )
 from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo, build_modelzoo
 
@@ -59,10 +60,10 @@ def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
 @pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 8, 16, 32, 1), (1, 8, 16, 16, 1)])
 def test_load_weights_modelzoo(tmp_path, shape):
-    # save model_zoo
-    parameters = create_model_zoo_parameters(tmp_path, shape)
-
     with cwd(tmp_path):
+        # save model_zoo
+        parameters = create_model_zoo_parameters(tmp_path, shape)
+
         build_modelzoo(*parameters)
 
     # create a new model and load from previous weights
@@ -255,3 +256,26 @@ def test_build_modelzoo_disallowed_batch(tmp_path, shape):
         parameters = create_model_zoo_parameters(tmp_path, shape)
         with pytest.raises(ValidationError):
             build_modelzoo(*parameters)
+
+
+def test_generate_bioimage_md(tmp_path):
+    """
+    Test that the generated md file exists and that the content is as expected.
+    """
+    name = 'Arthur Dent'
+    text = 'In the beginning the Universe was created. This has made a lot of people very angry and been widely ' \
+           'regarded as a bad move.'
+    content = f'## {name}\n' \
+              f'This network was trained using [napari-n2v](https://pypi.org/project/napari-n2v/).\n\n' \
+              f'## Cite {name}\n' \
+              f'{text}'
+
+    with cwd(tmp_path):
+        file = generate_bioimage_md(name, [{'text': text}])
+
+        assert file.exists()
+
+        # read file
+        with open(file, 'r') as f:
+            read = f.read()
+            assert read == content

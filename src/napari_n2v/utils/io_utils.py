@@ -5,7 +5,6 @@ import numpy as np
 
 from n2v.models import N2V, N2VConfig
 from typing import Union
-from napari_n2v.resources import DOC_BIOIMAGE
 from .n2v_utils import (
     ModelSaveMode,
     get_default_path,
@@ -111,6 +110,9 @@ def save_modelzoo(where: Union[str, Path],
         algorithm = which_algorithm(model.config)
         name, authors, cite = get_algorithm_details(algorithm)
 
+        # create documentation.md
+        doc = generate_bioimage_md(name, cite)
+
         # check path ending
         where = str(where)
         path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
@@ -120,6 +122,7 @@ def save_modelzoo(where: Union[str, Path],
                        weights,
                        input_path,
                        output_path,
+                       doc,
                        name,
                        authors,
                        cite,
@@ -127,6 +130,7 @@ def save_modelzoo(where: Union[str, Path],
                        new_axes)
 
         # save configuration
+        # TODO the bioimage.io.zip contains the configuration and so we should load it from there
         save_configuration(model.config, Path(where).parent)
 
 
@@ -134,6 +138,7 @@ def build_modelzoo(path: Union[str, Path],
                    weights: Union[str, Path],
                    inputs: str,
                    outputs: str,
+                   doc: Union[str, Path],
                    name: str,
                    authors: list,
                    cite: list,
@@ -145,7 +150,6 @@ def build_modelzoo(path: Union[str, Path],
     assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
-    doc = DOC_BIOIMAGE
 
     head, _ = os.path.split(weights)
     head = os.path.join(os.path.normcase(head), "config.json")
@@ -159,7 +163,7 @@ def build_modelzoo(path: Union[str, Path],
                 description='Self-supervised denoising.',
                 authors=authors,
                 license="BSD-3-Clause",
-                documentation=os.path.abspath(doc),
+                documentation=doc,
                 tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
                 cite=cite,
                 preprocessing=[[{
@@ -172,6 +176,24 @@ def build_modelzoo(path: Union[str, Path],
                 tensorflow_version=tf_version,
                 attachments={"files": head}
                 )
+
+
+def generate_bioimage_md(name: str, cite: list):
+    """
+    Generate a generic document.md file for the bioimage.io format.
+    """
+    # create doc
+    file = Path('napari-n2v.md')
+    with open(file, 'w') as f:
+        text = cite[0]['text']
+
+        content = f'## {name}\n' \
+                  f'This network was trained using [napari-n2v](https://pypi.org/project/napari-n2v/).\n\n' \
+                  f'## Cite {name}\n' \
+                  f'{text}'
+        f.write(content)
+
+    return file.absolute()
 
 
 def save_tf(where: Union[str, Path], model):
