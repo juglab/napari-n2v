@@ -49,6 +49,7 @@ class UpdateType(Enum):
 
 class ModelSaveMode(Enum):
     MODELZOO = 'Bioimage.io'
+    KERAS = 'Keras'
     TF = 'TensorFlow'
 
     @classmethod

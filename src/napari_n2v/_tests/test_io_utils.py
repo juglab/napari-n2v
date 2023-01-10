@@ -18,7 +18,7 @@ from napari_n2v.utils import (
     cwd,
     generate_bioimage_md
 )
-from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo, build_modelzoo
+from napari_n2v.utils.io_utils import format_path_for_saving, save_keras, save_tf, save_modelzoo, build_modelzoo
 
 
 ###################################################################
@@ -158,14 +158,14 @@ def test_format_path_for_saving(tmp_path, path):
                                   Path('mydir', 'myotherdir'),
                                   Path('mydir', 'myfile.h5'),
                                   Path('mydir', 'myotherdir', 'myfile.h5')])
-def test_save_tf(tmp_path, path):
+def test_save_keras(tmp_path, path):
     # create model
     model = create_simple_model(Path(tmp_path, 'source'), (1, 16, 16, 1))
 
     # save weights
     file = Path(tmp_path, path)
     where = format_path_for_saving(file)
-    save_tf(where, model)
+    save_keras(where, model)
 
     # check if properly saved
     if where.suffix != '.h5':
@@ -174,6 +174,21 @@ def test_save_tf(tmp_path, path):
         assert Path(where.parent, 'config.json').exists()
     else:
         assert where.exists()
+
+
+@pytest.mark.parametrize('path', ['mydir',
+                                  Path('mydir', 'myotherdir')])
+def test_save_tf(tmp_path, path):
+    # create model
+    model = create_simple_model(Path(tmp_path, 'source'), (1, 16, 16, 1))
+
+    # save weights
+    file = Path(tmp_path, path)
+    where = format_path_for_saving(file)
+    result = save_tf(where, model)
+
+    # check if properly saved
+    assert result.exists()
 
 
 @pytest.mark.bioimage_io
