@@ -58,7 +58,7 @@ class ModelSaveMode(Enum):
 
 def which_algorithm(model: N2V):
     """
-    Checks which algorithm the model is configured for (N2V, N2V2, structN2V)
+    Checks which algorithm the model is configured for (N2V, N2V2, structN2V).
     """
     # extract configuration
     config = model.config
@@ -70,6 +70,39 @@ def which_algorithm(model: N2V):
         return Algorithm.N2V2
     else:
         return Algorithm.N2V
+
+
+def get_algorithm_details(algorithm: Algorithm):
+    """
+    Returns name, authors and citation related to the algorithm, formatted as expected by bioimage.io
+    model builder.
+    """
+    if algorithm == Algorithm.StructN2V:
+        name = 'structN2V'
+        authors = [{'name': "Coleman Broaddus"},
+                   {'name': "Alexander Krull"},
+                   {'name': "Martin Weigert"},
+                   {'name': "Uwe Schmidt"},
+                   {'name': "Gene Myers"}]
+        citation = [{'text': 'Removing Structured Noise with Self-Supervised Blind-Spot Networks',
+                     'doi': '10.1109/ISBI45749.2020.9098336'}]
+    elif algorithm == Algorithm.N2V2:
+        name = 'N2V2'
+        authors = [{'name': "Eva Hoeck"},
+                   {'name': "Tim-Oliver Buchholz"},
+                   {'name': "Anselm Brachmann"},
+                   {'name': "Florian Jug"},
+                   {'name': "Alexander Freytag"}]
+        citation = [{'text': 'N2V2 -- Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies '
+                             'and a Tweaked Network Architecture',
+                     'doi': '10.48550/arXiv.2211.08512'}]
+    else:
+        name = 'Noise2Void'
+        authors = {'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}
+        citation = [{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
+                     'doi': "10.48550/arXiv.1811.10980"}]
+
+    return name, authors, citation
 
 
 def create_config(X_patches,

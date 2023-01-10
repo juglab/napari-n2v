@@ -110,6 +110,12 @@ def create_model_zoo_parameters(folder, shape):
     folder_path, _ = os.path.split(path_to_h5)
     shutil.copyfile(os.path.join(path_to_h5[:-len('.h5')], "config.json"), os.path.join(folder_path, "config.json"))
 
+    # algorithm details
+    name = 'One algo to rule them all'
+    authors = [{'name': 'Sauron'}, {'name': 'Aule'}]
+    cite = [{'text': 'It is told among the wise that the First War began before Arda was full-shaped',
+            'doi': '10.1126/science.356.6335.236'}]
+
     # tf version
     tf_version = 42
 
@@ -121,4 +127,4 @@ def create_model_zoo_parameters(folder, shape):
     else:
         axes = ''
 
-    return path_to_modelzoo, path_to_h5, path_to_input, path_to_output, tf_version, axes
+    return path_to_modelzoo, path_to_h5, path_to_input, path_to_output, name, authors, cite, tf_version, axes

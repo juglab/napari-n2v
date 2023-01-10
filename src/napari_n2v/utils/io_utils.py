@@ -6,7 +6,13 @@ import numpy as np
 from n2v.models import N2V, N2VConfig
 from typing import Union
 from napari_n2v.resources import DOC_BIOIMAGE
-from .n2v_utils import ModelSaveMode, get_default_path, cwd
+from .n2v_utils import (
+    ModelSaveMode,
+    get_default_path,
+    cwd,
+    which_algorithm,
+    get_algorithm_details
+)
 
 
 def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
@@ -81,7 +87,12 @@ def load_weights(model: N2V, weights_path: Union[str, Path]):
     model.keras_model.load_weights(weights_name)
 
 
-def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, output_path: str, tf_version: str):
+def save_modelzoo(where: Union[str, Path],
+                  model: N2V,
+                  axes: str,
+                  input_path: str,
+                  output_path: str,
+                  tf_version: str):
     from napari_n2v.utils import build_modelzoo
 
     with cwd(get_default_path()):
@@ -96,8 +107,9 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
         if 'b' not in new_axes:
             new_axes = 'b' + new_axes
 
-        # check algorithm
-        model.config
+        # check algorithm (N2V, structN2V, N2V2)
+        algorithm = which_algorithm(model)
+        name, authors, cite = get_algorithm_details(algorithm)
 
         # check path ending
         where = str(where)
@@ -108,6 +120,9 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
                        weights,
                        input_path,
                        output_path,
+                       name,
+                       authors,
+                       cite,
                        tf_version,
                        new_axes)
 
@@ -115,7 +130,15 @@ def save_modelzoo(where: Union[str, Path], model, axes: str, input_path: str, ou
         save_configuration(model.config, Path(where).parent)
 
 
-def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):
+def build_modelzoo(path: Union[str, Path],
+                   weights: Union[str, Path],
+                   inputs: str,
+                   outputs: str,
+                   name: str,
+                   authors: list,
+                   cite: list,
+                   tf_version: str,
+                   axes: str = 'byxc'):
     import os
     from bioimageio.core.build_spec import build_model
 
@@ -132,14 +155,13 @@ def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_ver
                 input_axes=[axes],
                 output_axes=[axes],
                 output_path=path,
-                name='Noise2Void',
+                name=name,
                 description='Self-supervised denoising.',
-                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
+                authors=authors,
                 license="BSD-3-Clause",
                 documentation=os.path.abspath(doc),
                 tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                       'doi': "10.48550/arXiv.1811.10980"}],
+                cite=cite,
                 preprocessing=[[{
                     "name": "zero_mean_unit_variance",
                     "kwargs": {
