@@ -12,8 +12,37 @@ from napari_n2v.utils import (
     create_model,
     get_default_settings,
     get_pms,
-    get_losses
+    get_losses,
+    create_config,
+    which_algorithm,
+    Algorithm,
+    PixelManipulator
 )
+
+
+def test_which_algorithm():
+    # fake data
+    shape = (1, 8, 8, 1)
+    X = np.concatenate([np.ones(shape), np.zeros(shape)], axis=0)
+    name = 'myModel'
+
+    # get default settings for N2V
+    expert_settings = get_default_settings(False)
+    config = create_config(X, **expert_settings)
+    assert which_algorithm(config) == Algorithm.N2V
+
+    # structN2V
+    expert_settings['structN2Vmask'] = [0, 1, 1, 1, 0]
+    config = create_config(X, **expert_settings)
+    assert which_algorithm(config) == Algorithm.StructN2V
+
+    # N2V2
+    expert_settings['structN2Vmask'] = None
+    expert_settings['blurpool'] = True
+    expert_settings['skip_skipone'] = True
+    expert_settings['n2v_manipulator'] = PixelManipulator.MEDIAN.value
+    config = create_config(X, **expert_settings)
+    assert which_algorithm(config) == Algorithm.N2V2
 
 
 @pytest.mark.parametrize('shape', [3, 4, 5])

@@ -107,8 +107,8 @@ def save_modelzoo(where: Union[str, Path],
         if 'b' not in new_axes:
             new_axes = 'b' + new_axes
 
-        # check algorithm (N2V, structN2V, N2V2)
-        algorithm = which_algorithm(model)
+        # check algorithm (N2V, structN2V, N2V2) and get the corresponding details
+        algorithm = which_algorithm(model.config)
         name, authors, cite = get_algorithm_details(algorithm)
 
         # check path ending

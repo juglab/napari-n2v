@@ -56,17 +56,14 @@ class ModelSaveMode(Enum):
         return list(map(lambda c: c.value, cls))
 
 
-def which_algorithm(model: N2V):
+def which_algorithm(config: N2VConfig):
     """
     Checks which algorithm the model is configured for (N2V, N2V2, structN2V).
     """
-    # extract configuration
-    config = model.config
-
     if config.structN2Vmask is not None:
         return Algorithm.StructN2V
     elif config.n2v_manipulator == PixelManipulator.MEDIAN.value and \
-            config.unet_residuals and config.blurpool and config.skip_skipone:
+            not config.unet_residual and config.blurpool and config.skip_skipone:
         return Algorithm.N2V2
     else:
         return Algorithm.N2V
@@ -84,7 +81,9 @@ def get_algorithm_details(algorithm: Algorithm):
                    {'name': "Martin Weigert"},
                    {'name': "Uwe Schmidt"},
                    {'name': "Gene Myers"}]
-        citation = [{'text': 'Removing Structured Noise with Self-Supervised Blind-Spot Networks',
+        citation = [{'text': 'C. Broaddus, A. Krull, M. Weigert, U. Schmidt and G. Myers, \"Removing Structured Noise '
+                             'with Self-Supervised Blind-Spot Networks,\" 2020 IEEE 17th International Symposium on '
+                             'Biomedical Imaging (ISBI), 2020, pp. 159-163',
                      'doi': '10.1109/ISBI45749.2020.9098336'}]
     elif algorithm == Algorithm.N2V2:
         name = 'N2V2'
@@ -93,14 +92,17 @@ def get_algorithm_details(algorithm: Algorithm):
                    {'name': "Anselm Brachmann"},
                    {'name': "Florian Jug"},
                    {'name': "Alexander Freytag"}]
-        citation = [{'text': 'N2V2 -- Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies '
-                             'and a Tweaked Network Architecture',
+        citation = [{'text': 'E. Hoeck, T.-O. Buchholz, A. Brachmann, F. Jug and A. Freytag, '
+                             '\"N2V2--Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a '
+                             'Tweaked Network Architecture.\" arXiv preprint arXiv:2211.08512 (2022).',
                      'doi': '10.48550/arXiv.2211.08512'}]
     else:
         name = 'Noise2Void'
-        authors = {'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}
-        citation = [{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                     'doi': "10.48550/arXiv.1811.10980"}]
+        authors = [{'name': "Alexander Krull"}, {'name': "Tim-Oliver Buchholz"}, {'name': "Florian Jug"}]
+        citation = [{'text': 'A. Krull, T.-O. Buchholz and F. Jug, \"Noise2Void - Learning Denoising From Single '
+                             'Noisy Images,\" 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition  '
+                             '(CVPR), 2019, pp. 2124-2132',
+                     'doi': '10.48550/arXiv.1811.10980'}]
 
     return name, authors, citation
 
