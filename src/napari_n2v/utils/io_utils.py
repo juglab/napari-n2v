@@ -163,10 +163,11 @@ def build_modelzoo(path: Union[str, Path],
                    cite: list,
                    tf_version: str,
                    axes: str = 'byxc',
-                   files: list = []):
+                   files: list = [],
+                   **kwargs):
     from bioimageio.core.build_spec import build_model
 
-    assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
+    assert str(path).endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
 
@@ -191,7 +192,8 @@ def build_modelzoo(path: Union[str, Path],
                     }
                 }]],
                 tensorflow_version=tf_version,
-                attachments={"files": files}
+                attachments={"files": files},
+                **kwargs
                 )
 
 
