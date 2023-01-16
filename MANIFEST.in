@@ -1,5 +1,6 @@
 include LICENSE
 include README.md
+include codecov.yml
 include src/napari_n2v/resources/gear_16.png
 include src/napari_n2v/resources/GitHub-Mark-Light-32px.png
 include src/napari_n2v/resources/juglab_logo_128.png
