@@ -55,7 +55,7 @@ class TrainingSettingsWidget(QDialog):
         desc_n_validation = 'Number of patches used for validation. This is only used when no\n' \
                             'validation data is defined (i.e. validation is taken from the\n' \
                             'training patches.).'
-        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=20)  # todo: arbitrary max...
+        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=1000)
         label_n_validation.setToolTip(desc_n_validation)
         self.n_val.setToolTip(desc_n_validation)
 
