@@ -107,6 +107,7 @@ def test_load_model_TF(tmp_path, shape, axes):
 
 ###################################################################
 # test bioimage.io
+@pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'bzyxc')])
 def test_save_model_bioimage(tmp_path, shape, axes):
     model = create_simple_model(tmp_path, shape)
@@ -137,6 +138,7 @@ def test_save_model_bioimage(tmp_path, shape, axes):
     assert weights_path.exists()
 
 
+@pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
 def test_load_model_bioimage(tmp_path, shape, axes):
     model = create_simple_model(tmp_path, shape)
