@@ -554,7 +554,7 @@ class TrainWidget(QWidget):
     def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
-                where = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
+                destination = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
                 export_type = self.save_choice.currentText()
 
                 # save
@@ -566,7 +566,7 @@ class TrainWidget(QWidget):
                     'output_path': self.outputs,
                     'tf_version': self.tf_version
                 }
-                save_model(where, **parameters)
+                save_model(destination, **parameters)
 
     def is_tiling_checked(self):
         return self.tiling_cbox.isChecked()

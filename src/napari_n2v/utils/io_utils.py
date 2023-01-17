@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+from enum import Enum
 
 import numpy as np
 
@@ -13,16 +13,33 @@ from .n2v_utils import (
     get_algorithm_details
 )
 
+CONFIG = 'config.json'
 
-def save_configuration(config: N2VConfig, dir_path: Union[str, Path]):
+
+class Extensions(Enum):
+    BIOIMAGE_EXT = '.bioimage.io.zip'
+    KERAS_EXT = '.h5'
+    TF_EXT = '.zip'
+
+
+class Format(Enum):
+    H5 = 'h5'
+    TF = 'tf'
+
+
+def save_configuration(path: Union[str, Path], model: N2V):
     from csbdeep.utils import save_json
 
     # sanity check
-    assert Path(dir_path).is_dir()
+    if str(path).endswith(CONFIG):
+        final_path = path
+    else:
+        assert Path(path).is_dir()
 
-    # save
-    final_path = Path(dir_path) / 'config.json'
-    save_json(vars(config), final_path)
+        # save
+        final_path = Path(path) / CONFIG
+
+    save_json(vars(model.config), final_path)
 
 
 def load_configuration(path: Union[str, Path]) -> N2VConfig:
@@ -48,72 +65,125 @@ def load_model(weight_path: Union[str, Path]) -> N2V:
     if not Path(weight_path).exists():
         raise ValueError('Invalid model path.')
 
-    if not (Path(weight_path).parent / 'config.json').exists():
-        raise ValueError('No config.json file found.')
-
-    # load configuration
-    # TODO if bioimage.io, we should load the one in the archive
-    config = load_configuration(Path(weight_path).parent / 'config.json')
-
-    # instantiate model
-    model = N2V(config, 'DenoiSeg', 'models')
-
-    # load weights
-    load_weights(model, weight_path)
+    if str(weight_path).endswith(Extensions.BIOIMAGE_EXT.value):
+        model = load_model_bioimage(weight_path)
+    elif str(weight_path).endswith(Extensions.TF_EXT.value):  # we expect a TF bundle (see save_tf)
+        model = load_model_tf(weight_path)
+    elif str(weight_path).endswith(Extensions.KERAS_EXT.value):  # we expect .h5
+        model = load_model_keras(weight_path)
+    else:
+        raise ValueError(f'Expected file with extension '
+                         f'{Extensions.BIOIMAGE_EXT.value},'
+                         f'{Extensions.TF_EXT.value} or '
+                         f'{Extensions.KERAS_EXT.value}')
 
     return model
 
 
-def load_weights(model: N2V, weights_path: Union[str, Path]):
-    """
+def save_model(model_path: Union[str, Path], export_type, model, **kwargs):
+    # create target directory
+    model_path = format_path_for_saving(model_path)
 
-    :param model:
-    :param weights_path:
-    :return:
-    """
-    _filename, file_ext = os.path.splitext(weights_path)
-    if file_ext == ".zip":
-        import bioimageio.core
-        # we assume we got a modelzoo file
-        rdf = bioimageio.core.load_resource_description(weights_path)
-
-        # search for the h5 file
-        for p in rdf.attachments.files:
-            if p.suffix == '.h5':
-                weights_name = p
-                break
+    # save model
+    if export_type == ModelSaveMode.MODELZOO.value:
+        save_model_bioimage(model_path.absolute(), model, **kwargs)
+    elif export_type == ModelSaveMode.KERAS.value:
+        save_model_keras(model_path.absolute(), model)
     else:
-        # we assume we have a path to a .h5
-        weights_name = weights_path
-
-    if not Path(weights_name).exists():
-        raise FileNotFoundError('Invalid path to weights.')
-
-    model.keras_model.load_weights(weights_name)
+        save_model_tf(model_path.absolute(), model)
 
 
-def save_modelzoo(where: Path,
-                  model: N2V,
-                  axes: str,
-                  input_path: str,
-                  output_path: str,
-                  tf_version: str):
-    from napari_n2v.utils import build_modelzoo
+def load_model_keras(weights_path: Union[str, Path]) -> N2V:
+    if not Path(weights_path).suffix == Extensions.KERAS_EXT.value:
+        raise ValueError(f'Invalid weights type, expected {Extensions.KERAS_EXT.value}.')
 
-    with cwd(get_default_path()):
-        # path to weights (h5)
-        path_weights_h5 = Path(model.logdir, 'weights_best.h5')
-        if not path_weights_h5.exists():
-            raise FileNotFoundError('Invalid path to weights.')
+    # check if config is present
+    if not (Path(weights_path).parent / CONFIG).exists():
+        raise ValueError('No config.json file found.')
 
-        path_config = Path(model.logdir, 'config.json')
-        if not path_config.exists():
-            raise FileNotFoundError('Invalid path to config.')
+    # load configuration
+    config_path = Path(weights_path).parent / CONFIG
+    config = load_configuration(config_path)
 
-        load_weights(model, path_weights_h5)
+    # instantiate model
+    model = N2V(config, 'DenoiSeg', 'models')
+
+    # we assume we have a path to a .h5
+    model.keras_model.load_weights(weights_path)
+
+    return model
+
+
+def save_model_keras(model_path: Union[str, Path], model):
+    model_path = str(model_path)
+    path = model_path if model_path.endswith(Extensions.KERAS_EXT.value) else model_path + Extensions.KERAS_EXT.value
+
+    # save model
+    model.keras_model.save_weights(path)
+
+    # save configuration
+    save_configuration(Path(model_path).parent, model)
+
+    return path
+
+
+def load_model_bioimage(weights_path: Union[str, Path]):
+    import bioimageio.core
+
+    if not str(weights_path).endswith(Extensions.BIOIMAGE_EXT.value):
+        raise ValueError(f'Invalid weights type, expected {Extensions.BIOIMAGE_EXT.value}')
+
+    rdf = bioimageio.core.load_resource_description(weights_path)
+
+    # search for config file
+    config_name = None
+    for p in rdf.attachments.files:
+        if p.name == CONFIG:
+            config_name = p
+            break
+
+    if config_name:
+        config = load_configuration(config_name)
+
+        # instantiate model
+        model = N2V(config, 'DenoiSeg', 'models')
+    else:
+        raise ValueError('Failed to find config.json in the archive.')
+
+    # search for the h5 file
+    # TODO as an alternative, load .pb?
+    weights_name = None
+    for p in rdf.attachments.files:
+        if p.suffix == Extensions.KERAS_EXT.value:
+            weights_name = p
+            break
+
+    if weights_name:
+        model.keras_model.load_weights(weights_name)
+    else:
+        raise ValueError(f'Failed to find {Extensions.KERAS_EXT.value} in the archive.')
+
+    return model
+
+
+def save_model_bioimage(destination: Path,
+                        model: N2V,
+                        axes: str,
+                        input_path: str,
+                        output_path: str,
+                        tf_version: str):
+    path = get_default_path() / 'bioimage.io'
+    with cwd(path):
+        # save .h5 weights
+        path_weights_h5 = Path('weights.h5')
+        save_model_keras(path_weights_h5, model)
+
+        # save configuration
+        path_config = Path(CONFIG)
+        save_configuration(path_config, model)
 
         # save TF model bundle
-        path_bundle = save_tf(Path('tf_model'), model)
+        path_bundle = save_model_tf(Path('tf_model'), model)
 
         # format axes for bioimage.io
         new_axes = axes.replace('S', 'b').lower()
@@ -129,11 +199,14 @@ def save_modelzoo(where: Path,
         doc = generate_bioimage_md(name, cite)
 
         # files
-        files = [path_config, path_weights_h5]
+        files = [path_config.absolute(), path_weights_h5.absolute()]
 
         # check path ending
-        where = str(where)
-        path = where if where.endswith('.bioimage.io.zip') else where + '.bioimage.io.zip'
+        destination = str(destination)
+        if destination.endswith(Extensions.BIOIMAGE_EXT.value):
+            path = destination
+        else:
+            path = destination + Extensions.BIOIMAGE_EXT.value
 
         # save model
         build_modelzoo(path,
@@ -148,9 +221,69 @@ def save_modelzoo(where: Path,
                        new_axes,
                        files)
 
+        return path
+
+
+def load_model_tf(weights_path: Union[str, Path]):
+    import tensorflow as tf
+    from zipfile import ZipFile
+    from shutil import rmtree
+
+    if not Path(weights_path).suffix == Extensions.TF_EXT.value:
+        raise ValueError(f'Invalid weights type, expected {Extensions.TF_EXT.value}.')
+
+    with cwd(get_default_path()):
+        path_bundle = Path('tf_model').absolute()
+        if path_bundle.exists():
+            rmtree(path_bundle)
+
+        # extract zip
+        with ZipFile(weights_path, 'r') as zip_file:
+            zip_file.extractall(path=path_bundle)
+
+        # configuration file path
+        config_expected_path = Path(path_bundle, CONFIG)
+        if not config_expected_path.exists():
+            raise FileNotFoundError(f'Could not found configuration in {path_bundle}.')
+
+        # create configuration
+        config = load_configuration(config_expected_path)
+
+        # instantiate model
+        model = N2V(config, 'DenoiSeg', 'models')
+
+        # load weights
+        model.keras_model = tf.keras.models.load_model(path_bundle)
+
+        return model
+
+
+def save_model_tf(destination: Path, model: N2V):
+    """
+    Save the model as a TF bundle and returns the path to the archive.
+    """
+    import tensorflow as tf
+    from zipfile import ZipFile
+    from shutil import rmtree
+
+    with cwd(get_default_path()):
+        path_bundle = Path('tf_model').absolute()
+        if path_bundle.exists():
+            rmtree(path_bundle)
+
+        # save bundle
+        tf.keras.models.save_model(model.keras_model, path_bundle, save_format=Format.TF.value)
+
         # save configuration
-        # TODO the bioimage.io.zip contains the configuration and so we should load it from there
-        save_configuration(model.config, Path(where).parent)
+        save_configuration(path_bundle, model)
+
+        # zip it and save to destination
+        final_archive = Path(destination.parent, destination.stem + '.zip').absolute()
+        with ZipFile(final_archive, mode="w") as archive:
+            for file_path in path_bundle.rglob("*"):
+                archive.write(file_path, arcname=file_path.relative_to(path_bundle))
+
+        return final_archive
 
 
 def build_modelzoo(path: Union[str, Path],
@@ -167,7 +300,7 @@ def build_modelzoo(path: Union[str, Path],
                    **kwargs):
     from bioimageio.core.build_spec import build_model
 
-    assert str(path).endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
+    assert str(path).endswith(Extensions.BIOIMAGE_EXT.value), f'Path must end with {Extensions.BIOIMAGE_EXT.value}'
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
 
@@ -215,50 +348,6 @@ def generate_bioimage_md(name: str, cite: list):
     return file.absolute()
 
 
-def save_keras(where: Path, model):
-    where = str(where)
-    path = where if where.endswith('.h5') else where + '.h5'
-
-    # save model
-    model.keras_model.save_weights(path)
-
-    # save configuration
-    save_configuration(model.config, Path(where).parent)
-
-
-def save_tf(destination: Path, model: N2V):
-    """
-    Save the model as a TF bundle and returns the path to the archive.
-    """
-    import tensorflow as tf
-    from zipfile import ZipFile
-    from shutil import rmtree
-
-    with cwd(get_default_path()):
-        path_bundle = Path('tf_model').absolute()
-        if path_bundle.exists():
-            rmtree(path_bundle)
-
-        # save bundle
-        tf.saved_model.save(model.keras_model, path_bundle)
-
-        # remove assets folder
-        path_assets = Path(path_bundle, 'assets')
-        if path_assets.exists():
-            rmtree(path_assets)
-
-        # save configuration
-        save_configuration(model.config, path_bundle)
-
-        # zip it and move to destination
-        where = Path(destination.parent, destination.stem + '.zip').absolute()
-        with ZipFile(where, mode="w") as archive:
-            for file_path in path_bundle.rglob("*"):
-                archive.write(file_path, arcname=file_path.relative_to(path_bundle))
-
-        return where
-
-
 def format_path_for_saving(where: Union[str, Path]):
     """
     We want to create a folder containing the weights and the config file, users must point to a name (file or folder),
@@ -266,13 +355,13 @@ def format_path_for_saving(where: Union[str, Path]):
     """
     where = Path(where)
 
-    if where.suffix == '.h5' or str(where).endswith('.bioimage.io.zip'):
+    if where.suffix == Extensions.KERAS_EXT.value or str(where).endswith(Extensions.BIOIMAGE_EXT.value):
         # file, we want to create a directory with same name but without the suffix(es)
-        if where.suffix == '.h5':
+        if where.suffix == Extensions.KERAS_EXT.value:
             new_parent = Path(where.parent, where.stem)
             new_parent.mkdir(parents=True, exist_ok=True)
         else:
-            name = where.name[:-len('.bioimage.io.zip')]  # remove .bioimage.io.zip
+            name = where.name[:-len(Extensions.BIOIMAGE_EXT.value)]  # remove .bioimage.io.zip
             new_parent = Path(where.parent, name)
             new_parent.mkdir(parents=True, exist_ok=True)
 
@@ -283,16 +372,3 @@ def format_path_for_saving(where: Union[str, Path]):
         where = Path(where, where.name)
 
     return where
-
-
-def save_model(where: Union[str, Path], export_type, model, **kwargs):
-    # create target directory
-    where = format_path_for_saving(where)
-
-    # save model
-    if export_type == ModelSaveMode.MODELZOO.value:
-        save_modelzoo(where.absolute(), model, **kwargs)
-    elif export_type == ModelSaveMode.KERAS.value:
-        save_keras(where.absolute(), model)
-    else:
-        save_tf(where.absolute(), model)
