@@ -253,6 +253,9 @@ def load_images(widget):
     else:  # from layers
         x_train = widget.img_train.value.data
 
+        # remember scale for potentially showing the prediction
+        widget.scale = widget.img_train.value.scale
+
         # if the val combobox is not empty and train != val
         if widget.img_val.value is not None and\
                 widget.img_train.value.name != widget.img_val.value.name:

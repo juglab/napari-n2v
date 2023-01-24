@@ -234,6 +234,9 @@ def prediction_worker(widget):
         images = widget.images.value.data
         new_axes = axes
 
+        # remember scales for showing the final images
+        widget.scale = widget.images.value.scale
+
     # common parameters list
     parameters = {'widget': widget,
                   'model': model,

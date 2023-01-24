@@ -109,6 +109,7 @@ class PredictWidget(QWidget):
         self.sample_image = None
         self.n_im = 0
         self.load_from_disk = False
+        self.scale = None
 
         # actions
         self.tabs.currentChanged.connect(self._update_tab_axes)
@@ -287,7 +288,15 @@ class PredictWidget(QWidget):
         self.predict_button.setText('Predict again')
 
         if self.denoi_prediction is not None:
-            self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+            if self.scale is not None:
+                self.viewer.add_image(
+                    self.denoi_prediction,
+                    name=DENOISING,
+                    scale = self.scale,
+                    visible=True
+                )
+            else:
+                self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
     def get_model_path(self):
         return self.load_model_button.Model.value
