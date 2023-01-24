@@ -180,7 +180,7 @@ class TrainingSettingsWidget(QDialog):
         ####################################################
         # create widgets for load model
         self.load_model_button = load_button()
-        self.load_model_button.native.setToolTip('Load a pre-trained model (weights and configuration)')
+        self.load_model_button.native.setToolTip('Load a pre-trained model (weights and configuration).')
 
         self.retraining.setLayout(QVBoxLayout())
         self.retraining.layout().addWidget(self.load_model_button.native)
