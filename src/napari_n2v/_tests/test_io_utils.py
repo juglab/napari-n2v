@@ -7,14 +7,13 @@ from marshmallow import ValidationError
 
 from .test_utils import (
     create_simple_model,
-    save_weights_h5,
     create_model_zoo_parameters
 )
 from napari_n2v.utils import (
     save_configuration,
     load_configuration,
-    create_config,
-    cwd
+    cwd,
+    create_model
 )
 from napari_n2v.utils.io_utils import (
     load_model_keras,
@@ -35,7 +34,8 @@ from napari_n2v.utils.io_utils import (
 # test keras
 @pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
 def test_save_model_keras(tmp_path, shape):
-    model = create_simple_model(tmp_path, shape)
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # save model
     model_path = Path(tmp_path, 'my_model')
@@ -50,7 +50,8 @@ def test_save_model_keras(tmp_path, shape):
 
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
 def test_load_model_keras(tmp_path, shape, axes):
-    model = create_simple_model(tmp_path, shape)
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # save model
     model_path = Path(tmp_path, 'my_model')
@@ -73,7 +74,8 @@ def test_load_model_keras(tmp_path, shape, axes):
 # test TF
 @pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
 def test_save_model_TF(tmp_path, shape):
-    model = create_simple_model(tmp_path, shape)
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # save model
     model_path = Path(tmp_path, 'my_model')
@@ -87,7 +89,8 @@ def test_save_model_TF(tmp_path, shape):
 
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
 def test_load_model_TF(tmp_path, shape, axes):
-    model = create_simple_model(tmp_path, shape)
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # save model
     model_path = Path(tmp_path, 'my_model')
@@ -110,7 +113,8 @@ def test_load_model_TF(tmp_path, shape, axes):
 @pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'bzyxc')])
 def test_save_model_bioimage(tmp_path, shape, axes):
-    model = create_simple_model(tmp_path, shape)
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # create inputs and outputs
     X = np.random.randn(*shape)
@@ -141,7 +145,12 @@ def test_save_model_bioimage(tmp_path, shape, axes):
 @pytest.mark.bioimage_io
 @pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
 def test_load_model_bioimage(tmp_path, shape, axes):
-    model = create_simple_model(tmp_path, shape)
+    from bioimageio.core import load_resource_description
+    from bioimageio.core.resource_tests import test_model
+
+    # create model
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
     # create inputs and outputs
     X = np.random.randn(*shape)
@@ -152,16 +161,24 @@ def test_load_model_bioimage(tmp_path, shape, axes):
     np.save(output_path, Y)
 
     # tf version
-    tf_version = '42'
+    tf_version = '2.10.0'
 
     # save model
     model_path = Path(tmp_path, 'my_model')
     path_to_model = save_model_bioimage(destination=model_path,
                                         model=model,
-                                        axes='bzyxc',
+                                        axes=axes,
                                         input_path=input_path,
                                         output_path=output_path,
                                         tf_version=tf_version)
+
+    # validate model using bioimageio.core
+    my_model = load_resource_description(path_to_model)
+    results = test_model(my_model)
+
+    for entry in results:
+        print(entry)
+        assert entry['status'] == 'passed'
 
     # load new model
     new_model = load_model_bioimage(path_to_model)
@@ -172,6 +189,7 @@ def test_load_model_bioimage(tmp_path, shape, axes):
 
     # compare results
     assert (X_new_pred == X_pred).all()
+    print(np.max(X_new_pred-X_pred))
 
 
 @pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
@@ -232,47 +250,6 @@ def test_format_path_for_saving(tmp_path, path):
         assert not where.exists()
         assert where.parent.exists()
         assert where.parent.name == where.name
-
-
-###################################################################
-# test build_modelzoo
-@pytest.mark.bioimage_io
-@pytest.mark.parametrize('shape', [(1, 16, 16, 1),
-                                   (1, 16, 16, 3),
-                                   (1, 16, 8, 1),
-                                   (1, 16, 8, 3),
-                                   (1, 16, 16, 8, 1),
-                                   (1, 16, 16, 8, 1),
-                                   (1, 16, 16, 8, 3),
-                                   (1, 16, 16, 8, 3),
-                                   (1, 8, 16, 32, 1)])
-def test_build_modelzoo_allowed_shapes(tmp_path, shape):
-    # make sure files are created in tmp_path:
-    with cwd(tmp_path):
-        # create model and save it to disk
-        parameters = create_model_zoo_parameters(tmp_path, shape)
-        build_modelzoo(*parameters)
-
-        # check if modelzoo exists
-        assert Path(parameters[0]).exists()
-
-
-@pytest.mark.bioimage_io
-@pytest.mark.parametrize('shape', [(8, 16, 16, 1),
-                                   (8, 16, 16, 8, 1)])
-def test_build_modelzoo_disallowed_batch(tmp_path, shape):
-    """
-    Test ModelZoo creation based on disallowed shapes.
-
-    :param tmp_path:
-    :param shape:
-    :return:
-    """
-    # create model and save it to disk
-    with cwd(tmp_path):
-        parameters = create_model_zoo_parameters(tmp_path, shape)
-        with pytest.raises(ValidationError):
-            build_modelzoo(*parameters)
 
 
 def test_generate_bioimage_md(tmp_path):

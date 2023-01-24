@@ -137,6 +137,12 @@ def create_model(X_patches,
                  updater=None,
                  expert_settings=None,
                  train=True) -> N2V:
+    """
+    Create a model.
+
+    Warning: if Train=true, TF SavedModel bundle export will not be importable because
+    of missing custom functions (e.g. loss).
+    """
     from n2v.models import N2V
     with cwd(get_default_path()):
         # create config

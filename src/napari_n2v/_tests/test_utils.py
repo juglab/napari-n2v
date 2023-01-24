@@ -66,6 +66,7 @@ def test_create_model(tmp_path, shape):
     create_simple_model(tmp_path, shape)
 
 
+# todo still necessary?
 def save_weights_h5(model, basedir):
     name_weights = 'myModel.h5'
     path_to_weights = Path(basedir, name_weights)

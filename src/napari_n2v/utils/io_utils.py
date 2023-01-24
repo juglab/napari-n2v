@@ -192,6 +192,25 @@ def save_model_bioimage(destination: Path,
         if 'b' not in new_axes:
             new_axes = 'b' + new_axes
 
+        # processing
+        preprocessing = [{
+            'name': 'zero_mean_unit_variance',
+            'kwargs': {
+                'mode': 'fixed',
+                'axes': 'yx' if len(axes) == 4 else 'zyx',
+                'mean': [float(m) for m in model.config.means],
+                'std': [float(s) for s in model.config.stds]
+            }
+        }]
+        postprocessing = [{
+            'name': 'scale_linear',
+            'kwargs': {
+                'axes': 'yx' if len(axes) == 4 else 'zyx',
+                'gain': [float(s) for s in model.config.stds],
+                'offset': [float(m) for m in model.config.means]
+            }
+        }]
+
         # check algorithm (N2V, structN2V, N2V2) and get the corresponding details
         algorithm = which_algorithm(model.config)
         name, authors, cite = get_algorithm_details(algorithm)
@@ -214,6 +233,8 @@ def save_model_bioimage(destination: Path,
                        path_bundle,
                        input_path,
                        output_path,
+                       preprocessing,
+                       postprocessing,
                        doc,
                        name,
                        authors,
@@ -255,8 +276,8 @@ def load_model_tf(weights_path: Union[str, Path]):
         model = N2V(config, 'DenoiSeg', 'models')
 
         # load weights
-        model.keras_model = tf.keras.models.load_model(path_bundle)
-
+        model.keras_model = tf.keras.models.load_model(path_bundle, compile=False)
+        # TODO test if it can then be retrained? because it is not compiled
         return model
 
 
@@ -273,8 +294,14 @@ def save_model_tf(destination: Path, model: N2V):
         if path_bundle.exists():
             rmtree(path_bundle)
 
-        # save bundle
-        tf.keras.models.save_model(model.keras_model, path_bundle, save_format=Format.TF.value)
+        # save bundle without including optimizer
+        # (otherwise the absence of the custom functions cause errors upon loading)
+        tf.keras.models.save_model(
+            model.keras_model,
+            path_bundle,
+            save_format=Format.TF.value,
+            include_optimizer=False
+        )
 
         # save configuration
         save_configuration(path_bundle, model)
@@ -292,6 +319,8 @@ def build_modelzoo(path: Union[str, Path],
                    weights: Union[str, Path],
                    inputs: str,
                    outputs: str,
+                   preprocessing: list,
+                   postprocessing: list,
                    doc: Union[str, Path],
                    name: str,
                    authors: list,
@@ -318,15 +347,10 @@ def build_modelzoo(path: Union[str, Path],
                 authors=authors,
                 license="BSD-3-Clause",
                 documentation=doc,
-                tags=[tags_dim, 'unet', 'denoising', Algorithm.value, 'tensorflow', 'napari'],
+                tags=[tags_dim, 'unet', 'denoising', algorithm.value, 'tensorflow', 'napari'],
                 cite=cite,
-                preprocessing=[[{
-                    "name": "zero_mean_unit_variance",
-                    "kwargs": {
-                        "axes": "yx",
-                        "mode": "per_dataset"
-                    }
-                }]],
+                preprocessing=[preprocessing],
+                postprocessing=[postprocessing],
                 tensorflow_version=tf_version,
                 attachments={"files": files},
                 **kwargs
