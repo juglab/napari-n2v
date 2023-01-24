@@ -16,6 +16,7 @@ class MonkeyPatchWidget:
     def __init__(self):
         self.state = State.RUNNING
         self.denoi_prediction = None
+        self.scale = None
 
     def get_model_path(self):
         return self.path

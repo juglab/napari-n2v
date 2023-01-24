@@ -29,6 +29,7 @@ class MonkeyPatchLayerEntry:
     def __init__(self, data=None, name='Nobody'):
         self.data = data
         self.name = name
+        self.scale = [1, 2, 1]
 
 
 class MonkeyPatchLayer:
@@ -66,6 +67,7 @@ class MonkeyPatchWidget:
         self.batch_size = batch_size
         self.patch_XY = patch_XY
         self.patch_Z = patch_Z
+        self.scale = None
 
         self.model = None
 
