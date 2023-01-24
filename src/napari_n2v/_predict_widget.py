@@ -97,7 +97,6 @@ class PredictWidget(QWidget):
 
         # add to main layout
         self.layout().addWidget(self.tabs)
-        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
 
         ###############################
         self._build_params_widgets()
@@ -118,6 +117,12 @@ class PredictWidget(QWidget):
         self.images_folder.text_field.textChanged.connect(self._update_disk_axes)
         self.enable_3d.stateChanged.connect(self._update_3D)
         self.tiling_cbox.stateChanged.connect(self._update_tiling)
+
+        # update image layer
+        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
+
+        # update axes if necessary
+        self._update_layer_axes()
 
     def _build_params_widgets(self):
         self.params_group = QGroupBox()
