@@ -271,7 +271,7 @@ def reshape_data(x, axes: str):
         raise ValueError('X or Y dimension missing in axes.')
 
     if len(_axes) != len(_x.shape):
-        raise ValueError('Incompatible data and axes.')
+        raise ValueError(f'Incompatible data ({_x.shape}) and axes ({_axes}).')
 
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
@@ -319,7 +319,7 @@ def reshape_napari(x, axes_in: str):
         raise ValueError('X or Y dimension missing in axes.')
 
     if len(_axes) != len(_x.shape):
-        raise ValueError('Incompatible data and axes.')
+        raise ValueError(f'Incompatible data ({_x.shape}) and axes ({_axes}).')
 
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
