@@ -317,8 +317,9 @@ def train(model, X_patches, X_val_patches, updater):
         # TODO there's probably a lot more than that
         msg = 'AssertionError can be caused by n2v masked pixel % being too low'
         train_error(updater, e.args, msg)
-    except MemoryError as e:
-        msg = 'MemoryError can be an OOM error on the GPU (reduce batch and/or patch size, close other processes).'
+    except (MemoryError, InternalError) as e:
+        msg = 'MemoryError or InternalError can be an OOM error on the GPU (reduce batch and/or patch size, ' \
+              'close other processes). '
         train_error(updater, str(e), msg)
     except InvalidArgumentError as e:
         msg = 'InvalidArgumentError can be the result of a mismatch between shapes in the model, check input dims.'

@@ -260,6 +260,7 @@ class TrainingSettingsWidget(QDialog):
         return self.n_val.value()
 
     # todo could refactor this into a single function easy to test
+    # todo currently only 1D
     def _get_structN2V(self, is_3D=False):
         if self.structN2V_text.text() != '':
             mask = self.structN2V_text.text()
