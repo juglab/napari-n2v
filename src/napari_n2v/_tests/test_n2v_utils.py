@@ -398,7 +398,7 @@ def test_create_model_expert_settings(qtbot, shape):
     widget_settings.loss = loss
     widget_settings.unet_residuals.setChecked(unet_residuals)
     widget_settings.single_net.setChecked(single_net)
-    widget_settings.structN2V_text.setText('0, 1, 1, 1, 0')
+    widget_settings.structN2V_mask.setText('0, 1, 1, 1, 0')
 
     # check settings
     settings = widget_settings.get_settings(is_3D=is_3D)

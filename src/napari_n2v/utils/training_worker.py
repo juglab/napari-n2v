@@ -91,10 +91,11 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
     else:
         # if structN2V we should augment only by flip along the right directions, currently no augmentation
+        # augment if there is not structN2V mask and if augmentations are required
         X_train, X_val = prepare_data(_x_train,
                                       _x_val,
                                       patch_shape,
-                                      augment=expert_settings.has_mask(),
+                                      augment=(not expert_settings.has_mask()) and expert_settings.use_augmentation(),
                                       n_val=expert_settings.get_val_size())
 
     # create model
