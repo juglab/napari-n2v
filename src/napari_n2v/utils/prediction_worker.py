@@ -234,6 +234,9 @@ def prediction_worker(widget):
         images = widget.images.value.data
         new_axes = axes
 
+        # remember scales for showing the final images
+        widget.scale = widget.images.value.scale
+
     # common parameters list
     parameters = {'widget': widget,
                   'model': model,
@@ -259,8 +262,17 @@ def _run_prediction(widget, model, axes, images, is_tiled=False, n_tiles=4):
 
     """
     # reshape data
-    _data, new_axes = reshape_data(images, axes)
-    yield {UpdateType.N_IMAGES: _data.shape[0]}
+    try:
+        _data, new_axes = reshape_data(images, axes)
+        yield {UpdateType.N_IMAGES: _data.shape[0]}
+    except ValueError as e:
+        print(str(e))
+        # TODO: napari 0.4.16 has ntf.show_error, but napari workflows requires 0.4.15 that doesn't
+        # ntf.show_error(str(e))
+        ntf.show_info(str(e))
+
+        # fail elegantly
+        return
 
     # create a numpy array to store the results
     # (note: napari and N2V have different axes orders)

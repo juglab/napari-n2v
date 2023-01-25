@@ -94,6 +94,7 @@ class TrainWidget(QWidget):
         self.weights_path = ''
         self.is_3D = False
         self.pred_train_name, self.pred_val_name = None, None
+        self.scale = None
 
         # actions
         self._set_actions()
@@ -382,7 +383,7 @@ class TrainWidget(QWidget):
                     self.viewer.layers.remove(self.pred_val_name)
 
                 # images are already in CSBDeep axes order
-                if type(self.x_train) == tuple:  # np.arrayarray
+                if type(self.x_train) == tuple:  # np.array
                     self.pred_count = len(self.x_train[0])
                 else:  # list of np.
                     self.pred_count = self.x_train.shape[0]
@@ -423,10 +424,16 @@ class TrainWidget(QWidget):
         self.predict_button.setText('Predict again')
 
         if self.pred_train is not None:
-            self.viewer.add_image(self.pred_train, name=self.pred_train_name, visible=True)
+            if self.scale is not None:
+                self.viewer.add_image(self.pred_train, name=self.pred_train_name, scale=self.scale, visible=True)
+            else:
+                self.viewer.add_image(self.pred_train, name=self.pred_train_name, visible=True)
 
         if self.pred_val is not None:
-            self.viewer.add_image(self.pred_val, name=self.pred_val_name, visible=True)
+            if self.scale is not None:
+                self.viewer.add_image(self.pred_val, name=self.pred_val_name, scale=self.scale, visible=True)
+            else:
+                self.viewer.add_image(self.pred_val, name=self.pred_val_name, visible=True)
 
     def _update_prediction(self, update):
         if self.state == State.RUNNING:
@@ -554,7 +561,7 @@ class TrainWidget(QWidget):
     def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
-                where = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
+                destination = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
                 export_type = self.save_choice.currentText()
 
                 # save
@@ -566,7 +573,7 @@ class TrainWidget(QWidget):
                     'output_path': self.outputs,
                     'tf_version': self.tf_version
                 }
-                save_model(where, **parameters)
+                save_model(destination, **parameters)
 
     def is_tiling_checked(self):
         return self.tiling_cbox.isChecked()

@@ -67,7 +67,7 @@ def test_structN2V_array(qtbot, is_3D, horizontal, text, array):
     widget_settings = TrainingSettingsWidget(widget)
 
     # set text and horizontal or not
-    widget_settings.structN2V_text.setText(text)
+    widget_settings.structN2V_mask.setText(text)
     widget_settings.is_horizontal = horizontal
 
     # get sttings

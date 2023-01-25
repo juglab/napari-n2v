@@ -53,7 +53,7 @@ International Symposium on Biomedical Imaging (ISBI)*. IEEE, 2020.
 
 ### N2V2
 
-Eva Hoeck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://openreview.net/forum?id=IZfQYb4lHVq)", (2022). 
+Eva Hoeck, Tim-Oliver Buchholz, et al. "[N2V2 - Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a Tweaked Network Architecture](https://arxiv.org/abs/2211.08512)", arXiv (2022). 
 
 ## Acknowledgements
 

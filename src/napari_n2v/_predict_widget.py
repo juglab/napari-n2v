@@ -97,7 +97,6 @@ class PredictWidget(QWidget):
 
         # add to main layout
         self.layout().addWidget(self.tabs)
-        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
 
         ###############################
         self._build_params_widgets()
@@ -110,6 +109,7 @@ class PredictWidget(QWidget):
         self.sample_image = None
         self.n_im = 0
         self.load_from_disk = False
+        self.scale = None
 
         # actions
         self.tabs.currentChanged.connect(self._update_tab_axes)
@@ -118,6 +118,12 @@ class PredictWidget(QWidget):
         self.images_folder.text_field.textChanged.connect(self._update_disk_axes)
         self.enable_3d.stateChanged.connect(self._update_3D)
         self.tiling_cbox.stateChanged.connect(self._update_tiling)
+
+        # update image layer
+        self.images.choices = [x for x in self.viewer.layers if type(x) is napari.layers.Image]
+
+        # update axes if necessary
+        self._update_layer_axes()
 
     def _build_params_widgets(self):
         self.params_group = QGroupBox()
@@ -282,7 +288,15 @@ class PredictWidget(QWidget):
         self.predict_button.setText('Predict again')
 
         if self.denoi_prediction is not None:
-            self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
+            if self.scale is not None:
+                self.viewer.add_image(
+                    self.denoi_prediction,
+                    name=DENOISING,
+                    scale = self.scale,
+                    visible=True
+                )
+            else:
+                self.viewer.add_image(self.denoi_prediction, name=DENOISING, visible=True)
 
     def get_model_path(self):
         return self.load_model_button.Model.value

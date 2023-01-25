@@ -14,8 +14,7 @@ from napari.utils import notifications as ntf
 
 from n2v.models import N2V, N2VConfig
 
-from napari_n2v.resources import DOC_BIOIMAGE
-from .expert_settings import get_default_settings
+from .expert_settings import get_default_settings, PixelManipulator
 
 REF_AXES = 'TSZYXC'
 NAPARI_AXES = 'TSZYXC'
@@ -23,6 +22,12 @@ NAPARI_AXES = 'TSZYXC'
 PREDICT = '_denoised'
 DENOISING = 'Denoised'
 SAMPLE = 'Example data'
+
+
+class Algorithm(Enum):
+    N2V = 0
+    StructN2V = 1
+    N2V2 = 2
 
 
 class State(Enum):
@@ -44,11 +49,63 @@ class UpdateType(Enum):
 
 class ModelSaveMode(Enum):
     MODELZOO = 'Bioimage.io'
+    KERAS = 'Keras'
     TF = 'TensorFlow'
 
     @classmethod
     def list(cls):
         return list(map(lambda c: c.value, cls))
+
+
+def which_algorithm(config: N2VConfig):
+    """
+    Checks which algorithm the model is configured for (N2V, N2V2, structN2V).
+    """
+    if config.structN2Vmask is not None:
+        return Algorithm.StructN2V
+    elif config.n2v_manipulator == PixelManipulator.MEDIAN.value and \
+            not config.unet_residual and config.blurpool and config.skip_skipone:
+        return Algorithm.N2V2
+    else:
+        return Algorithm.N2V
+
+
+def get_algorithm_details(algorithm: Algorithm):
+    """
+    Returns name, authors and citation related to the algorithm, formatted as expected by bioimage.io
+    model builder.
+    """
+    if algorithm == Algorithm.StructN2V:
+        name = 'structN2V'
+        authors = [{'name': "Coleman Broaddus"},
+                   {'name': "Alexander Krull"},
+                   {'name': "Martin Weigert"},
+                   {'name': "Uwe Schmidt"},
+                   {'name': "Gene Myers"}]
+        citation = [{'text': 'C. Broaddus, A. Krull, M. Weigert, U. Schmidt and G. Myers, \"Removing Structured Noise '
+                             'with Self-Supervised Blind-Spot Networks,\" 2020 IEEE 17th International Symposium on '
+                             'Biomedical Imaging (ISBI), 2020, pp. 159-163',
+                     'doi': '10.1109/ISBI45749.2020.9098336'}]
+    elif algorithm == Algorithm.N2V2:
+        name = 'N2V2'
+        authors = [{'name': "Eva Hoeck"},
+                   {'name': "Tim-Oliver Buchholz"},
+                   {'name': "Anselm Brachmann"},
+                   {'name': "Florian Jug"},
+                   {'name': "Alexander Freytag"}]
+        citation = [{'text': 'E. Hoeck, T.-O. Buchholz, A. Brachmann, F. Jug and A. Freytag, '
+                             '\"N2V2--Fixing Noise2Void Checkerboard Artifacts with Modified Sampling Strategies and a '
+                             'Tweaked Network Architecture.\" arXiv preprint arXiv:2211.08512 (2022).',
+                     'doi': '10.48550/arXiv.2211.08512'}]
+    else:
+        name = 'Noise2Void'
+        authors = [{'name': "Alexander Krull"}, {'name': "Tim-Oliver Buchholz"}, {'name': "Florian Jug"}]
+        citation = [{'text': 'A. Krull, T.-O. Buchholz and F. Jug, \"Noise2Void - Learning Denoising From Single '
+                             'Noisy Images,\" 2019 IEEE/CVF Conference on Computer Vision and Pattern Recognition  '
+                             '(CVPR), 2019, pp. 2124-2132',
+                     'doi': '10.48550/arXiv.1811.10980'}]
+
+    return name, authors, citation
 
 
 def create_config(X_patches,
@@ -80,6 +137,12 @@ def create_model(X_patches,
                  updater=None,
                  expert_settings=None,
                  train=True) -> N2V:
+    """
+    Create a model.
+
+    Warning: if Train=true, TF SavedModel bundle export will not be importable because
+    of missing custom functions (e.g. loss).
+    """
     from n2v.models import N2V
     with cwd(get_default_path()):
         # create config
@@ -162,43 +225,6 @@ def are_axes_valid(axes: str):
     return ('XY' in _axes) or ('YX' in _axes)
 
 
-def build_modelzoo(path: Union[str, Path], weights: str, inputs, outputs, tf_version: str, axes='byxc'):
-    import os
-    from bioimageio.core.build_spec import build_model
-
-    assert path.endswith('.bioimage.io.zip'), 'Path must end with .bioimage.io.zip'
-
-    tags_dim = '3d' if len(axes) == 5 else '2d'
-    doc = DOC_BIOIMAGE
-
-    head, _ = os.path.split(weights)
-    head = os.path.join(os.path.normcase(head), "config.json")
-    build_model(weight_uri=weights,
-                test_inputs=[inputs],
-                test_outputs=[outputs],
-                input_axes=[axes],
-                output_axes=[axes],
-                output_path=path,
-                name='Noise2Void',
-                description='Self-supervised denoising.',
-                authors=[{'name': "Tim-Oliver Buchholz"}, {'name': "Alexander Krull"}, {'name': "Florian Jug"}],
-                license="BSD-3-Clause",
-                documentation=os.path.abspath(doc),
-                tags=[tags_dim, 'tensorflow', 'unet', 'denoising'],
-                cite=[{'text': 'Noise2Void - Learning Denoising from Single Noisy Images',
-                       'doi': "10.48550/arXiv.1811.10980"}],
-                preprocessing=[[{
-                    "name": "zero_mean_unit_variance",
-                    "kwargs": {
-                        "axes": "yx",
-                        "mode": "per_dataset"
-                    }
-                }]],
-                tensorflow_version=tf_version,
-                attachments={"files": head}
-                )
-
-
 def list_diff(l1, l2):
     """
     Return the difference of two lists.
@@ -245,7 +271,7 @@ def reshape_data(x, axes: str):
         raise ValueError('X or Y dimension missing in axes.')
 
     if len(_axes) != len(_x.shape):
-        raise ValueError('Incompatible data and axes.')
+        raise ValueError(f'Incompatible data ({_x.shape}) and axes ({_axes}).')
 
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 
@@ -293,7 +319,7 @@ def reshape_napari(x, axes_in: str):
         raise ValueError('X or Y dimension missing in axes.')
 
     if len(_axes) != len(_x.shape):
-        raise ValueError('Incompatible data and axes.')
+        raise ValueError(f'Incompatible data ({_x.shape}) and axes ({_axes}).')
 
     assert len(list_diff(list(_axes), list(REF_AXES))) == 0  # all axes are part of REF_AXES
 

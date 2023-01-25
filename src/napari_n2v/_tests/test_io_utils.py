@@ -3,124 +3,225 @@ import pytest
 
 import numpy as np
 
+from marshmallow import ValidationError
+
 from .test_utils import (
     create_simple_model,
-    save_weights_h5,
     create_model_zoo_parameters
 )
 from napari_n2v.utils import (
-    load_weights,
-    build_modelzoo,
-    create_config,
     save_configuration,
     load_configuration,
-    cwd
+    cwd,
+    create_model
 )
-from napari_n2v.utils.io_utils import format_path_for_saving, save_tf, save_modelzoo
+from napari_n2v.utils.io_utils import (
+    load_model_keras,
+    save_model_keras,
+    load_model_tf,
+    save_model_tf,
+    load_model_bioimage,
+    save_model_bioimage,
+    format_path_for_saving,
+    build_modelzoo,
+    generate_bioimage_md,
+    Extensions,
+    CONFIG
+)
 
 
 ###################################################################
-# test load_weights
-def test_load_weights_wrong_path(tmp_path):
-    create_simple_model(tmp_path, (1, 16, 16, 1))
+# test keras
+@pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
+def test_save_model_keras(tmp_path, shape):
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
-    # create a new model and load from previous weights
-    model2 = create_simple_model(tmp_path, (1, 16, 16, 1))
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    save_model_keras(model_path, model)
 
-    with pytest.raises(FileNotFoundError):
-        load_weights(model2, 'definitely not a path')
-
-
-@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (64, 16, 32, 1), (1, 8, 16, 16, 1), (8, 32, 16, 64, 1)])
-def test_load_weights_h5(tmp_path, shape):
-    model = create_simple_model(tmp_path, shape)
-    path_to_h5 = save_weights_h5(model, tmp_path)
-
-    # create a new model and load previous weights
-    model2 = create_simple_model(tmp_path, shape)
-    load_weights(model2, str(path_to_h5))
+    # check if saved
+    weights_path = Path(str(model_path) + Extensions.KERAS_EXT.value)
+    config_path = Path(tmp_path, CONFIG)
+    assert weights_path.exists()
+    assert config_path.exists()
 
 
-@pytest.mark.parametrize('shape1, shape2', [((1, 16, 16, 1), (1, 8, 16, 16, 1)),
-                                            ((1, 8, 16, 16, 1), (1, 16, 16, 1))])
-def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
-    model = create_simple_model(tmp_path, shape1)
-    path_to_h5 = save_weights_h5(model, tmp_path)
+@pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
+def test_load_model_keras(tmp_path, shape, axes):
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
-    # create a new model with different shape
-    model2 = create_simple_model(tmp_path, shape2)
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    save_model_keras(model_path, model)
 
-    # set previous weights
-    with pytest.raises(ValueError):
-        load_weights(model2, str(path_to_h5))
+    # load weights
+    weight_path = Path(str(model_path) + Extensions.KERAS_EXT.value)
+    new_model = load_model_keras(weight_path)
+
+    # predict using both models
+    X = np.random.randn(*shape)
+    X_pred = model.predict(X, axes)
+    X_new_pred = new_model.predict(X, axes)
+
+    # compare results
+    assert (X_new_pred == X_pred).all()
+
+
+###################################################################
+# test TF
+@pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
+def test_save_model_TF(tmp_path, shape):
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
+
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    _ = save_model_tf(model_path, model)
+
+    # check if saved
+    weights_path = Path(str(model_path) + Extensions.TF_EXT.value)
+    print(weights_path)
+    assert weights_path.exists()
+
+
+@pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
+def test_load_model_TF(tmp_path, shape, axes):
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
+
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    saved_archive = save_model_tf(model_path, model)
+
+    # load new model
+    new_model = load_model_tf(saved_archive)
+
+    # predict using both models
+    X = np.random.randn(*shape)
+    X_pred = model.predict(X, axes)
+    X_new_pred = new_model.predict(X, axes)
+
+    # compare results
+    assert (X_new_pred == X_pred).all()
+
+
+###################################################################
+# test bioimage.io
+@pytest.mark.bioimage_io
+@pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'bzyxc')])
+def test_save_model_bioimage(tmp_path, shape, axes):
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
+
+    # create inputs and outputs
+    X = np.random.randn(*shape)
+    Y = np.random.randn(*shape)
+    input_path = str(Path(tmp_path, 'inputs.npy'))
+    output_path = str(Path(tmp_path, 'outputs.npy'))
+    np.save(input_path, X)
+    np.save(output_path, Y)
+
+    # tf version
+    tf_version = '42'
+
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    _ = save_model_bioimage(destination=model_path,
+                            model=model,
+                            axes=axes,
+                            input_path=input_path,
+                            output_path=output_path,
+                            tf_version=tf_version)
+
+    # check if saved
+    weights_path = Path(str(model_path) + Extensions.BIOIMAGE_EXT.value)
+    print(weights_path)
+    assert weights_path.exists()
 
 
 @pytest.mark.bioimage_io
-@pytest.mark.parametrize('shape', [(1, 16, 16, 1), (1, 8, 16, 32, 1), (1, 8, 16, 16, 1)])
-def test_load_weights_modelzoo(tmp_path, shape):
-    # save model_zoo
-    parameters = create_model_zoo_parameters(tmp_path, shape)
+@pytest.mark.parametrize('shape, axes', [((1, 16, 16, 16, 1), 'SZYXC')])
+def test_load_model_bioimage(tmp_path, shape, axes):
+    from bioimageio.core import load_resource_description
+    from bioimageio.core.resource_tests import test_model
 
-    with cwd(tmp_path):
-        build_modelzoo(*parameters)
+    # create model
+    X_patches = np.random.randn(3, *shape[1:])
+    model = create_model(X_patches, basedir=tmp_path)
 
-    # create a new model and load from previous weights
+    # create inputs and outputs
+    X = np.random.randn(*shape)
+    Y = model.predict(X, axes)
+    input_path = str(Path(tmp_path, 'inputs.npy'))
+    output_path = str(Path(tmp_path, 'outputs.npy'))
+    np.save(input_path, X)
+    np.save(output_path, Y)
+
+    # tf version
+    tf_version = '2.10.0'
+
+    # save model
+    model_path = Path(tmp_path, 'my_model')
+    path_to_model = save_model_bioimage(destination=model_path,
+                                        model=model,
+                                        axes=axes,
+                                        input_path=input_path,
+                                        output_path=output_path,
+                                        tf_version=tf_version)
+
+    # validate model using bioimageio.core
+    my_model = load_resource_description(path_to_model)
+    results = test_model(my_model)
+
+    for entry in results:
+        print(entry)
+        assert entry['status'] == 'passed'
+
+    # load new model
+    new_model = load_model_bioimage(path_to_model)
+
+    # predict using both models
+    X_pred = Y
+    X_new_pred = new_model.predict(X, axes)
+
+    # compare results
+    assert (X_new_pred == X_pred).all()
+    print(np.max(X_new_pred-X_pred))
+
+
+@pytest.mark.parametrize('shape', [(1, 16, 16, 16, 1)])
+def test_save_configuration(tmp_path, shape):
     model = create_simple_model(tmp_path, shape)
-    load_weights(model, str(parameters[0]))
-
-
-@pytest.mark.parametrize('shape1, shape2', [((1, 16, 16, 1), (1, 8, 16, 16, 1)),
-                                            ((1, 8, 16, 16, 1), (1, 16, 16, 1))])
-def test_load_weights_h5_incompatible_shapes(tmp_path, shape1, shape2):
-    model = create_simple_model(tmp_path, shape1)
-    path_to_h5 = str(save_weights_h5(model, tmp_path).absolute())
-
-    # second model
-    model2 = create_simple_model(tmp_path, shape2)
-
-    # set previous weights
-    with pytest.raises(ValueError):
-        load_weights(model2, path_to_h5)
-
-
-@pytest.mark.parametrize('shape, patch_shape', [((1, 16, 16, 1), (16, 16)),
-                                                ((1, 16, 16, 16, 1), (16, 16, 16))])
-def test_save_configuration(tmp_path, shape, patch_shape):
-    X_patches = np.concatenate([np.zeros(shape), np.ones(shape)], axis=0)
-    config = create_config(X_patches)
 
     # sanity check
-    assert config.is_valid()
+    assert model.config.is_valid()
 
     # save config
-    save_configuration(config, tmp_path)
+    save_configuration(tmp_path, model)
 
     # check if exists
-    assert Path(tmp_path / 'config.json').exists()
+    assert Path(tmp_path / CONFIG).exists()
 
 
 @pytest.mark.parametrize('shape, patch_shape', [((1, 16, 16, 1), (16, 16)),
                                                 ((1, 16, 16, 16, 1), (16, 16, 16))])
 def test_load_configuration(tmp_path, shape, patch_shape):
-    X_patches = np.concatenate([np.zeros(shape), np.ones(shape)], axis=0)
-    config = create_config(X_patches)
-
-    # sanity check
-    assert config.is_valid()
+    model = create_simple_model(tmp_path, shape)
 
     # save config
-    save_configuration(config, tmp_path)
+    save_configuration(tmp_path, model)
 
     # load config
-    config_loaded = load_configuration(tmp_path / 'config.json')
+    config_loaded = load_configuration(tmp_path / CONFIG)
     assert config_loaded.is_valid()
 
     # todo: this doesn't work because tuple != list, but some config entries accept both...
     # assert vars(config_loaded) == vars(config)
 
 
-#######################
-# save model
 @pytest.mark.parametrize('path', ['mydir',
                                   Path('mydir', 'my2dir'),
                                   'mymodel.h5',
@@ -151,65 +252,24 @@ def test_format_path_for_saving(tmp_path, path):
         assert where.parent.name == where.name
 
 
-@pytest.mark.parametrize('path', ['mydir',
-                                  'myfile.h5',
-                                  Path('mydir', 'myotherdir'),
-                                  Path('mydir', 'myfile.h5'),
-                                  Path('mydir', 'myotherdir', 'myfile.h5')])
-def test_save_tf(tmp_path, path):
-    # create model
-    model = create_simple_model(Path(tmp_path, 'source'), (1, 16, 16, 1))
+def test_generate_bioimage_md(tmp_path):
+    """
+    Test that the generated md file exists and that the content is as expected.
+    """
+    name = 'Arthur Dent'
+    text = 'In the beginning the Universe was created. This has made a lot of people very angry and been widely ' \
+           'regarded as a bad move.'
+    content = f'## {name}\n' \
+              f'This network was trained using [napari-n2v](https://pypi.org/project/napari-n2v/).\n\n' \
+              f'## Cite {name}\n' \
+              f'{text}'
 
-    # save weights
-    file = Path(tmp_path, path)
-    where = format_path_for_saving(file)
-    save_tf(where, model)
+    with cwd(tmp_path):
+        file = generate_bioimage_md(name, [{'text': text}])
 
-    # check if properly saved
-    if where.suffix != '.h5':
-        name = where.name + '.h5'
-        assert Path(where.parent, name).exists()
-        assert Path(where.parent, 'config.json').exists()
-    else:
-        assert where.exists()
+        assert file.exists()
 
-
-@pytest.mark.bioimage_io
-@pytest.mark.parametrize('path', ['mydir',
-                                  'myfile.bioimage.io.zip',
-                                  Path('mydir', 'myotherdir'),
-                                  Path('mydir', 'myfile.bioimage.io.zip'),
-                                  Path('mydir', 'myotherdir', 'myfile.bioimage.io.zip')])
-def test_save_bioimageio(tmp_path, path):
-    # create model
-    shape = (1, 16, 16, 1)
-    source = Path(tmp_path, 'source')
-    model = create_simple_model(source, shape)
-
-    # save weights
-    weights = Path(model.logdir, 'weights_best.h5')
-    model.keras_model.save_weights(weights)
-    assert weights.exists()
-
-    # save input/output
-    x = np.zeros(shape)
-    path_in = Path(source, 'inputs.npy')
-    path_out = Path(source, 'outputs.npy')
-    np.save(path_in, x)
-    np.save(path_out, x)
-    assert path_in.exists()
-    assert path_out.exists()
-
-    # get saving path
-    file = Path(tmp_path, path)
-    where = format_path_for_saving(file)
-
-    # save bioimage
-    save_modelzoo(where, model, 'SYXC', path_in, path_out, '3')
-
-    # check if properly saved
-    if where.suffix != '.zip':
-        name = where.name + '.bioimage.io.zip'
-        assert Path(where.parent, name).exists()
-    else:
-        assert where.exists()
+        # read file
+        with open(file, 'r') as f:
+            read = f.read()
+            assert read == content

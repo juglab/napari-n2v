@@ -36,7 +36,7 @@ class TrainingSettingsWidget(QDialog):
         use_n2v2 = default_settings['blurpool'] == True and \
                    default_settings['skip_skipone'] == True and \
                    default_settings['n2v_manipulator'] == 'median'
-
+        use_augment = True
         n_val = 5
 
         # groups
@@ -55,10 +55,20 @@ class TrainingSettingsWidget(QDialog):
         desc_n_validation = 'Number of patches used for validation. This is only used when no\n' \
                             'validation data is defined (i.e. validation is taken from the\n' \
                             'training patches.).'
-        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=20)  # todo: arbitrary max...
+        self.n_val = create_int_spinbox(value=n_val, min_value=1, max_value=1000)
         label_n_validation.setToolTip(desc_n_validation)
         self.n_val.setToolTip(desc_n_validation)
 
+        # augmentation
+        label_augment = QLabel('Use augmentation')
+        desc_augment = 'If checked, augmentation will be applied to the training patches. Note\n' \
+                       'that it is incompatible with structN2V (augmentation is off).'
+        self.augment = QCheckBox()
+        self.augment.setChecked(use_augment)
+        label_augment.setToolTip(desc_augment)
+        self.augment.setToolTip(desc_augment)
+
+        # n2v2
         label_n2v2 = QLabel('Use N2V2')
         desc_n2v2 = 'If checked, the model will use N2V2, a version of N2V that mitigates\n' \
                     'check-board artefacts. This only works with 2D data and uses a median\n' \
@@ -110,7 +120,7 @@ class TrainingSettingsWidget(QDialog):
         for s in get_losses():
             self.loss_combobox.addItem(s)
         self.loss = train_loss
-        self.loss_combobox.activated[str].connect(self._onLossChange)
+        self.loss_combobox.activated[str].connect(self._on_loss_change)
 
         self.loss_combobox.setToolTip(desc_loss)
         label_loss.setToolTip(desc_loss)
@@ -127,7 +137,7 @@ class TrainingSettingsWidget(QDialog):
         for s in get_pms():
             self.n2v_pmanipulator.addItem(s)
         self.n2v_pm = n2v_manipulator
-        self.n2v_pmanipulator.activated[str].connect(self._onPMChange)
+        self.n2v_pmanipulator.activated[str].connect(self._on_pm_change)
 
         self.n2v_pmanipulator.setToolTip(desc_n2v_manipulator)
         label_n2v_manipulator.setToolTip(desc_n2v_manipulator)
@@ -152,6 +162,7 @@ class TrainingSettingsWidget(QDialog):
         # arrange form layout
         form = QFormLayout()
         form.addRow(label_n_validation, self.n_val)
+        form.addRow(label_augment, self.augment)
         form.addRow(label_n2v2, self.n2v2)
         form.addRow(label_unet_depth, self.unet_depth)
         form.addRow(label_unet_kernelsize, self.unet_kernelsize)
@@ -169,7 +180,7 @@ class TrainingSettingsWidget(QDialog):
         ####################################################
         # create widgets for load model
         self.load_model_button = load_button()
-        self.load_model_button.native.setToolTip('Load a pre-trained model (weights and configuration)')
+        self.load_model_button.native.setToolTip('Load a pre-trained model (weights and configuration).')
 
         self.retraining.setLayout(QVBoxLayout())
         self.retraining.layout().addWidget(self.load_model_button.native)
@@ -185,24 +196,25 @@ class TrainingSettingsWidget(QDialog):
                          '  - the mask should be an odd sequence (otherwise 1 is automatically added)\n' \
                          '  - currently augmentation is disabled with structN2V'
 
-        self.structN2V_text = QLineEdit()
-        self.structN2V_text.setValidator(LettersValidator('0,1'))
+        self.structN2V_mask = QLineEdit()
+        self.structN2V_mask.setValidator(LettersValidator('0,1'))
+        self.structN2V_mask.textChanged.connect(self._on_structn2v_mask_change)  # remove augmentation if mask
 
         self.hv_choice = QComboBox()
         self.hv_choice.addItem('horizontal')
         self.hv_choice.addItem('vertical')
         self.hv_choice.setToolTip('Choose the orientation of the structN2V mask.')
         self.is_horizontal = True
-        self.hv_choice.activated[str].connect(self._onOrientationChanged)
+        self.hv_choice.activated[str].connect(self._on_structn2v_orientation_changed)
 
         label_n2v_perc_pix.setToolTip(desc_structn2v)
-        self.structN2V_text.setToolTip(desc_structn2v)
+        self.structN2V_mask.setToolTip(desc_structn2v)
 
         # arrange form layout
         form = QFormLayout()
 
         form.addRow('', self.hv_choice)
-        form.addRow(label_n2v_perc_pix, self.structN2V_text)
+        form.addRow(label_n2v_perc_pix, self.structN2V_mask)
 
         self.structN2V.setLayout(form)
 
@@ -212,13 +224,21 @@ class TrainingSettingsWidget(QDialog):
         self.layout().addWidget(self.expert_settings)
         self.layout().addWidget(self.structN2V)
 
-    def _onLossChange(self, val):
+    def _on_loss_change(self, val):
         self.loss = val
 
-    def _onPMChange(self, val):
+    def _on_pm_change(self, val):
         self.n2v_pm = val
 
-    def _onOrientationChanged(self, val):
+    def _on_structn2v_mask_change(self):
+        if self.has_mask():
+            self.augment.setChecked(False)
+            self.augment.setEnabled(False)
+        else:
+            self.augment.setChecked(True)
+            self.augment.setEnabled(True)
+
+    def _on_structn2v_orientation_changed(self, val):
         self.is_horizontal = val == 'horizontal'
 
     def _update_N2V2(self):
@@ -233,12 +253,12 @@ class TrainingSettingsWidget(QDialog):
             self.unet_residuals.setEnabled(False)
 
             # no structN2V
-            self.structN2V_text.setEnabled(False)
-            self.structN2V_text.setText('')
+            self.structN2V_mask.setEnabled(False)
+            self.structN2V_mask.setText('')
         else:
             self.n2v_pmanipulator.setEnabled(True)
             self.unet_residuals.setEnabled(True)
-            self.structN2V_text.setEnabled(True)
+            self.structN2V_mask.setEnabled(True)
 
             # change the pixel manipulator to default
             if self.n2v_pm == 'median':
@@ -254,15 +274,19 @@ class TrainingSettingsWidget(QDialog):
         return self.get_model_path().exists() and self.get_model_path().is_file()
 
     def has_mask(self):
-        return self.structN2V_text.text() == ''
+        return self.structN2V_mask.text() != ''
 
     def get_val_size(self):
         return self.n_val.value()
 
+    def use_augmentation(self):
+        return self.augment.isChecked()
+
     # todo could refactor this into a single function easy to test
+    # todo currently only 1D
     def _get_structN2V(self, is_3D=False):
-        if self.structN2V_text.text() != '':
-            mask = self.structN2V_text.text()
+        if self.structN2V_mask.text() != '':
+            mask = self.structN2V_mask.text()
 
             # make sure there's no multiple ',' and no space
             mask = mask.replace(' ', '')
@@ -307,7 +331,7 @@ class TrainingSettingsWidget(QDialog):
 
             # enable the pixel manipulator and structN2V
             self.n2v_pmanipulator.setEnabled(True)
-            self.structN2V_text.setEnabled(True)
+            self.structN2V_mask.setEnabled(True)
         else:
             # enable N2V2
             self.n2v2.setEnabled(True)

@@ -21,8 +21,3 @@ def test_juglab():
 def test_tf():
     assert Path(ICON_TF).exists()
     assert type(ICON_TF) == str
-
-
-def test_bioimage():
-    assert Path(DOC_BIOIMAGE).exists()
-    assert type(DOC_BIOIMAGE) == str

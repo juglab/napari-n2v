@@ -91,10 +91,11 @@ def train_worker(widget, pretrained_model=None, expert_settings=None):
         X_train, X_val = prepare_data(_x_train, _x_val, patch_shape)
     else:
         # if structN2V we should augment only by flip along the right directions, currently no augmentation
+        # augment if there is not structN2V mask and if augmentations are required
         X_train, X_val = prepare_data(_x_train,
                                       _x_val,
                                       patch_shape,
-                                      augment=expert_settings.has_mask(),
+                                      augment=(not expert_settings.has_mask()) and expert_settings.use_augmentation(),
                                       n_val=expert_settings.get_val_size())
 
     # create model
@@ -252,6 +253,9 @@ def load_images(widget):
     else:  # from layers
         x_train = widget.img_train.value.data
 
+        # remember scale for potentially showing the prediction
+        widget.scale = widget.img_train.value.scale
+
         # if the val combobox is not empty and train != val
         if widget.img_val.value is not None and\
                 widget.img_train.value.name != widget.img_val.value.name:
@@ -317,8 +321,9 @@ def train(model, X_patches, X_val_patches, updater):
         # TODO there's probably a lot more than that
         msg = 'AssertionError can be caused by n2v masked pixel % being too low'
         train_error(updater, e.args, msg)
-    except MemoryError as e:
-        msg = 'MemoryError can be an OOM error on the GPU (reduce batch and/or patch size, close other processes).'
+    except (MemoryError, InternalError) as e:
+        msg = 'MemoryError or InternalError can be an OOM error on the GPU (reduce batch and/or patch size, ' \
+              'close other processes). '
         train_error(updater, str(e), msg)
     except InvalidArgumentError as e:
         msg = 'InvalidArgumentError can be the result of a mismatch between shapes in the model, check input dims.'
