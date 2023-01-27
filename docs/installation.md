@@ -12,14 +12,11 @@ If you do not have conda, we recommend installing [miniconda](https://docs.conda
    ```
 2. Follow the [TensorFlow installation step-by-step](https://www.tensorflow.org/install/pip#linux_1) for your 
 operating system.
-3. Install `napari`:
+3. Install `napari` and `napari-n2v`:
    ```bash
-      pip install "napari[all]==0.4.15"
+      pip install "napari[all]==0.4.15" napari-n2v
    ```
-4. Install `napari-n2v`:
-   ```bash
-      pip install napari-n2v
-   ```
+
    
 ## macOS
 
@@ -35,7 +32,6 @@ operating system.
    ```bash
       pip install napari-n2v
    ```
-
 
 # Start napari-N2V
 
