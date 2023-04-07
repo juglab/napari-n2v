@@ -29,6 +29,15 @@ class Algorithm(Enum):
     StructN2V = 1
     N2V2 = 2
 
+    @staticmethod
+    def get_name(algorithm: int) -> str:
+        if algorithm == 1:
+            return 'structN2V'
+        elif algorithm == 2:
+            return 'N2V2'
+        else:
+            return 'Noise2Void'
+
 
 class State(Enum):
     IDLE = 0
