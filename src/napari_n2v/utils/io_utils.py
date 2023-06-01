@@ -167,6 +167,33 @@ def load_model_bioimage(weights_path: Union[str, Path]):
     return model
 
 
+# code from N2V repo, but input and output are converted to float64 to comply with bioimage core
+def predict_bioimageio(img: np.ndarray, model: N2V, axes: str, eps: float = 1e-6):
+    means = np.array([float(mean) for mean in model.config.means], ndmin=len(img.shape))
+    stds = np.array([float(std) for std in model.config.stds], ndmin=len(img.shape))
+
+    img = img.astype(np.float64)
+    if 'b' in axes:
+        axes = axes.replace('b', 'S').upper()
+    new_axes = axes
+    if 'C' in axes:
+        new_axes = axes.replace('C', '') + 'C'
+        normalized = np.moveaxis(img, axes.index('C'), -1)
+        normalized = (normalized - means) / (stds + eps)
+    else:
+        normalized = img[..., np.newaxis]
+        normalized = (normalized - means) / (stds + eps)
+        normalized = normalized[..., 0]
+
+    pred = model._predict_mean_and_scale(normalized, axes=new_axes, normalizer=None, resizer=None)[0]
+    pred = pred.astype(np.float64)
+    pred = model.__denormalize__(pred, means, stds)
+    if 'C' in axes:
+        pred = np.moveaxis(pred, -1, axes.index('C'))
+
+    return pred
+
+
 def save_model_bioimage(destination: Path,
                         model: N2V,
                         axes: str,
@@ -178,6 +205,15 @@ def save_model_bioimage(destination: Path,
         # save .h5 weights
         path_weights_h5 = Path('weights.h5')
         save_model_keras(path_weights_h5, model)
+
+        # convert input to float64
+        input = np.load(input_path)
+        input = input.astype(np.float64)
+        np.save(input_path, input)
+
+        # make model prediction
+        output = predict_bioimageio(input, model, axes)
+        np.save(output_path, output)
 
         # save configuration
         path_config = Path(CONFIG)
