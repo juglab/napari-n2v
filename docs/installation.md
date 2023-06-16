@@ -17,6 +17,18 @@ operating system.
       pip install "napari[all]==0.4.15" napari-n2v
    ```
 
+> Note: napari-n2v was tested with TensorFlow 2.7 and 2.10, cuda 11.2 and cudnn
+> 8.1.
+
+> **Important**: In order to access the GPU with Tensorflow, it is necessary to
+> export the CUDA library path in your conda environment. Installation 
+> instructions on the TensorFlow website do just that. 
+> For TF 2.10, we recommand running the following in your environment:
+> ```bash
+> mkdir -p $CONDA_PREFIX/etc/conda/activate.d
+> echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
+> ```
+
    
 ## macOS
 

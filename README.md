@@ -17,6 +17,10 @@ A self-supervised denoising algorithm now usable by all in napari.
 Check out the [documentation](https://juglab.github.io/napari-n2v/installation.html) for more detailed installation 
 instructions. 
 
+You can then start the napari plugin by clicking on "Plugins > napari_n2v > Training",
+or run the plugin directly from a [script](scripts/start_plugin.py).
+
+
 
 ## Quick demo
 
