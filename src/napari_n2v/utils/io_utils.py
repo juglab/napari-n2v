@@ -14,6 +14,8 @@ from .n2v_utils import (
     get_algorithm_details
 )
 
+from core_bioimage_io_widgets.widgets import BioImageModelWidget
+
 CONFIG = 'config.json'
 
 
@@ -372,25 +374,54 @@ def build_modelzoo(path: Union[str, Path],
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
 
-    build_model(weight_uri=weights,
-                test_inputs=[inputs],
-                test_outputs=[outputs],
-                input_axes=[axes],
-                output_axes=[axes],
-                output_path=path,
-                name=name,
-                description='Self-supervised denoising.',
-                authors=authors,
-                license="BSD-3-Clause",
-                documentation=doc,
-                tags=[tags_dim, 'unet', 'denoising', Algorithm.get_name(algorithm.value), 'tensorflow', 'napari'],
-                cite=cite,
-                preprocessing=[preprocessing],
-                postprocessing=[postprocessing],
-                tensorflow_version=tf_version,
-                attachments={"files": files},
-                **kwargs
-                )
+    # Create a model data dictonary compatible with the bioimageio's widget:
+    model_data = {}
+    model_data.update(kwargs)
+    model_data["name"] = name
+    model_data["description"] = "Self-supervised denoising."
+    model_data["license"] = "BSD-3-Clause"
+    model_data["documentation"] = doc
+    model_data["weights"] = {"keras_hdf5": {"source": weights}}
+    model_data["authors"] = authors
+    model_data["test_inputs"] = [inputs]
+    model_data["test_outputs"] = [outputs]
+    model_data["cite"] = cite
+    model_data["inputs"] = {
+        "name": "input_1", "axes": axes, "preprocessing": [preprocessing]
+    }
+    model_data["outputs"] = {
+        "name": "output_1", "axes": axes, "postprocessing": [postprocessing]
+    }
+    model_data["tags"] = [
+        tags_dim, "unet", "denoising",
+        Algorithm.get_name(algorithm.value), "tensorflow", "napari"
+    ]
+
+    # Create an instance of bioimage.io core ui widget
+    # and pass the model data to it:
+    bioimageio_win = BioImageModelWidget()
+    bioimageio_win.load_specs(model_data)
+    bioimageio_win.show()
+
+    # build_model(weight_uri=weights,
+    #             test_inputs=[inputs],
+    #             test_outputs=[outputs],
+    #             input_axes=[axes],
+    #             output_axes=[axes],
+    #             output_path=path,
+    #             name=name,
+    #             description='Self-supervised denoising.',
+    #             authors=authors,
+    #             license="BSD-3-Clause",
+    #             documentation=doc,
+    #             tags=[tags_dim, 'unet', 'denoising', Algorithm.get_name(algorithm.value), 'tensorflow', 'napari'],
+    #             cite=cite,
+    #             preprocessing=[preprocessing],
+    #             postprocessing=[postprocessing],
+    #             tensorflow_version=tf_version,
+    #             attachments={"files": files},
+    #             **kwargs
+    #             )
 
 
 def generate_bioimage_md(name: str, cite: list):
