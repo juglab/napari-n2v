@@ -1,3 +1,4 @@
+import datetime as dt
 from pathlib import Path
 from enum import Enum
 
@@ -376,32 +377,39 @@ def build_modelzoo(path: Union[str, Path],
 
     # Create a model data dictonary compatible with the bioimageio's widget:
     model_data = {}
+    model_data["format_version"] = "0.4.9"
+    model_data["type"] = "model"
+    model_data["timestamp"] = dt.datetime.now().isoformat()
     model_data.update(kwargs)
     model_data["name"] = name
     model_data["description"] = "Self-supervised denoising."
     model_data["license"] = "BSD-3-Clause"
-    model_data["documentation"] = doc
-    model_data["weights"] = {"keras_hdf5": {"source": weights}}
+    model_data["documentation"] = str(doc)
+    model_data["weights"] = {"keras_hdf5": {"source": str(weights)}}
     model_data["authors"] = authors
     model_data["test_inputs"] = [inputs]
     model_data["test_outputs"] = [outputs]
     model_data["cite"] = cite
-    model_data["inputs"] = {
-        "name": "input_1", "axes": axes, "preprocessing": [preprocessing]
-    }
-    model_data["outputs"] = {
-        "name": "output_1", "axes": axes, "postprocessing": [postprocessing]
-    }
     model_data["tags"] = [
         tags_dim, "unet", "denoising",
         Algorithm.get_name(algorithm.value), "tensorflow", "napari"
+    ]
+    np_data = np.load(inputs)
+    model_data["inputs"] = [
+        {"name": "input_1", "axes": axes, "shape": np_data.shape,
+            "data_type": "float32", "preprocessing": preprocessing}
+    ]
+    np_data = np.load(outputs)
+    model_data["outputs"] = [
+        {"name": "output_1", "axes": axes, "shape": np_data.shape,
+            "data_type": str(np_data.dtype), "postprocessing": postprocessing}
     ]
 
     # Create an instance of bioimage.io core ui widget
     # and pass the model data to it:
     bioimageio_win = BioImageModelWidget()
-    bioimageio_win.load_specs(model_data)
     bioimageio_win.show()
+    bioimageio_win.load_specs(model_data)
 
     # build_model(weight_uri=weights,
     #             test_inputs=[inputs],
