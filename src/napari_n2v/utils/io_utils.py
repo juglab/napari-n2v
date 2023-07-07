@@ -85,16 +85,16 @@ def load_model(weight_path: Union[str, Path]) -> N2V:
 
 
 def save_model(model_path: Union[str, Path], export_type, model, **kwargs):
-    # create target directory
-    model_path = format_path_for_saving(model_path)
-
     # save model
     if export_type == ModelSaveMode.MODELZOO.value:
-        save_model_bioimage(model_path.absolute(), model, **kwargs)
-    elif export_type == ModelSaveMode.KERAS.value:
-        save_model_keras(model_path.absolute(), model)
+        save_model_bioimage(model_path, model, **kwargs)
     else:
-        save_model_tf(model_path.absolute(), model)
+        # create target directory
+        model_path = format_path_for_saving(model_path)
+        if export_type == ModelSaveMode.KERAS.value:
+            save_model_keras(model_path.absolute(), model)
+        else:
+            save_model_tf(model_path.absolute(), model)
 
 
 def load_model_keras(weights_path: Union[str, Path]) -> N2V:
@@ -375,25 +375,25 @@ def build_modelzoo(path: Union[str, Path],
 
     tags_dim = '3d' if len(axes) == 5 else '2d'
 
-    # Create a model data dictonary compatible with the bioimageio's widget:
-    model_data = {}
-    model_data["format_version"] = "0.4.9"
-    model_data["type"] = "model"
-    model_data["timestamp"] = dt.datetime.now().isoformat()
-    model_data.update(kwargs)
-    model_data["name"] = name
-    model_data["description"] = "Self-supervised denoising."
-    model_data["license"] = "BSD-3-Clause"
-    model_data["documentation"] = str(doc)
-    model_data["weights"] = {"keras_hdf5": {"source": str(weights)}}
-    model_data["authors"] = authors
-    model_data["test_inputs"] = [inputs]
-    model_data["test_outputs"] = [outputs]
-    model_data["cite"] = cite
-    model_data["tags"] = [
-        tags_dim, "unet", "denoising",
-        Algorithm.get_name(algorithm.value), "tensorflow", "napari"
-    ]
+    # Create a model data dictionary compatible with the bioimageio's widget:
+    model_data = {
+        "format_version": "0.4.9",
+        "type": "model",
+        "timestamp": dt.datetime.now().isoformat(),
+        "name": name,
+        "description": "Self-supervised denoising.",
+        "license": "BSD-3-Clause",
+        "documentation": str(doc),
+        "weights": {"keras_hdf5": {"source": str(weights)}},
+        "authors": authors,
+        "test_inputs": [inputs],
+        "test_outputs": [outputs],
+        "cite": cite,
+        "tags": [
+            tags_dim, "unet", "denoising",
+            Algorithm.get_name(algorithm.value), "tensorflow", "napari"
+        ]
+    }
     np_data = np.load(inputs)
     model_data["inputs"] = [
         {"name": "input_1", "axes": axes, "shape": np_data.shape,
@@ -404,32 +404,13 @@ def build_modelzoo(path: Union[str, Path],
         {"name": "output_1", "axes": axes, "shape": np_data.shape,
             "data_type": str(np_data.dtype), "postprocessing": postprocessing}
     ]
+    model_data.update(kwargs)
 
     # Create an instance of bioimage.io core ui widget
     # and pass the model data to it:
     bioimageio_win = BioImageModelWidget()
     bioimageio_win.show()
     bioimageio_win.load_specs(model_data)
-
-    # build_model(weight_uri=weights,
-    #             test_inputs=[inputs],
-    #             test_outputs=[outputs],
-    #             input_axes=[axes],
-    #             output_axes=[axes],
-    #             output_path=path,
-    #             name=name,
-    #             description='Self-supervised denoising.',
-    #             authors=authors,
-    #             license="BSD-3-Clause",
-    #             documentation=doc,
-    #             tags=[tags_dim, 'unet', 'denoising', Algorithm.get_name(algorithm.value), 'tensorflow', 'napari'],
-    #             cite=cite,
-    #             preprocessing=[preprocessing],
-    #             postprocessing=[postprocessing],
-    #             tensorflow_version=tf_version,
-    #             attachments={"files": files},
-    #             **kwargs
-    #             )
 
 
 def generate_bioimage_md(name: str, cite: list):

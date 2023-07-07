@@ -561,8 +561,11 @@ class TrainWidget(QWidget):
     def _save_model(self):
         if self.state == State.IDLE:
             if self.model:
-                destination = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
                 export_type = self.save_choice.currentText()
+                if export_type != ModelSaveMode.MODELZOO.value:
+                    destination = Path(QFileDialog.getSaveFileName(caption='Save model')[0])
+                else:
+                    destination = "."  # path will be ask later in the export widget.
 
                 # save
                 parameters = {
