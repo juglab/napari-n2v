@@ -1,0 +1,13 @@
+name: np-n2v
+channels:
+  - conda-forge
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.9
+  - cudatoolkit=11.3
+  - cudnn=8.1
+  - pip
+  - pip:
+      - tensorflow<2.12
+      - "napari[all]"
