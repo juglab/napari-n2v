@@ -33,6 +33,7 @@ TensorFlow 2.13 (cuda 11.8 and cudnn 8.6) on a Linux machine (NVIDIA A40-16Q GPU
 > If you encounter the following problem with TF 2.13: "DNN library is not found", you
 > can try to run in your environment:
 > ```bash
+> CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))
 > export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
 > ```
    
