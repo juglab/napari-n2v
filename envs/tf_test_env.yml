@@ -11,3 +11,4 @@ dependencies:
   - pip:
       - tensorflow<2.12
       - "napari[all]"
+      - napari-n2v

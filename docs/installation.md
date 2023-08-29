@@ -14,7 +14,7 @@ If you do not have conda, we recommend installing [miniconda](https://docs.conda
 operating system.
 3. Install `napari` and `napari-n2v`:
    ```bash
-      pip install "napari[all]==0.4.15" napari-n2v
+      pip install "napari[all]" napari-n2v
    ```
 
 > Note: napari-n2v was tested with TensorFlow 2.7 and 2.10, cuda 11.2 and cudnn
@@ -37,7 +37,7 @@ operating system.
 
 1. Set up env with napari and pyqt5
    ```bash
-      conda create -n napari-n2v -c conda-forge python=3.9 pyqt imagecodecs napari=0.4.15
+      conda create -n napari-n2v -c conda-forge python=3.9 pyqt imagecodecs napari
    ```
 2. Install tensorflow following [Apple's instructions](https://developer.apple.com/metal/tensorflow-plugin/)
 3. Install napari-n2v
