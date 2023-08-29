@@ -17,18 +17,24 @@ operating system.
       pip install "napari[all]" napari-n2v
    ```
 
-> Note: napari-n2v was tested with TensorFlow 2.7 and 2.10, cuda 11.2 and cudnn
-> 8.1.
+> Note: napari-n2v was tested with TensorFlow 2.10 (cuda 11.2 and cudnn 8.1) and
+TensorFlow 2.13 (cuda 11.8 and cudnn 8.6) on a Linux machine (NVIDIA A40-16Q GPU).
 
 > **Important**: In order to access the GPU with Tensorflow, it is necessary to
 > export the CUDA library path in your conda environment. Installation 
 > instructions on the TensorFlow website do just that. 
+
 > For TF 2.10, we recommand running the following in your environment:
 > ```bash
 > mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 > echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
 > ```
 
+> If you encounter the following problem with TF 2.13: "DNN library is not found", you
+> can try to run in your environment:
+> ```bash
+> export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+> ```
    
 ## macOS
 
