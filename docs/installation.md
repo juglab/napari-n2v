@@ -14,21 +14,28 @@ If you do not have conda, we recommend installing [miniconda](https://docs.conda
 operating system.
 3. Install `napari` and `napari-n2v`:
    ```bash
-      pip install "napari[all]==0.4.15" napari-n2v
+      pip install "napari[all]" napari-n2v
    ```
 
-> Note: napari-n2v was tested with TensorFlow 2.7 and 2.10, cuda 11.2 and cudnn
-> 8.1.
+> Note: napari-n2v was tested with TensorFlow 2.10 (cuda 11.2 and cudnn 8.1) and
+TensorFlow 2.13 (cuda 11.8 and cudnn 8.6) on a Linux machine (NVIDIA A40-16Q GPU).
 
 > **Important**: In order to access the GPU with Tensorflow, it is necessary to
 > export the CUDA library path in your conda environment. Installation 
 > instructions on the TensorFlow website do just that. 
+
 > For TF 2.10, we recommand running the following in your environment:
 > ```bash
 > mkdir -p $CONDA_PREFIX/etc/conda/activate.d
 > echo 'export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/' > $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
 > ```
 
+> If you encounter the following problem with TF 2.13: "DNN library is not found", you
+> can try to run in your environment:
+> ```bash
+> CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))
+> export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:$CONDA_PREFIX/lib/
+> ```
    
 ## macOS
 
@@ -37,7 +44,7 @@ operating system.
 
 1. Set up env with napari and pyqt5
    ```bash
-      conda create -n napari-n2v -c conda-forge python=3.9 pyqt imagecodecs napari=0.4.15
+      conda create -n napari-n2v -c conda-forge python=3.9 pyqt imagecodecs napari
    ```
 2. Install tensorflow following [Apple's instructions](https://developer.apple.com/metal/tensorflow-plugin/)
 3. Install napari-n2v
