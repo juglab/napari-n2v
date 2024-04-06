@@ -10,9 +10,10 @@ If you do not have conda, we recommend installing [miniconda](https://docs.conda
        conda create -n napari-n2v python=3.9
        conda activate napari-n2v
    ```
-2. Follow the [TensorFlow installation step-by-step](https://www.tensorflow.org/install/pip#linux_1) for your 
+2. Follow the [installation step-by-step on n2v to install TensorFlow](https://github.com/juglab/n2v/blob/main/README.md) for your 
 operating system.
-3. Install `napari` and `napari-n2v`:
+   :warning: `n2v` is not compatible with TensorFlow 2.16 and upwards.
+4. Install `napari` and `napari-n2v`:
    ```bash
       pip install "napari[all]" napari-n2v
    ```
