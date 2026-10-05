@@ -7,6 +7,10 @@
 [![codecov](https://codecov.io/gh/juglab/napari-n2v/branch/main/graph/badge.svg)](https://codecov.io/gh/juglab/napari-n2v)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-n2v)](https://napari-hub.org/plugins/napari-n2v)
 
+> [!WARNING]
+> This napari plugin is no longer maintained since `n2v` has been archived. Use our up-to-date replacement [careamics-ui](https://github.com/CAREamics/careamics-ui)!
+
+
 A self-supervised denoising algorithm now usable by all in napari.
 
 <img src="https://raw.githubusercontent.com/juglab/napari-n2v/master/docs/images/noisy_denoised.png" width="800" />
